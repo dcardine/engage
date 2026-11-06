@@ -16,6 +16,12 @@ Monster camps guard treasure chests across the wilds; the minimap marks them (or
 ## Exploring
 The valley is about four times larger than before. The farther from the fort you go, the tougher the monsters, the richer the treasure, and the further out the stone quarries (middle distance) and crystal veins (the far edges). The minimap starts dark: it reveals ground that you or a co-op teammate have walked near, and remembers it in your save.
 
+## Days, nights and seasons
+A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
+
+## Things to find
+Meadows of yaks graze all around the valley. Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
+
 ## Knockouts and revives
 - Solo: you respawn at the Town Hall a few seconds after being knocked out, and your pack spills where you fell.
 - **Med Center** (Town Hall II): revives you where you fell, once every 5 minutes. In co-op each player has their own 5-minute timer.

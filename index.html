@@ -17,6 +17,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #game{position:fixed;inset:0;background:var(--ice)}
 #game canvas{display:block;width:100%;height:100%}
 #ov{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#nightV{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,rgba(20,32,70,0) 30%,rgba(10,18,44,.75) 100%)}
 #bliz{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity 2s;
   background:radial-gradient(ellipse at center,rgba(255,255,255,0) 35%,rgba(235,242,252,.95) 100%)}
 .hud{position:fixed;pointer-events:none;z-index:5}
@@ -110,6 +111,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="game"></div>
 <div id="bliz"></div>
+<div id="nightV"></div>
 <div id="ov"></div>
 <div id="joy"><i></i></div>
 
@@ -120,6 +122,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
     <div class="meter" id="mWarm"><span>Warmth</span><div class="bar"><i id="warmBar"></i></div><span id="warmTxt">0</span></div>
     <div class="meter" id="mFood"><span>Food</span><div class="bar"><i id="foodBar"></i></div><span id="foodTxt">—</span></div>
     <div class="meter"><span>Hero <span id="lvTxt">1</span></span><div class="bar"><i id="xpBar"></i></div><span id="xpPct">0%</span></div>
+    <div class="row"><span class="k" id="clockTxt">Day 1</span><span id="seasonTxt">Winter</span></div>
     <div class="row"><span class="k">Next raid</span><span id="waveTxt">—</span></div>
     <div class="row"><span class="k">Gear</span><span id="gearTxt">Camp axe</span></div>
     <div class="row" id="status" hidden></div>
@@ -183,7 +186,7 @@ function resize() {
   camera.updateProjectionMatrix(); renderer.setSize(w, h);
 }
 window.addEventListener('resize', resize); resize();
-scene.add(new THREE.HemisphereLight(0xeaf5ff, 0x7fa3d6, 0.95));   // cool blue fill: shade reads icy, not grey
+const hemi = new THREE.HemisphereLight(0xeaf5ff, 0x7fa3d6, 0.95); scene.add(hemi);   // cool blue fill: shade reads icy, not grey
 const sun = new THREE.DirectionalLight(0xfff0d8, 0.7);
 sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 90 });
@@ -250,6 +253,9 @@ flat(7, 6, 0xd8c3a0, 0, 9.5, 0.013);
 const lake = mk(new THREE.CircleGeometry(7, 9), 0xc6dcef, false, true); lake.rotation.x = -Math.PI / 2; lake.position.set(-24, 0.015, 45); scene.add(lake);
 
 // Static scenery is merged into a few big meshes so thousands of props cost only a few draw calls.
+// Snow-white vertices on trees are remembered so each season can repaint them (fresh leaves, summer green, autumn gold).
+const SEASON_GEOS = [];
+function seasonalGeo(g) { const c = g.attributes.color, flags = new Uint8Array(c.count); for (let i = 0; i < c.count; i++) flags[i] = c.getX(i) > 0.93 && c.getY(i) > 0.93 && c.getZ(i) > 0.93 ? 1 : 0; SEASON_GEOS.push([g, flags]); }
 const decorBuckets = new Map();
 const decorPending = [];
 function decor(obj) { decorPending.push(obj); }   // collected now, merged once the pieces are all attached
@@ -260,21 +266,38 @@ function collectDecor(obj) {
 function flushDecor() {
   decorPending.splice(0).forEach(collectDecor);
   for (const { mat: mt, items } of decorBuckets.values()) {
-    const pos = [], nor = [];
-    for (const [geo, mw] of items) { const g = (geo.index ? geo.toNonIndexed() : geo.clone()).applyMatrix4(mw); pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); }
+    const pos = [], nor = [], col = [];
+    for (const [geo, mw] of items) { const g = (geo.index ? geo.toNonIndexed() : geo.clone()).applyMatrix4(mw); pos.push(...g.attributes.position.array); nor.push(...g.attributes.normal.array); if (mt.vertexColors) col.push(...g.attributes.color.array); }
     const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    if (mt.vertexColors) { out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); seasonalGeo(out); }
     const m = new THREE.Mesh(out, mt); m.receiveShadow = true; m.matrixAutoUpdate = false; scene.add(m);
   }
   decorBuckets.clear();
 }
+const POND_OUT = new THREE.MeshLambertMaterial({ color: 0x8fd0f2 }), POND_IN = new THREE.MeshLambertMaterial({ color: 0xb9e6fb });
+const PATCH_MAT = new THREE.MeshLambertMaterial({ color: 0xf0f5fb });
+const LAKES = [], RUINS = [];
+(function lakesAndPatches() {
+  const rnd = mulberryEarly(5150), R = (a, b) => a + rnd() * (b - a);
+  // bare-ground and meadow patches that show through once the snow melts
+  for (let i = 0; i < 70; i++) { const x = R(-84, 84), z = R(-74, 94); if (Math.abs(x) < 24 && Math.abs(z - 10) < 24) continue;
+    const m = new THREE.Mesh(new THREE.CircleGeometry(R(3, 9), 12), PATCH_MAT); m.rotation.x = -Math.PI / 2; m.scale.set(1, R(0.5, 1), 1); m.rotation.z = R(0, 6); m.position.set(x, 0.006, z); decor(m); }
+  // lakes you have to walk around (frozen and walkable in winter)
+  let tries = 0;
+  while (LAKES.length < 7 && tries++ < 400) {
+    const x = R(-74, 74), z = R(-64, 84), r = R(6, 11);
+    if (Math.hypot(x - C.x, z - C.z) < 46 || LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + r + 8)) continue;
+    LAKES.push({ x, z, r });
+  }
+})();
 (function icePonds() {
   const rnd = mulberryEarly(7781), R = (a, b) => a + rnd() * (b - a);
   for (let i = 0; i < 20; i++) {
     let x, z; do { x = R(-80, 80); z = R(-70, 90); } while (Math.abs(x) < 34 && Math.abs(z - 10) < 34);
     const g = new THREE.Group(); g.position.set(x, 0.014, z); g.rotation.y = R(0, 6); decor(g);
     const rr = R(3, 5.5);
-    const outer = new THREE.Mesh(new THREE.CircleGeometry(rr, 10), new THREE.MeshLambertMaterial({ color: 0x8fd0f2 })); outer.rotation.x = -Math.PI / 2; outer.receiveShadow = true; g.add(outer);
-    const inner = new THREE.Mesh(new THREE.CircleGeometry(rr * 0.72, 9), new THREE.MeshLambertMaterial({ color: 0xb9e6fb })); inner.rotation.x = -Math.PI / 2; inner.position.y = 0.004; g.add(inner);
+    const outer = new THREE.Mesh(new THREE.CircleGeometry(rr, 10), POND_OUT); outer.rotation.x = -Math.PI / 2; outer.receiveShadow = true; g.add(outer);
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(rr * 0.72, 9), POND_IN); inner.rotation.x = -Math.PI / 2; inner.position.y = 0.004; g.add(inner);
     for (let k = 0; k < 5; k++) { const c = new THREE.Mesh(new THREE.PlaneGeometry(R(1, rr * 1.1), 0.05), basic(0x6fb8de)); c.rotation.set(-Math.PI / 2, 0, R(0, 6)); c.position.set(R(-rr / 2, rr / 2), 0.008, R(-rr / 2, rr / 2)); g.add(c); }
   }
 })();
@@ -317,6 +340,15 @@ function flushDecor() {
 })();
 flushDecor();
 const obstacles = [];
+const LAKE_WATER = new THREE.MeshLambertMaterial({ color: 0x9fd8f2 }), LAKE_SHORE = new THREE.MeshLambertMaterial({ color: 0xe9f2fb });
+function buildLakes() {
+  for (const L of LAKES) {
+    const shore = new THREE.Mesh(new THREE.CircleGeometry(L.r + 1.4, 24), LAKE_SHORE); shore.rotation.x = -Math.PI / 2; shore.position.set(L.x, 0.016, L.z); shore.receiveShadow = true; scene.add(shore);
+    const w = new THREE.Mesh(new THREE.CircleGeometry(L.r, 24), LAKE_WATER); w.rotation.x = -Math.PI / 2; w.position.set(L.x, 0.02, L.z); w.receiveShadow = true; scene.add(w);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.4, rk = mk(new THREE.DodecahedronGeometry(0.5 + (k % 3) * 0.2, 0), 0x8f9fb6); rk.position.set(L.x + Math.cos(a) * (L.r + 1), 0.25, L.z + Math.sin(a) * (L.r + 1)); scene.add(rk); }
+    L.obs = addObs(L.x, L.z, L.r - 0.3, () => S.season !== 3);
+  }
+}
 function addObs(x, z, r, on) { const o = { x, z, r, on: on || (() => true) }; obstacles.push(o); return o; }
 
 /* ================= overlay helpers ================= */
@@ -518,7 +550,7 @@ const AXE = [null, { dmg: 2, int: 0.55, range: 2.0, max: 2 }, { dmg: 3, int: 0.4
 const CAPS = [50, 100, 200, 400];
 const S = {
   wallet: 0, axe: 1, bag: 0, th: 1, xp: 0, lvl: 1, hp: 100, downT: 0, hurtT: 0,
-  civ: 6, warm: 48, food: 40, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
+  civ: 6, warm: 48, food: 40, clock: 60, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
   wave: 0, waveT: 150, raidOn: false, blizT: 170, blizOn: 0,
   towerLv: 0, masonry: false, guardLv: 0, bank: false, carpenter: false, mine: false, gold: false,
   step: 0, over: false, declineT: 0, growT: 0, taxT: 0, won: false, time: 0,
@@ -919,6 +951,41 @@ function modelTownHall() {
   popIn(g);
 }
 modelTownHall(); addObs(0, 15.2, 2.6);
+buildLakes();
+/* ---- ruins to explore: each hides a small cache, opened once ---- */
+function buildRuins() {
+  const rnd = mulberryEarly(3131), R = (a, b) => a + rnd() * (b - a);
+  const kinds = ['stones', 'cabin', 'tower', 'shrine', 'wreck'];
+  let tries = 0;
+  while (RUINS.length < 12 && tries++ < 600) {
+    const x = R(-80, 80), z = R(-70, 90);
+    if (Math.hypot(x - C.x, z - C.z) < 40 || LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + 6) || RUINS.some(r => Math.hypot(r.x - x, r.z - z) < 18)) continue;
+    const kind = kinds[RUINS.length % kinds.length], g = grp(x, z), stone = 0x8f9fb6;
+    if (kind === 'stones') for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, h = R(1.2, 2.4), st = mk(Box(0.6, h, 0.4), stone); st.position.set(Math.cos(a) * 3.2, h / 2, Math.sin(a) * 3.2); st.rotation.y = -a; st.rotation.z = R(-0.15, 0.15); g.add(st); const cap = mk(puff(0.35, 0.4), SNOWW, false); cap.position.set(st.position.x, h, st.position.z); g.add(cap); }
+    if (kind === 'cabin') { const w = mk(Box(3, 1.3, 2.4), 0x7a5a40); w.position.y = 0.65; g.add(w); const r1 = mk(Box(1.9, 0.14, 2.8), 0x5b3d2a); r1.position.set(-0.7, 1.75, 0); r1.rotation.z = 0.55; g.add(r1); const hole = mk(Box(0.9, 0.6, 0.1), 0x1d2128); hole.position.set(0.5, 0.7, 1.21); g.add(hole); for (let k = 0; k < 3; k++) { const pl = mk(Box(1.2, 0.1, 0.25), 0x6b4a2d); pl.position.set(R(1, 2.4), 0.06, R(-1.4, 1.4)); pl.rotation.y = R(0, 3); g.add(pl); } }
+    if (kind === 'tower') { const t = mk(Cyl(1.1, 1.3, 3.2, 10), stone); t.position.y = 1.6; g.add(t); const top = mk(Cyl(1.2, 1.1, 0.3, 10), 0x7a8aa0); top.position.y = 3.3; g.add(top); for (let k = 0; k < 4; k++) { const b = mk(Box(0.5, 0.4, 0.5), stone); b.position.set(R(-2.5, 2.5), 0.2, R(-2.5, 2.5)); g.add(b); } }
+    if (kind === 'shrine') { const base = mk(Cyl(1.8, 2, 0.4, 12), stone); base.position.y = 0.2; g.add(base); const sp = new THREE.Mesh(new THREE.ConeGeometry(0.4, 2.2, 6), crystalMatEarly); sp.position.y = 1.5; g.add(sp); [-1, 1].forEach(k2 => { const pil = mk(Cyl(0.18, 0.2, 2, 10), stone); pil.position.set(k2 * 1.3, 1.2, -0.6); g.add(pil); }); }
+    if (kind === 'wreck') { const hull = mk(new THREE.SphereGeometry(1.4, 16, 10, 0, TAU, Math.PI / 2, Math.PI / 2), 0x6b4a2d); hull.scale.set(1, 0.6, 2.4); hull.rotation.z = 0.35; hull.position.y = 0.55; g.add(hull); const mast = mk(Cyl(0.08, 0.1, 3, 8), 0x5b3d2a); mast.position.set(0.2, 1.6, 0.4); mast.rotation.z = 0.5; g.add(mast); const sail = mk(Box(1.3, 1, 0.04), 0xd8cdb8); sail.position.set(0.8, 2.2, 0.4); sail.rotation.z = 0.5; g.add(sail); }
+    const chest = mk(Box(0.8, 0.55, 0.55), 0x7a4a26); chest.position.set(0, 0.28, 0); if (kind === 'tower' || kind === 'cabin') chest.position.set(1.8, 0.28, 1.6); g.add(chest);
+    const band = mk(Box(0.84, 0.1, 0.6), 0xc9b26a); band.position.copy(chest.position); band.position.y += 0.12; g.add(band);
+    const ru = { x, z, kind, g, chest, band, cx: x + chest.position.x, cz: z + chest.position.z, opened: false, i: RUINS.length };
+    if (kind === 'cabin' || kind === 'tower') addObs(x, z, kind === 'tower' ? 1.3 : 1.4);
+    RUINS.push(ru);
+  }
+}
+buildRuins();
+const RUIN_NAMES = { stones: 'Standing stones', cabin: 'Abandoned cabin', tower: 'Ruined watchtower', shrine: 'Frozen shrine', wreck: 'Sled wreck' };
+function openRuin(ru) {
+  ru.opened = true; ru.chest.visible = ru.band.visible = false; (S.ruins = S.ruins || []).push(ru.i);
+  const roll = Math.random(), far = Math.hypot(ru.x - C.x, ru.z - C.z) > 65;
+  let msg;
+  if (roll < 0.3) { const n = far ? 60 : 25; dropItem('cash', ru.cx, ru.cz, n); msg = n + ' gold'; }
+  else if (roll < 0.55) { dropItem('log', ru.cx, ru.cz, 25); dropItem('stone', ru.cx + 1, ru.cz, 15); msg = 'logs and stone'; }
+  else if (roll < 0.75) { S.medkits = Math.min(5, S.medkits + 1); msg = 'a med kit'; }
+  else if (roll < 0.9) { S.bonusHp += 10; S.hp = heroMax(); msg = 'a heart stone (+10 health)'; (S.relics = S.relics || []).push('Heart Stone: +10 max health'); }
+  else { dropItem('ore', ru.cx, ru.cz, far ? 20 : 8); msg = 'crystals'; }
+  banner(RUIN_NAMES[ru.kind] + ' searched', true, 'Found ' + msg); burst(ru.cx, 1, ru.cz, 0xf2c14e, 16); gainXP(20);
+}
 const thPal = makePallet(4.6, 11.6);
 
 /* ---- towers ---- */
@@ -1215,27 +1282,32 @@ function guardPost(g) {
 /* ================= yaks ================= */
 const yaks = [];
 // Yaks graze north-east, just beyond the outermost wall, so meat is close from the start.
-const yakZone = () => ({ x0: 6, x1: 42, z0: -44, z1: Math.min(-6, outerRing().zN - 4) });
+// Herds graze in meadows scattered all around the valley, outside the town walls.
+const HERDS = (() => { const rnd = mulberryEarly(919), out = []; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + rnd() * 0.5, r = 36 + rnd() * 30; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
+const yakZone = () => ({ x0: -80, x1: 80, z0: -70, z1: 90 });
 function makeYak() {
   const g = new THREE.Group();
-  const body = mk(new THREE.SphereGeometry(0.5, 18, 12), 0x6b4a33); body.scale.set(1.05, 0.95, 1.6); body.position.y = 0.98; g.add(body);
-  const skirt = mk(Box(1.1, 0.4, 1.55), 0x4e3424); skirt.position.y = 0.62; g.add(skirt);
-  const hump = mk(Box(0.8, 0.35, 0.6), 0x5c3f2b); hump.position.set(0, 1.45, 0.35); g.add(hump);
-  const head = mk(Box(0.5, 0.5, 0.55), 0x4e3424); head.position.set(0, 1.05, 0.95); g.add(head);
-  const snout = mk(Box(0.36, 0.25, 0.2), 0x9b7b63); snout.position.set(0, 0.93, 1.25); g.add(snout);
-  [-1, 1].forEach(s => { const h = mk(Cone(0.08, 0.5, 5), 0xeee3cf); h.position.set(s * 0.35, 1.38, 0.95); h.rotation.z = -s * 1.1; g.add(h); });
-  const legs = [[-0.3, 0.5], [0.3, 0.5], [-0.3, -0.5], [0.3, -0.5]].map(([x, z]) => { const l = mk(Box(0.2, 0.55, 0.2), 0x3d291c); l.geometry.translate(0, -0.27, 0); l.position.set(x, 0.55, z); g.add(l); return l; });
+  const body = mk(new THREE.SphereGeometry(0.52, 18, 12), 0x6b4a33); body.scale.set(1.05, 0.9, 1.55); body.position.y = 1.2; g.add(body);
+  const shag = mk(new THREE.SphereGeometry(0.55, 16, 10).scale(1.1, 0.45, 1.5), 0x4e3424); shag.position.y = 0.92; g.add(shag);
+  const hump = mk(new THREE.SphereGeometry(0.36, 14, 10), 0x5c3f2b); hump.position.set(0, 1.62, 0.35); g.add(hump);
+  const head = mk(new THREE.SphereGeometry(0.3, 14, 10).scale(1, 0.95, 1.1), 0x4e3424); head.position.set(0, 1.25, 0.98); g.add(head);
+  const snout = mk(new THREE.SphereGeometry(0.17, 12, 8), 0x9b7b63); snout.position.set(0, 1.12, 1.24); g.add(snout);
+  [-1, 1].forEach(s => { const h = mk(Cone(0.08, 0.5, 6), 0xeee3cf); h.position.set(s * 0.32, 1.52, 0.98); h.rotation.z = -s * 1.1; g.add(h);
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), basic(0x1d2128)); e.position.set(s * 0.13, 1.33, 1.22); g.add(e); });
+  const legs = [[-0.3, 0.5], [0.3, 0.5], [-0.3, -0.5], [0.3, -0.5]].map(([x, z]) => { const l = mk(Cyl(0.11, 0.09, 0.85, 10), 0x3d291c); l.geometry.translate(0, -0.42, 0); l.position.set(x, 0.85, z);
+    const hoof = mk(Cyl(0.11, 0.12, 0.1, 10), 0x2a1c12); hoof.position.y = -0.82; l.add(hoof); g.add(l); return l; });
   return { g, legs };
 }
 let yakId = 0;
 function spawnYak(px, pz, id) {
-  const m = makeYak(), Z = yakZone(); let x = px, z = pz, n = 0;
-  if (x === undefined) do { x = rand(Z.x0, Z.x1); z = rand(Math.max(Z.z0, Z.z1 - 22), Z.z1); } while (n++ < 20 && d2(x, z, player.x, player.z) < 100);
+  const m = makeYak(); let x = px, z = pz, n = 0;
+  const home = HERDS[Math.random() * HERDS.length | 0];
+  if (x === undefined) do { x = home[0] + rand(-7, 7); z = home[1] + rand(-7, 7); } while (n++ < 20 && d2(x, z, player.x, player.z) < 100);
   m.g.position.set(x, 0, z); scene.add(m.g);
-  const y = { ...m, id: id || ++yakId, x, z, nx: x, nz: z, hp: 6, max: 6, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
+  const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: 6, max: 6, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
   yaks.push(y); return y;
 }
-for (let i = 0; i < 12; i++) spawnYak();
+for (let i = 0; i < 18; i++) spawnYak();
 
 /* ================= enemies ================= */
 const enemies = [];
@@ -1300,7 +1372,7 @@ function hitRock(r, dmg) {
 function damageYak(y, dmg, by) {
   y.hp -= dmg; y.shake = 0.25; y.flee = 1.4; burst(y.x, 1, y.z, 0xd9524b, 3, 2); if (!by) sfx(240, 0.06, 'sawtooth', 0.03);
   const src = by || player, a = Math.atan2(y.x - src.x, y.z - src.z);
-  const Z = yakZone(); y.tx = clamp(y.x + Math.sin(a) * 6, Z.x0 - 4, Z.x1); y.tz = clamp(y.z + Math.cos(a) * 6, Z.z0, Z.z1 + 2);
+  y.tx = clamp(y.x + Math.sin(a) * 6, BOUNDS.x0, BOUNDS.x1); y.tz = clamp(y.z + Math.cos(a) * 6, BOUNDS.z0, BOUNDS.z1);
   if (y.hp <= 0) {
     y.alive = false; scene.remove(y.g); y.bar.remove();
     if (by && by.remote) netGive(by.remote, 'meat', 5);
@@ -1558,7 +1630,7 @@ function update(dt) {
     if (!isGuest()) {
     if (y.flee > 0) { y.flee -= dt; sp = 3.2; }
     else if (y.idle > 0) y.idle -= dt;
-    else { sp = 1.1; const Z = yakZone(); if (d2(y.x, y.z, y.tx, y.tz) < 0.3 || y.tz > Z.z1 + 1) { y.idle = d2(y.x, y.z, y.tx, y.tz) < 0.3 ? rand(1, 4) : 0; y.tx = rand(Z.x0, Z.x1); y.tz = rand(Math.max(Z.z0, Z.z1 - 24), Z.z1); } }
+    else { sp = 1.1; if (d2(y.x, y.z, y.tx, y.tz) < 0.3 || inSquare(y.tx, y.tz, outerRing().h + 3)) { y.idle = rand(1, 4); y.tx = y.hx + rand(-9, 9); y.tz = y.hz + rand(-9, 9); } }
     if (sp > 0) { const dx = y.tx - y.x, dz = y.tz - y.z, L = Math.hypot(dx, dz); if (L > 0.1) { y.x += dx / L * sp * dt; y.z += dz / L * sp * dt; y.rot = turnTo(y.rot, Math.atan2(dx, dz), 0.12); y.walkT += dt * sp; } }
     }
     const s = y.shake > 0 ? 1 + Math.sin((y.shake -= dt) * 40) * 0.08 : 1;
@@ -1582,7 +1654,7 @@ function update(dt) {
   /* --- town survival --- */
   const P = pop();
   const bliz = S.blizOn > 0 ? 2.5 : 1;
-  S.warm = clamp(S.warm - P * [0, 0.022, 0.032, 0.04][S.th] * (1 - 0.25 * S.warmUp) * bliz * dt, 0, warmCap());
+  S.warm = clamp(S.warm - P * [0, 0.022, 0.032, 0.04][S.th] * (1 - 0.25 * S.warmUp) * bliz * SEASONS[S.season].warm * nightCold() * dt, 0, warmCap());
   if (S.cook) S.food = clamp(S.food - P * 0.015 * (1 - 0.25 * S.foodUp) * dt, 0, foodCap());
   const freezing = S.warm <= 0, starving = S.cook && S.food <= 0;
   if (!isGuest()) {
@@ -1615,7 +1687,7 @@ function update(dt) {
   // blizzards
   if (!isGuest()) S.blizT -= dt;
   if (isGuest()) {} else if (S.blizOn > 0) { S.blizOn -= dt; if (S.blizOn <= 0) { $('bliz').style.opacity = 0; snowMat.size = 0.16; S.blizT = rand(150, 210); } }
-  else if (S.blizT <= 0 && S.th >= 2) { S.blizOn = 30; $('bliz').style.opacity = 0.75; snowMat.size = 0.3; banner('Blizzard!', false, 'Firewood burns 2.5× faster'); sfx(160, 0.6, 'sine', 0.05); }
+  else if (S.blizT <= 0 && S.th >= 2 && S.season === 3) { S.blizOn = 30; $('bliz').style.opacity = 0.75; snowMat.size = 0.3; banner('Blizzard!', false, 'Firewood burns 2.5× faster'); sfx(160, 0.6, 'sine', 0.05); }
 
   /* --- stalls --- */
   const queueTarget = Math.min(5, Math.max(0, S.civ - 1));
@@ -1805,7 +1877,7 @@ function update(dt) {
     S.waveT -= dt;
     if (S.waveT <= 0) {
       S.raidOn = true; S.wave++;
-      const nW = 2 + S.wave, nY = S.wave >= 4 && S.wave % 3 === 1 ? Math.ceil(S.wave / 4) : 0;
+      const nW = 2 + S.wave + (isNight() ? 2 : 0), nY = S.wave >= 4 && S.wave % 3 === 1 ? Math.ceil(S.wave / 4) : 0;
       for (let i = 0; i < nW; i++) spawnEnemy('wolf', S.wave);
       for (let i = 0; i < nY; i++) spawnEnemy('yeti', S.wave);
       banner('Raid ' + S.wave + '!', false, nW + ' wolves' + (nY ? ' and ' + nY + ' yeti' : '') + ' incoming');
@@ -1863,7 +1935,7 @@ function update(dt) {
   }
 
   netTick(dt);
-  updateFog(dt); updateWilds(dt); drawMini(dt);
+  updateCalendar(dt); updateFog(dt); updateWilds(dt); drawMini(dt);
   $('gearTxt').textContent = (S.medkits ? S.medkits + ' med kit' + (S.medkits > 1 ? 's' : '') + ' \u00b7 ' : '') + (S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')) + (S.armorLv >= 0 ? ' \u00b7 ' + ARMORS[S.armorLv].n : '');
 
   /* --- flyers / particles / floats / growth --- */
@@ -2114,13 +2186,13 @@ function updateWilds(dt) {
   for (let i = wilds.length - 1; i >= 0; i--) {
     const w = wilds[i]; if (!w.alive) { wilds.splice(i, 1); continue; }
     const T = w.T, dp = Math.sqrt(d2(w.x, w.z, player.x, player.z)), dh = Math.hypot(w.x - w.hx, w.z - w.hz);
-    if (S.downT <= 0 && dp < 7) w.aggro = true;
+    if (S.downT <= 0 && dp < (isNight() ? 10 : 7)) w.aggro = true;
     if (S.downT > 0 || dh > 16) w.aggro = false;
     let moving = false;
     if (w.aggro) {
       const reach = 1.1 + T.size * 0.5;
       if (dp > reach) { w.x += (player.x - w.x) / dp * T.speed * dt; w.z += (player.z - w.z) / dp * T.speed * dt; moving = true; }
-      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtHero(T.dmg * 1.7 * (1 + S.th * 0.25) * w.dm); } }
+      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtHero(T.dmg * 1.7 * (1 + S.th * 0.25) * w.dm * nightMean()); } }
       w.rot = turnTo(w.rot, Math.atan2(player.x - w.x, player.z - w.z), 0.2);
     } else if (dh > 0.4) {
       w.x += (w.hx - w.x) / dh * T.speed * 0.6 * dt; w.z += (w.hz - w.z) / dh * T.speed * 0.6 * dt; moving = true;
@@ -2168,6 +2240,8 @@ function drawMini(dt) {
   c.fillStyle = '#5b9a86'; for (const t of CHOP) if (t.alive && !t.gone && seen(t.x, t.z)) c.fillRect(MX(t.x) - 1, MZ(t.z) - 1, 2, 2);
   for (const r of rocks) if (r.alive && !r.hidden && seen(r.x, r.z)) { c.fillStyle = r.kind === 'gold' ? '#e0a92c' : '#7d8794'; c.fillRect(MX(r.x) - 3, MZ(r.z) - 3, 6, 6); }
   c.fillStyle = '#7a5230'; for (const y of yaks) if (y.alive && seen(y.x, y.z)) { c.beginPath(); c.arc(MX(y.x), MZ(y.z), 3, 0, TAU); c.fill(); }
+  for (const L of LAKES) if (seen(L.x, L.z)) { c.fillStyle = S.season === 3 ? '#a9daf3' : '#3f97cc'; c.beginPath(); c.arc(MX(L.x), MZ(L.z), L.r * 240 / 180, 0, TAU); c.fill(); }
+  for (const ru of RUINS) if (seen(ru.x, ru.z)) { c.fillStyle = ru.opened ? '#9aa4b1' : '#d9b25a'; c.fillRect(MX(ru.x) - 3.5, MZ(ru.z) - 3.5, 7, 7); }
   for (const r of activeRings()) { c.strokeStyle = '#8a5a36'; c.lineWidth = 3; c.strokeRect(MX(-r.h), MZ(r.zN), MX(r.h) - MX(-r.h), MZ(r.zS) - MZ(r.zN)); }
   for (const P of piles) if (P.on) { c.fillStyle = '#ff8a3d'; c.fillRect(MX(P.x) - 3, MZ(P.z) - 3, 6, 6); }
   for (const cp of wildCamps) {
@@ -2194,6 +2268,55 @@ function syncToggles() {
   [['cLog', 'log'], ['cMeat', 'meat'], ['cStone', 'stone'], ['cOre', 'ore']].forEach(([id, t]) => $(id).classList.toggle('off', !!S.noCollect[t]));
 }
 
+/* ================= time of day & seasons =================
+   One day lasts 4 minutes (night is the last quarter); every 3 days the season turns,
+   so a year is 12 days. Night is colder and the wilds turn meaner. */
+const DAY_LEN = 240, DAYS_PER_SEASON = 3;
+const SEASONS = [
+  { n: 'Spring', ground: 0xb9d99c, patch: 0x8fbf6a, snow: 0xb7dd9a, leaf: 0x8fd16e, pond: [0x5fb3d8, 0x86c9e8], lake: 0x5aa9d6, shore: 0xc9dfb0, sky: 0xcfe8f7, warm: 0.8, flakes: 0 },
+  { n: 'Summer', ground: 0x86bd62, patch: 0x679f4a, snow: 0x7fbf5c, leaf: 0x4fa955, pond: [0x3f9fd0, 0x6dbde6], lake: 0x3c97cc, shore: 0xd9cfa0, sky: 0xbfe2fb, warm: 0.45, flakes: 0 },
+  { n: 'Autumn', ground: 0xc9b878, patch: 0xae7c3c, snow: 0xd29a4a, leaf: 0xe08a34, pond: [0x5b9cc4, 0x7fb6d6], lake: 0x568fb8, shore: 0xcdb98a, sky: 0xd8e2ea, warm: 1.0, flakes: 1 },
+  { n: 'Winter', ground: 0xf6faff, patch: 0xeaf1f9, snow: 0xfbfdff, leaf: 0xfbfdff, pond: [0x8fd0f2, 0xb9e6fb], lake: 0x9fd8f2, shore: 0xe9f2fb, sky: 0xd6e9f8, warm: 1.4, flakes: 2 },
+];
+const timeOfDay = () => (S.clock % DAY_LEN) / DAY_LEN;            // 0 = dawn
+const dayNum = () => Math.floor(S.clock / DAY_LEN) + 1;
+const daylight = () => { const t = timeOfDay(); return t < 0.72 ? 1 : t < 0.78 ? 1 - (t - 0.72) / 0.06 : t < 0.94 ? 0 : (t - 0.94) / 0.06; };
+const isNight = () => daylight() < 0.5;
+const nightCold = () => 1 + (1 - daylight()) * (S.season === 3 ? 0.7 : 0.35);
+const nightMean = () => 1 + (1 - daylight()) * 0.4;
+const _c1 = new THREE.Color(), _c2 = new THREE.Color();
+let appliedSeason = -1;
+function applySeason(i) {
+  const SE = SEASONS[i]; appliedSeason = i;
+  ground.material.color.setHex(SE.ground); PATCH_MAT.color.setHex(SE.patch); mat(SNOWW).color.setHex(SE.snow);
+  POND_OUT.color.setHex(SE.pond[0]); POND_IN.color.setHex(SE.pond[1]); LAKE_WATER.color.setHex(SE.lake); LAKE_SHORE.color.setHex(SE.shore);
+  _c1.setHex(SE.leaf);
+  for (const [g, flags] of SEASON_GEOS) { const c = g.attributes.color; for (let k = 0; k < flags.length; k++) if (flags[k]) c.setXYZ(k, _c1.r, _c1.g, _c1.b); c.needsUpdate = true; }
+  snowMat.color.setHex(SE.flakes === 1 ? 0xe08a34 : 0xffffff); snow.visible = SE.flakes > 0;
+}
+TREE_GEOS.forEach(seasonalGeo);
+const pLight = new THREE.PointLight(0xffc98a, 0, 14); scene.add(pLight);
+function updateCalendar(dt) {
+  if (!isGuest()) S.clock += dt;
+  const season = (Math.floor(S.clock / (DAY_LEN * DAYS_PER_SEASON)) + 3) % 4;   // the first season is winter
+  if (season !== S.season || appliedSeason < 0) {
+    const changed = appliedSeason >= 0 && season !== S.season; S.season = season; applySeason(season);
+    if (changed) banner(SEASONS[season].n + ' arrives', true, ['Snow melts and the meadows wake', 'Warm days: firewood lasts much longer', 'Leaves turn and nights grow cold', 'Deep cold: lakes freeze over, firewood burns fast'][season]);
+  }
+  const d = daylight(), SE = SEASONS[S.season];
+  _c1.setHex(0x1b2a52); _c2.setHex(SE.sky); scene.background.copy(_c1).lerp(_c2, d);
+  sun.intensity = 0.12 + 0.6 * d; hemi.intensity = 0.4 + 0.55 * d;
+  _c1.setHex(0x6f86c8); _c2.setHex(0xeaf5ff); hemi.color.copy(_c1).lerp(_c2, d);
+  $('nightV').style.opacity = String((1 - d) * 0.85);
+  pLight.intensity = (1 - d) * 1.4; pLight.position.set(player.x, 3, player.z);
+  const t = timeOfDay(), hrs = (6 + t * 24) % 24;
+  $('clockTxt').textContent = 'Day ' + dayNum() + ' · ' + String(Math.floor(hrs)).padStart(2, '0') + ':' + String(Math.floor(hrs % 1 * 60 / 10) * 10).padStart(2, '0') + (isNight() ? ' ☾' : '');
+  $('seasonTxt').textContent = SE.n + ' · Year ' + (Math.floor(S.clock / (DAY_LEN * DAYS_PER_SEASON * 4)) + 1);
+  if (S.prevNight !== isNight()) { if (S.prevNight !== undefined && isNight()) banner('Night falls', false, 'Colder, and the wilds turn dangerous'); S.prevNight = isNight(); }
+  // ruins: walk up to a cache to search it
+  for (const ru of RUINS) if (!ru.opened && S.downT <= 0 && d2(ru.cx, ru.cz, player.x, player.z) < 2.2 * 2.2) openRuin(ru);
+}
+
 /* ================= co-op multiplayer =================
    The first player in the room hosts: their game runs the town, raiders and
    workers. Guests play their own hero in the same world. Guests send what
@@ -2203,7 +2326,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['pick', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'axe', 'bag', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['clock', 'season', 'pick', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'axe', 'bag', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -2471,7 +2594,7 @@ $('coop').addEventListener('click', e => {
 });
 
 /* ================= save / load (this browser only) ================= */
-const SAVE_KEY = 'frosthold-save-v4';
+const SAVE_KEY = 'frosthold-save-v5';
 const WORKER_HOME = { logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function saveGame() {
@@ -2510,6 +2633,7 @@ function loadGame() {
     for (let i = 0; i < d.guards; i++) spawnGuard(rand(-2, 2), outerRing().zN + 4);
     (d.towers || []).forEach((lv, i) => { const t = towers[i]; if (!t) return; for (let k = 0; k < lv; k++) { t.pad.level = k + 1; t.pad.onBuy(k + 1); } drawPad(t.pad); });
     fogLoad(d.fog);
+    (S.ruins || []).forEach(i => { const ru = RUINS[i]; if (ru) { ru.opened = true; ru.chest.visible = ru.band.visible = false; } });
     (d.piles || []).forEach((n, i) => { if (piles[i]) { piles[i].n = n; syncPile(piles[i]); } });
     d.pallets.forEach((a, i) => { if (pallets[i]) { pallets[i].amount = a; syncPallet(pallets[i]); } });
     d.stock.forEach((n, i) => { const st = stalls[i]; if (!st) return; st.stock = n; for (let k = 0; k < Math.min(n, 32); k++) { const cm = itemMesh(st.type); cm.position.copy(counterSlot(st, k)); scene.add(cm); st.counter.push(cm); } for (let k = 32; k < n; k++) st.counter.push(null); });
