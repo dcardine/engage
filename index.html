@@ -57,7 +57,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #mini{width:118px;height:118px;right:calc(8px + env(safe-area-inset-right,0px));top:calc(196px + env(safe-area-inset-top,0px));border-radius:14px;border:1px solid var(--panel-line);background:rgba(18,30,50,.6)}
 #res .chip:not(#cCash){pointer-events:auto;cursor:pointer}
 .chip.off{opacity:.45}.chip.off span{text-decoration:line-through}
-#logdest,#inviteBtn,#coop,#newg{pointer-events:auto;
+#logdest,#statsBtn,#inviteBtn,#coop,#newg{pointer-events:auto;
   border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:13px/1 var(--display);letter-spacing:.06em;padding:9px 12px;border-radius:12px;cursor:pointer}
 #newg.confirm{background:#b8452e}
 #pause{pointer-events:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));right:calc(14px + env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:16px/1 var(--display);cursor:pointer}
@@ -69,6 +69,15 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(22,35,58,.16);
   border:2px solid rgba(255,255,255,.7);pointer-events:none;display:none;z-index:6}
 #joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+#stats{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
+#stats .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px 18px 14px;width:min(340px,100%);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#stats h2{margin:0 0 8px;font:26px/1 var(--display);color:#2b4a74;text-align:center}
+#stats h3{margin:12px 0 4px;font:13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ember)}
+#stats dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0;font:700 14px/1.3 var(--body)}
+#stats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+#stats .none{font:700 13px/1.3 var(--body);opacity:.65;margin:0}
+#stats ul{margin:0;padding-left:18px;font:700 13px/1.4 var(--body)}
+#closeStats{display:block;margin:14px auto 0;border:0;border-radius:12px;background:#2b4a74;color:#fff;font:16px/1 var(--display);padding:10px 20px;cursor:pointer}
 #invite{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
 #invite .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:20px;max-width:330px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #invite h2{margin:0 0 6px;font:28px/1 var(--display);color:#2b4a74}
@@ -131,8 +140,9 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <button id="mute" class="hud" type="button" aria-label="Toggle sound">♪</button>
 <button id="pause" class="hud" type="button" aria-label="Pause">II</button>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
-<div id="netbar" class="hud"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="newg" type="button">New game</button><span id="netTxt" hidden></span></div>
+<div id="netbar" class="hud"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="newg" type="button">New game</button><span id="netTxt" hidden></span></div>
 <div id="invite" hidden><div class="box"><h2>Play together</h2><p>Scan with a phone, open Frosthold and tap <b>Co-op</b> to join your town.</p><div id="qr"></div><p class="link"><span id="inviteUrl"></span></p><div class="btns"><button id="copyLink" type="button">Copy link</button><button id="closeInvite" type="button">Done</button></div><p class="fine">Friends need access to this page: share it from the page’s Share menu first.</p></div></div>
+<div id="stats" hidden><div class="box"><h2>Hero &amp; town</h2><div id="statsBody"></div><button id="closeStats" type="button">Close</button></div></div>
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -159,7 +169,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 $('game').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xe9eff8);
+scene.background = new THREE.Color(0xeaf2fb);
 const CAM_OFF = new THREE.Vector3(9, 24, 17);
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
 const camTarget = new THREE.Vector3(0, 0, 8);
@@ -173,8 +183,8 @@ function resize() {
   camera.updateProjectionMatrix(); renderer.setSize(w, h);
 }
 window.addEventListener('resize', resize); resize();
-scene.add(new THREE.HemisphereLight(0xffffff, 0xaab8d4, 0.72));
-const sun = new THREE.DirectionalLight(0xfff1de, 0.62);
+scene.add(new THREE.HemisphereLight(0xffffff, 0xc4d2ea, 0.85));
+const sun = new THREE.DirectionalLight(0xfff4e6, 0.75);
 sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 90 });
 sun.shadow.bias = -0.0015;
@@ -183,7 +193,9 @@ const SUN_OFF = new THREE.Vector3(-12, 26, 10);
 
 /* ================= materials / geometry ================= */
 const mats = {};
-function mat(c) { return mats[c] || (mats[c] = new THREE.MeshLambertMaterial({ color: c })); }
+// Three-band toon shading gives the clean, flat-lit look of stylised mobile games.
+const toonRamp = (() => { const t = new THREE.DataTexture(new Uint8Array([120, 120, 120, 190, 190, 190, 255, 255, 255]), 3, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+function mat(c) { return mats[c] || (mats[c] = new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp })); }
 function mk(geo, c, cast = true, recv = false) { const m = new THREE.Mesh(geo, mat(c)); m.castShadow = cast; m.receiveShadow = recv; return m; }
 // Rounded boxes with smooth normals keep shapes soft instead of blocky; cached by size.
 const boxCache = {};
@@ -278,7 +290,7 @@ const growing = [];
 function popIn(g) { g.scale.setScalar(0.01); growing.push({ g, t: 0 }); }
 
 /* ================= trees & rocks ================= */
-const vcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+const vcMat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: toonRamp });
 function mergeParts(parts) {
   const pos = [], nor = [], col = [], c = new THREE.Color(), m = new THREE.Matrix4();
   for (const [geo, color, x, y, z, ry] of parts) {
@@ -333,10 +345,10 @@ function addRock(x, z, kind) {
     const m = new THREE.Mesh(geo, rockMat(col)); m.castShadow = true; m.position.set(px, py, pz); m.rotation.set(rand(0, 1), rand(0, 6), rand(0, 1)); body.add(m);
   });
   if (kind === 'gold') for (let k = 0; k < 5; k++) { const n = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), rockMat(0x7fd3f0)); n.scale.set(0.7, 1.6, 0.7); n.position.set(rand(-0.7, 0.7), rand(0.6, 1.2), rand(-0.6, 0.6)); n.rotation.set(rand(-0.5, 0.5), 0, rand(-0.5, 0.5)); body.add(n); }
-  const res = kind === 'gold' ? 40 : 70;
+  const res = kind === 'gold' ? 260 : 450; g.scale.setScalar(1.45);
   const r = { x, z, g, body, hp: res, max: res, alive: true, respawn: 0, shake: 0, kind, item: kind === 'gold' ? 'ore' : 'stone', hidden: kind === 'gold' };
   if (r.hidden) g.visible = false;
-  r.obs = addObs(x, z, 0.95, () => r.alive && !r.hidden);
+  r.obs = addObs(x, z, 1.4, () => r.alive && !r.hidden);
   r.ri = rocks.length; rocks.push(r);
 }
 // Fixed seed: every player in co-op builds the same forest and quarries.
@@ -364,9 +376,10 @@ function makePerson(coat, trim, hat) {
   const g = new THREE.Group();
   const body = mk(Cyl(0.3, 0.4, 0.78, 8), coat); body.position.y = 0.78; g.add(body);
   const belt = mk(Cyl(0.36, 0.38, 0.1, 8), 0x4a3424); belt.position.y = 0.62; g.add(belt);
-  const head = mk(new THREE.SphereGeometry(0.25, 18, 14), 0xf0c39b); head.position.y = 1.36; g.add(head);
-  const hood = mk(new THREE.SphereGeometry(0.3, 18, 10, 0, TAU, 0, Math.PI * 0.55), hat || coat); hood.position.y = 1.4; g.add(hood);
-  const fur = mk(new THREE.TorusGeometry(0.24, 0.07, 8, 18), trim); fur.position.set(0, 1.35, 0.08); g.add(fur);
+  const head = mk(new THREE.SphereGeometry(0.33, 18, 14), 0xf3c9a3); head.position.y = 1.45; g.add(head);
+  [-1, 1].forEach(k => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), basic(0x1d2128)); e.position.set(k * 0.11, 1.5, 0.3); g.add(e); });
+  const hood = mk(new THREE.SphereGeometry(0.38, 18, 10, 0, TAU, 0, Math.PI * 0.5), hat || coat); hood.position.y = 1.5; hood.rotation.x = -0.25; g.add(hood);
+  const fur = mk(new THREE.TorusGeometry(0.3, 0.08, 8, 18), trim); fur.position.set(0, 1.25, 0); fur.rotation.x = Math.PI / 2; g.add(fur);
   const legs = [-1, 1].map(s => { const l = mk(Box(0.17, 0.42, 0.2), 0x3e3a46); l.geometry.translate(0, -0.21, 0); l.position.set(s * 0.14, 0.44, 0); g.add(l);
     const b = mk(Box(0.2, 0.12, 0.28), 0x5a3a24); b.position.set(0, -0.38, 0.03); l.add(b); return l; });
   const arms = [-1, 1].map(s => { const a = mk(Box(0.15, 0.48, 0.17), coat); a.geometry.translate(0, -0.2, 0); a.position.set(s * 0.4, 1.06, 0); g.add(a); return a; });
@@ -861,16 +874,28 @@ function setPadCost(p, cost) { p.costs = [cost]; p.level = 0; p.paid = {}; drawP
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => pads.forEach(drawPad));
 
 // wall pads
-rings.forEach(r => r.segs.forEach(s => {
-  s.pad = makePad({ kind: 'wall', x: s.px, z: s.pz, label: s.isGate ? 'GATE' : 'WALL', size: 2.0,
-    cost: s.isGate ? GATE_COST[r.tier] : SEG_COST[r.tier],
-    requires: () => r.active && !s.built,
-    onBuy: () => {
-      setSegBuilt(s, true); s.broken = false; burst(s.mx, 1.4, s.mz, 0x9a5e38, 14, 3); gainXP(15);
-      setPadCost(s.pad, s.isGate ? GATE_COST[r.tier] : SEG_COST[r.tier]);
-      checkRings();
-    } });
-}));
+// One build space per side of each ring raises that whole side (gate included) at once.
+const segCost = s => s.broken ? rebuildCost(s) : (s.isGate ? GATE_COST[s.tier] : SEG_COST[s.tier]);
+rings.forEach(r => {
+  r.sides = ['N', 'E', 'S', 'W'].map(side => {
+    const segs = r.segs.filter(s => (Math.abs(s.az - s.bz) < 0.01 ? (s.mz < C.z ? 'N' : 'S') : (s.mx < 0 ? 'W' : 'E')) === side);
+    const inset = 3.4, x = side === 'E' ? r.h - inset : side === 'W' ? -r.h + inset : 3.6, z = side === 'N' ? r.zN + inset : side === 'S' ? r.zS - inset : C.z + 3.6;
+    const sd = { side, segs, key: '' };
+    sd.pad = makePad({ kind: 'wall', x, z, label: { N: 'NORTH WALL', E: 'EAST WALL', S: 'SOUTH WALL', W: 'WEST WALL' }[side], size: 2.3, cost: { log: 1 },
+      requires: () => r.active && segs.some(s => !s.built),
+      onBuy: () => { segs.forEach(s => { if (!s.built) { setSegBuilt(s, true); s.broken = false; burst(s.mx, 1.4, s.mz, 0x9a5e38, 6, 3); } }); gainXP(40); sd.key = ''; banner(sd.pad.label[0] + sd.pad.label.slice(1).toLowerCase() + ' raised!', true); checkRings(); } });
+    segs.forEach(s => s.pad = sd.pad);
+    return sd;
+  });
+});
+function syncSideCosts() {
+  for (const r of rings) if (r.active) for (const sd of r.sides) {
+    const open = sd.segs.filter(s => !s.built), key = open.map(s => r.segs.indexOf(s) + (s.broken ? 'b' : '')).join(',');
+    if (key === sd.key || !open.length) continue;
+    const c = {}; open.forEach(s => { const sc = segCost(s); for (const k in sc) c[k] = (c[k] || 0) + sc[k]; });
+    const had = sd.pad.paid; sd.key = key; sd.pad.costs = [c]; sd.pad.level = 0; sd.pad.paid = had || {}; drawPad(sd.pad);
+  }
+}
 function rebuildCost(s) { const base = s.isGate ? GATE_COST[s.tier] : SEG_COST[s.tier]; const c = {}; for (const k in base) c[k] = Math.ceil(base[k] / 2); return c; }
 
 /* ================= stalls & town buildings ================= */
@@ -1106,7 +1131,7 @@ function spawnEnemy(type, wave, px, pz, id) {
   const side = (Math.random() * 3) | 0;
   const x = px !== undefined ? px : side === 0 ? rand(-28, 28) : side === 1 ? 45 : -45, z = pz !== undefined ? pz : side === 0 ? -45 : rand(-30, 26);
   m.g.position.set(x, 0, z); scene.add(m.g);
-  const yeti = type === 'yeti', hp = yeti ? 40 + wave * 5 : 4 + wave;
+  const yeti = type === 'yeti', hp = yeti ? 70 + wave * 8 : 8 + wave * 2;
   const e = { ...m, id: id || ++enemyId, type, x, z, nx: x, nz: z, hp, max: hp, rot: 0, walkT: 0, shake: 0, atkT: 0, tgt: null, seg: null, think: 0, alive: true,
     speed: yeti ? 1.7 : 2.6, dmgWall: yeti ? 9 : 3, dmgUnit: yeti ? 20 : 6, xp: yeti ? 40 : 8, loot: yeti ? 25 : 3, bar: makeBar(), kind: 'enemy', lastBy: null };
   enemies.push(e); return e;
@@ -1127,9 +1152,11 @@ function hitTree(t, dmg) {
   sfx(300, 0.05, 'square', 0.04); return n;
 }
 function hitRock(r, dmg) {
+  if (!r.tag) { r.tag = document.createElement('div'); r.tag.className = 'tag'; ov.appendChild(r.tag); }
+  r.tagT = 2.5;
   const n = Math.max(1, Math.min(Math.round(dmg), r.hp)); r.hp -= n; r.shake = 0.3; burst(r.x, 1, r.z, r.kind === 'gold' ? 0x7fd3f0 : 0xc3cad3, 3, 2); sfx(640, 0.05, 'square', 0.03);
-  r.body.scale.setScalar(0.45 + 0.55 * r.hp / r.max);
-  if (r.hp <= 0) { r.alive = false; r.respawn = 150; r.g.visible = false; burst(r.x, 1, r.z, 0x8d96a3, 14); floatText('Deposit mined out', r.x, 2, r.z, 'warn'); }
+  r.body.scale.setScalar(0.55 + 0.45 * r.hp / r.max);
+  if (r.hp <= 0) { r.alive = false; r.respawn = 360; r.g.visible = false; burst(r.x, 1, r.z, 0x8d96a3, 14); floatText('Deposit mined out', r.x, 2, r.z, 'warn'); }
   return n;
 }
 function damageYak(y, dmg, by) {
@@ -1163,7 +1190,7 @@ function playerAttack() {
   for (const m of wilds) if (m.alive && d2(m.x, m.z, player.x, player.z) < (A.range + m.T.size * 0.6) ** 2) cands.push([4, m]);
   for (const y of yaks) if (y.alive && d2(y.x, y.z, player.x, player.z) < R2 * 1.1) cands.push([1, y]);
   for (const t of trees) if (t.alive && t.choppable && d2(t.x, t.z, player.x, player.z) < R2) cands.push([2, t]);
-  for (const r of rocks) if (r.alive && !r.hidden && d2(r.x, r.z, player.x, player.z) < R2 * 1.15) cands.push([3, r]);
+  for (const r of rocks) if (r.alive && !r.hidden && d2(r.x, r.z, player.x, player.z) < (Math.sqrt(R2) + 1.2) ** 2) cands.push([3, r]);
   if (!cands.length) return false;
   cands.sort((a, b) => (a[0] % 4) - (b[0] % 4) || d2(a[1].x, a[1].z, player.x, player.z) - d2(b[1].x, b[1].z, player.x, player.z));
   const hits = cands.slice(0, A.max);
@@ -1254,11 +1281,11 @@ function padGoal(p, verb) {
   return { txt: `${verb} ${padName(p).toLowerCase()}`, tgt: p, short: 'Go to the build space' };
 }
 function wallGoal(r) {
-  const open = r.segs.filter(s => !s.built), n = r.segs.length - open.length;
+  const open = r.sides.filter(sd => sd.segs.some(s => !s.built)), n = 4 - open.length;
   const label = r.tier === 0 ? 'Secure the camp' : r.tier === 1 ? 'Wall in the town' : 'Raise the citadel wall';
-  const best = open.slice().sort((a, b) => d2(a.px, a.pz, player.x, player.z) - d2(b.px, b.pz, player.x, player.z))[0];
+  const best = open.slice().sort((a, b) => d2(a.pad.x, a.pad.z, player.x, player.z) - d2(b.pad.x, b.pad.z, player.x, player.z))[0];
   const g = padGoal(best.pad);
-  return { txt: `${label} (${n}/${r.segs.length} walls). ${g.tgt === best.pad ? 'Build the next wall' : g.short}`, tgt: g.tgt };
+  return { txt: `${label} (${n}/4 sides). ${g.tgt === best.pad ? 'Build the ' + best.pad.label.toLowerCase() : g.short}`, tgt: g.tgt };
 }
 function goal() {
   if (S.downT > 0) return { txt: 'Recovering…', tgt: null, alert: true };
@@ -1372,6 +1399,7 @@ function update(dt) {
   for (const r of rocks) {
     if (r.hidden) continue;
     if (!r.alive && !isGuest()) { r.respawn -= dt; if (r.respawn <= 0) { r.alive = true; r.hp = r.max; r.body.scale.setScalar(1); r.g.visible = true; } }
+    if (r.tag) { r.tagT -= dt; r.tag.hidden = r.tagT <= 0 || !r.alive; if (!r.tag.hidden) { r.tag.textContent = (r.kind === 'gold' ? 'Crystal ' : 'Stone ') + r.hp + ' left'; place(r.tag, r.x, 2.8, r.z); } }
     if (r.shake > 0) { r.shake -= dt; r.g.position.x = r.x + Math.sin(r.shake * 50) * 0.06; } else r.g.position.x = r.x;
   }
 
@@ -1517,6 +1545,7 @@ function update(dt) {
   }
 
   /* --- pads --- */
+  syncSideCosts();
   for (const p of pads) {
     const was = p.active;
     p.active = !p.done && !!p.requires();
@@ -1548,8 +1577,6 @@ function update(dt) {
     }
   }
   for (const r of rings) if (r.active) for (const s of r.segs) {
-    if (!s.built && s.broken && !s.rebuildSet) { s.rebuildSet = true; setPadCost(s.pad, rebuildCost(s)); }
-    if (s.built) s.rebuildSet = false;
     if (s.built && s.hp < s.max) { if (S.carpenter && !isGuest()) s.hp = Math.min(s.max, s.hp + 3 * dt); setBar(s.bar, s.hp / s.max, s.mx, 3, s.mz); } else s.bar.hidden = true;
   }
 
@@ -1637,7 +1664,7 @@ function update(dt) {
       banner('Raid ' + S.wave + '!', false, nW + ' wolves' + (nY ? ' and ' + nY + ' yeti' : '') + ' incoming');
       sfx(110, 0.5, 'sawtooth', 0.05);
     }
-  } else if (S.raidOn && !enemies.some(e => e.alive)) { S.raidOn = false; S.waveT = Math.max(55, 100 - S.wave * 3); banner('Raid repelled!', true); gainXP(10 + S.wave * 5); }
+  } else if (S.raidOn && !enemies.some(e => e.alive)) { S.raidOn = false; S.waveT = Math.max(100, 160 - S.wave * 4); banner('Raid repelled!', true); gainXP(10 + S.wave * 5); }
   const core = coreRing();
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
@@ -1815,6 +1842,22 @@ const MAKERS = { spider: makeSpider, goblin: makeGoblin, wolf: makeWolf, bear: m
 const wilds = [], wildCamps = [];
 const POOL = [['spider', 'goblin', 'wolf'], ['bear', 'troll'], ['wraith', 'golem']];
 function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 36 ? 0 : d < 48 ? 1 : 2; }
+// Stakes, tents, a fire pit and a banner around the chest, dressed for whoever lives there.
+const CAMP_LOOK = { spider: [0x3a3a48, 0xd8dde6], goblin: [0x6b8a3a, 0xb8452e], wolf: [0x7d8794, 0x9a5e38], bear: [0x5a3b26, 0x8a6a4a], troll: [0x55634a, 0x7a4527], wraith: [0x8fb3d9, 0x2b4a74], golem: [0x6f7a88, 0x7fd3f0] };
+function buildCampProps(g, kind) {
+  const [main, accent] = CAMP_LOOK[kind];
+  for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; if (i % 6 === 0) continue; const st = mk(Cone(0.12, 1.1, 5), 0x6b4a2d); st.position.set(Math.cos(a) * 5, 0.5, Math.sin(a) * 5); st.rotation.z = Math.cos(a) * 0.25; st.rotation.x = -Math.sin(a) * 0.25; g.add(st); }
+  [[-2.6, -2.2, 0.4], [2.4, -2.6, -0.5]].forEach(([tx, tz, r]) => {
+    const tent = mk(Cone(1.1, 1.6, 5), main); tent.position.set(tx, 0.8, tz); tent.rotation.y = r; g.add(tent);
+    const flap = mk(Box(0.5, 0.8, 0.06), 0x1d2128); flap.position.set(tx + Math.sin(r) * 0.85, 0.4, tz + Math.cos(r) * 0.85); flap.rotation.y = r; g.add(flap);
+  });
+  const pit = mk(Cyl(0.6, 0.7, 0.18, 10), 0x55606e); pit.position.set(-1.8, 0.09, 2.2); g.add(pit);
+  for (let i = 0; i < 3; i++) { const l = itemMesh('log'); l.position.set(-1.8, 0.25, 2.2); l.rotation.y = i * 1.05; g.add(l); }
+  const fl = new THREE.Mesh(Cone(0.3, 0.7, 6), basic(kind === 'wraith' || kind === 'golem' ? 0x7fd3f0 : 0xff9a3c)); fl.position.set(-1.8, 0.6, 2.2); g.add(fl);
+  const pole = mk(Cyl(0.05, 0.05, 2.4, 6), 0x5b3416); pole.position.set(2.2, 1.2, 2.2); g.add(pole);
+  const flag = mk(Box(0.8, 0.5, 0.04), accent); flag.position.set(2.62, 2.1, 2.2); g.add(flag);
+  for (let i = 0; i < 4; i++) { const b = mk(Cyl(0.05, 0.05, 0.5, 6), 0xece4d2); b.position.set(rand(-3, 3), 0.05, rand(-3, 3)); b.rotation.set(Math.PI / 2, 0, rand(0, 3)); g.add(b); }
+}
 function spawnCamp() {
   const R = outerRing();
   let x, z, n = 0;
@@ -1830,13 +1873,13 @@ function spawnCamp() {
   const glow = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.2, 28), new THREE.MeshBasicMaterial({ color: [0xffe08a, 0x9fd3ff, 0xd38cff][tier], transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
   glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; chest.add(glow); camp.glow = glow;
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
-  const list = tier === 0 ? Array.from({ length: 2 + (Math.random() * 3 | 0) }, () => POOL[0][Math.random() * 3 | 0])
-    : tier === 1 ? [POOL[1][Math.random() * 2 | 0], ...Array.from({ length: 1 + (Math.random() * 2 | 0) }, () => POOL[0][Math.random() * 3 | 0])]
-    : [POOL[2][Math.random() * 2 | 0], POOL[1][Math.random() * 2 | 0], POOL[1][Math.random() * 2 | 0]];
+  const kind = POOL[tier][Math.random() * POOL[tier].length | 0];
+  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : 2).fill(kind);
+  camp.kind = kind; buildCampProps(chest, kind);
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
     m.g.position.set(hx, 0, hz); m.g.scale.multiplyScalar(type === 'wolf' ? 1.1 : 1); scene.add(m.g);
-    const hp = Math.round(T.hp * (1 + S.th * 0.25));
+    const hp = Math.round(T.hp * 2.2 * (1 + S.th * 0.4));
     const w = { ...m, type, T, camp, x: hx, z: hz, hx, hz, hp, max: hp, rot: rand(0, TAU), walkT: 0, shake: 0, atkT: 0, aggro: false, alive: true, bar: makeBar(), kind: 'wild', bob: rand(0, 6) };
     wilds.push(w); camp.guards.push(w);
   });
@@ -1853,6 +1896,37 @@ function damageWild(w, dmg) {
     if (w.camp.guards.every(o => !o.alive)) { floatText('Treasure unguarded!', w.camp.x, 2.5, w.camp.z, 'xp'); sfx(880, 0.2, 'sine', 0.05); }
   }
 }
+function showStats() {
+  const pct = v => (v >= 0 ? '+' : '') + Math.round(v * 100) + '%';
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+  const A = AXE[S.axe];
+  const hero = [
+    row('Level', S.lvl),
+    row('Health', Math.round(heroMax()) + (S.bonusHp ? ` (${S.bonusHp} from relics)` : '')),
+    row('Damage per hit', (A.dmg * heroDmg()).toFixed(1)),
+    row('Weapon', S.weapon >= 0 ? `${WEAPONS[S.weapon].n} (${pct(WEAPONS[S.weapon].m - 1)})` : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')),
+    row('Armour', S.armorLv >= 0 ? `${ARMORS[S.armorLv].n} (${Math.round(ARMORS[S.armorLv].a * 100)}% less damage)` : 'None'),
+    row('Damage bonus', pct(S.bonusDmg + (S.lvl - 1) * 0.1)),
+    row('Speed bonus', pct(S.boots * 0.15 + S.speedBonus + (S.lvl - 1) * 0.02)),
+    row('Swing / reach', `${A.int}s · ${A.max} targets · ${A.range}m`),
+    row('Pack', cap()),
+  ].join('');
+  const town = [
+    row('Firewood use', pct(-0.25 * S.warmUp)),
+    row('Food use', pct(-0.25 * S.foodUp)),
+    row('Sale prices', pct(S.priceMul - 1)),
+    row('Taxes', pct(S.taxMul - 1)),
+    row('Pile capacity', pileCap()),
+    row('Towers', towers.length ? towers.map(t => ['Archer', 'Crossbow', 'Ballista', 'Frost spire'][t.lv - 1]).join(', ') : 'None'),
+    row('Guards', guards.length + ' / ' + maxGuards()),
+    row('Workers', workers.length ? ROLE_IDS.map(r => roleCount(r) ? roleCount(r) + ' ' + r + (roleCount(r) > 1 ? 's' : '') : '').filter(Boolean).join(', ') : 'None'),
+  ].join('');
+  const relics = (S.relics || []).length ? '<ul>' + S.relics.slice(-12).reverse().map(r => `<li>${r}</li>`).join('') + '</ul>' : '<p class="none">Open treasure chests in monster camps to find relics.</p>';
+  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
+  $('stats').hidden = false;
+}
+$('statsBtn').addEventListener('click', e => { e.stopPropagation(); showStats(); });
+$('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
 function openTreasure(camp) {
   camp.open = true; scene.remove(camp.g); camp.tag.remove();
   const t = camp.tier, gifts = [];
@@ -1865,7 +1939,8 @@ function openTreasure(camp) {
   gifts.push(() => { S.pileBonus += 60 * (t + 1); piles.forEach(syncPile); return ['Storage Charm', 'Every pile holds ' + 60 * (t + 1) + ' more']; });
   gifts.push(() => { rings.forEach(r => r.active && r.segs.forEach(sg => { if (sg.built) sg.hp = sg.max; })); S.warmUp = Math.min(3, S.warmUp + 0.5); return ['Ember Totem', 'Walls repaired, firewood lasts longer']; });
   gifts.push(() => { for (let i = 0; i < 3 + t * 2; i++) spawnYak(); return ['Yak Totem', 'A new herd wanders near the fort']; });
-  const g = gifts[Math.random() * gifts.length | 0](); banner(g[0] + '!', true, g[1]);
+  const g = gifts[Math.random() * gifts.length | 0](); banner(g[0] + '!', true, g[1] + ' \u00b7 see Hero');
+  (S.relics = S.relics || []).push(g[0] + ': ' + g[1]);
   const cash = 12 * (t + 1) * (t + 1); dropItem('cash', camp.x, camp.z, cash);
   dropItem(['log', 'stone', 'ore'][t], camp.x + 1, camp.z, 10 + t * 10);
   burst(camp.x, 1, camp.z, 0xf2c14e, 26, 4); sfx(1046, 0.3, 'sine', 0.07); gainXP(30 * (t + 1));
@@ -1873,7 +1948,7 @@ function openTreasure(camp) {
 }
 let campT = 4; setTimeout(syncToggles, 0);
 function updateWilds(dt) {
-  campT -= dt; if (campT <= 0) { campT = 40; while (wildCamps.length < 9) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; } }
+  campT -= dt; if (campT <= 0) { campT = 120; while (wildCamps.length < 5) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; } }
   for (const c of wildCamps) {
     c.glow.rotation.z += dt; const clear = c.guards.every(o => !o.alive);
     c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
@@ -1888,7 +1963,7 @@ function updateWilds(dt) {
     if (w.aggro) {
       const reach = 1.1 + T.size * 0.5;
       if (dp > reach) { w.x += (player.x - w.x) / dp * T.speed * dt; w.z += (player.z - w.z) / dp * T.speed * dt; moving = true; }
-      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtHero(T.dmg); } }
+      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtHero(T.dmg * 1.7 * (1 + S.th * 0.25)); } }
       w.rot = turnTo(w.rot, Math.atan2(player.x - w.x, player.z - w.z), 0.2);
     } else if (dh > 0.4) {
       w.x += (w.hx - w.x) / dh * T.speed * 0.6 * dt; w.z += (w.hz - w.z) / dh * T.speed * 0.6 * dt; moving = true;
@@ -2208,7 +2283,7 @@ $('coop').addEventListener('click', e => {
 });
 
 /* ================= save / load (this browser only) ================= */
-const SAVE_KEY = 'frosthold-save-v2';
+const SAVE_KEY = 'frosthold-save-v3';
 const WORKER_HOME = { logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function saveGame() {
