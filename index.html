@@ -844,8 +844,9 @@ function makePad(cfg) {
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; p.ctx = cv.getContext('2d');
   p.tex = new THREE.CanvasTexture(cv);
   p.g = new THREE.Group(); p.g.position.set(p.x, 0.04, p.z); p.g.rotation.y = PAD_ROT; p.g.visible = false; scene.add(p.g);
-  const pl = new THREE.Mesh(new THREE.PlaneGeometry(p.size, p.size), new THREE.MeshBasicMaterial({ map: p.tex, transparent: true, depthWrite: false }));
-  pl.rotation.x = -Math.PI / 2; p.g.add(pl);
+  // drawn on top of trees, buildings and characters so costs are never hidden
+  const pl = new THREE.Mesh(new THREE.PlaneGeometry(p.size, p.size), new THREE.MeshBasicMaterial({ map: p.tex, transparent: true, depthWrite: false, depthTest: false }));
+  pl.rotation.x = -Math.PI / 2; pl.renderOrder = 20; p.g.add(pl);
   drawPad(p); pads.push(p); return p;
 }
 function completePad(p) {
