@@ -10,9 +10,12 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 
 Your axes swing automatically at trees, rocks, yaks and raiders in reach. Stand on a build space to pay for it with what you carry. Stand on a stall's counter side to hand over goods, and on a cash pallet to collect.
 
+## Saving
+Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
+
 ## Survival
-- **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Blizzards make it burn 2.5× faster.
-- **Food:** once the cookhouse is built, villagers also eat. Sell meat there (hunt yaks in the north-east, or build a fishery).
+- **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
+- **Food:** once the cookhouse is built, villagers also eat. Sell meat there. Yaks graze just north-east of the outer wall, wolves drop 2 meat and yetis 8, and the fishery adds a steady supply.
 - If either meter hits zero, villagers start dying. Lose them all and Frosthold falls.
 - With both meters above half and free housing, new villagers arrive. Villagers pay taxes to the Town Hall pallet.
 
