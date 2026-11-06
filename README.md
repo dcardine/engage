@@ -10,6 +10,14 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 
 Your axes swing automatically at trees, rocks, yaks and raiders in reach. With a full pack, extra logs and stone drop on the ground for later. Stand on a build space to pay for it with what you carry. Stand on a stall's counter side to hand over goods, and on a cash pallet to collect.
 
+## Wild encounters
+Monster camps guard treasure chests across the wilds; the minimap marks them (orange easy, red medium, purple dangerous, gold when cleared). Near the fort you meet spiders, goblins and wolves; farther out bears and trolls; at the edges of the map wraiths and stone golems. Defeat every guard, then step on the chest. Treasures give weapons (Frostbite Axe, Ember Cleaver, Runic Greataxe), armour (Fur Jerkin, Iron Mail, Runic Plate), heart stones (+health), war runes (+damage), wind charms (+speed), storage charms (bigger piles), ember totems (repair walls, longer-lasting firewood), yak totems, plus cash and materials. New camps appear over time.
+
+## HUD
+- The minimap (right) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
+- Tap a resource counter to stop or resume collecting that resource.
+- **Loggers: pile/stall** switches where loggers deliver. Hunters always deliver to the cookhouse once it is built.
+
 ## Co-op
 Tap **Co-op** on the published page. The first player in hosts, so their town is the shared one. Anyone else who opens the page and taps Co-op joins that town with their own hero, pack and wallet, and can chop, fight, build and trade alongside the host. Guests' own saved towns stay untouched; **Leave co-op** returns them to it. If the host leaves, a guest takes over hosting. Players need Contributor (interact) access or higher to host; anyone who can open the page can join as a guest.
 
