@@ -44,6 +44,9 @@ Tap **Co-op** on the published page. The first player in hosts, so their town is
 ## Co-op extras
 Set your name and coat colour under **Co-op** or **Hero**. Teammates show with your name, a ring in your colour and a stack of whatever they carry (icons in the name tag too). Everyone appears on the minimap as a star in their colour, pinned to the rim when far away, and you get an alert when a teammate is under attack or knocked out.
 
+## Personal gear in co-op
+Axe and pack upgrades, the crystal pick, and everything found in treasure chests belong to the player who bought or found them; each player upgrades their own. Your sounds only play on your own device. If a phone sleeps or loses the connection, it rejoins the host automatically when it wakes, keeping its gear.
+
 ## Saving
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 
@@ -51,7 +54,7 @@ Progress saves automatically every few seconds and when you leave the page. Save
 Models come from Meshy (`tools/meshy_assets.py`, cached so nothing is paid for twice) and the snow ground from OpenAI images (`tools/openai_texture.py`, also skipped once it exists).
 
 ## Village upgrades
-Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes are on sale in the plaza for $12 from the start.
+Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes (40 logs, 90 gold) unlock once the blacksmith is built; Axe III and IV need Town Hall II and III.
 
 ## Survival
 - **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.

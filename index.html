@@ -444,8 +444,9 @@ function note(txt, cls = 'warn') { const now = performance.now(); if (now - last
 
 /* ================= sound ================= */
 let actx = null, muted = false, lastSfx = 0;
+let netSilent = false;   // true while the host replays a teammate's actions: their sounds play on their own device
 function sfx(f, d = 0.07, type = 'triangle', vol = 0.05) {
-  if (!actx || muted || loading) return;
+  if (!actx || muted || loading || netSilent) return;
   const now = actx.currentTime; if (now - lastSfx < 0.03) return; lastSfx = now;
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f, now); o.frequency.exponentialRampToValueAtTime(f * 1.4, now + d);
@@ -1319,16 +1320,16 @@ plot('hireLog', { x: 3.2, z: 18, label: 'HIRE LOGGER', cost: { cash: 40 }, repea
   requires: () => B.lodge && roleCount('logger') < maxWorkers.logger(), canPay: () => hasRoom(), onBuy: () => spawnWorker('logger', 6, 18.5) });
 // research at the blacksmith
 // twin axes are on sale in the plaza from the start
-const padAxe = plot('axe', { x: 3, z: 7.6, labels: ['TWIN AXES', 'AXE III', 'AXE IV'], costs: [{ cash: 12 }, { log: 30, cash: 100 }, { ore: 20, cash: 400 }], tiers: [1, 2, 3],
-  requires: () => S.step >= 3 && padAxe.level < 3 && S.th >= padAxe.tiers[padAxe.level],
+const padAxe = plot('axe', { personal: true, x: 3, z: 7.6, labels: ['TWIN AXES', 'AXE III', 'AXE IV'], costs: [{ log: 40, cash: 90 }, { log: 90, stone: 45, cash: 300 }, { ore: 45, stone: 60, cash: 900 }], tiers: [1, 2, 3],
+  requires: () => S.step >= 3 && B.smith && padAxe.level < 3 && S.th >= padAxe.tiers[padAxe.level],
   onBuy: lv => { S.axe = lv + 1; axe2.visible = S.axe >= 2; axe1.scale.setScalar(1 + (S.axe - 1) * 0.12); axe2.scale.copy(axe1.scale); banner(['', '', 'Twin axes!', 'Heavier blades!', 'Master axes!'][S.axe], true); }, xp: 40 });
-const padBag = plot('bag', { x: -6, z: 17.4, labels: ['PACK 100', 'PACK 200', 'PACK 400'], costs: [{ log: 30, cash: 60 }, { stone: 30, cash: 200 }, { ore: 30, cash: 600 }], tiers: [1, 2, 3],
+const padBag = plot('bag', { personal: true, x: -6, z: 17.4, labels: ['PACK 100', 'PACK 200', 'PACK 400'], costs: [{ log: 30, cash: 60 }, { stone: 30, cash: 200 }, { ore: 30, cash: 600 }], tiers: [1, 2, 3],
   requires: () => B.smith && padBag.level < 3 && S.th >= padBag.tiers[padBag.level],
   onBuy: lv => { S.bag = lv; pack.scale.setScalar(1 + lv * 0.15); banner('Carry ' + cap() + ' items', true); }, xp: 40 });
 const padArrow = plot('arrow', { x: -2.9, z: 17.9, labels: ['ARROWS II', 'ARROWS III'], costs: [{ log: 60, cash: 120 }, { ore: 25, cash: 350 }], tiers: [2, 3],
   requires: () => B.smith && padArrow.level < 2 && S.th >= padArrow.tiers[padArrow.level] && towers.length > 0,
   onBuy: lv => { S.towerLv = lv; banner('Sharper arrows!', true, 'Towers hit harder and faster'); }, xp: 40 });
-plot('pick', { x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
+plot('pick', { personal: true, x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.pick = true; banner('Crystal pick forged!', true, 'You can now mine crystal veins in the far wilds'); } });
 plot('mason', { x: -9.2, z: 14.3, label: 'MASONRY', cost: { stone: 60, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.masonry = true; rings.forEach(r => r.segs.forEach(s => { if (s.built) { const f = s.hp / s.max; s.stone = true; s.max = segMax(s); s.hp = s.max * f; segVisual(s); } })); banner('Masonry!', true, 'Walls are twice as strong'); } });
@@ -1952,17 +1953,17 @@ function update(dt) {
       for (const t of RES) {
         const need = padNeed(p, t); if (!need) continue;
         if (t === 'cash') {
-          if (S.wallet > 0) { const ch = Math.min(need, S.wallet, Math.max(1, Math.ceil(cost.cash / 25))); S.wallet -= ch; p.paid.cash = (p.paid.cash || 0) + ch; progress = true; netAct('$', pads.indexOf(p), 4, ch);
+          if (S.wallet > 0) { const ch = Math.min(need, S.wallet, Math.max(1, Math.ceil(cost.cash / 25))); S.wallet -= ch; p.paid.cash = (p.paid.cash || 0) + ch; progress = true; if (!p.personal) netAct('$', pads.indexOf(p), 4, ch);
             const m = itemMesh('cash'); m.position.copy(stackWorld('cash')); scene.add(m); fly(m, new THREE.Vector3(p.x, 0.1, p.z), 0.25, 1.0, () => scene.remove(m)); }
         } else if (carry[t].length) {
           const k = Math.min(need, carry[t].length, 2);
           for (let j = 0; j < k; j++) { const wp = takeFromStack(t); const m = itemMesh(t); m.position.copy(wp); scene.add(m); fly(m, new THREE.Vector3(p.x, 0.1, p.z), 0.25, 1.0, () => scene.remove(m)); }
-          p.paid[t] = (p.paid[t] || 0) + k; progress = true; netAct('$', pads.indexOf(p), RES.indexOf(t), k);
+          p.paid[t] = (p.paid[t] || 0) + k; progress = true; if (!p.personal) netAct('$', pads.indexOf(p), RES.indexOf(t), k);
         }
         if (padNeed(p, t) > 0) done = false;
       }
       if (progress) { drawPad(p); sfx(600 + Math.random() * 300, 0.04, 'square', 0.025); }
-      if (done && isGuest()) { p.payT = 0.6; break; }
+      if (done && isGuest() && !p.personal) { p.payT = 0.6; break; }
       if (done) { completePad(p); break; }
       if (!progress) { if (!p.warned) { p.warned = true; note('Need ' + RES.filter(t => padNeed(p, t) > 0).map(t => padNeed(p, t) + ' ' + resName(t)).join(', ')); } p.payT = 0.5; break; }
     }
@@ -2526,7 +2527,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['clock', 'season', 'pick', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'axe', 'bag', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -2635,7 +2636,7 @@ function applyHost(pr) {
 function onWorld(msg) {
   if (!isGuest() || msg.peer !== NET.host || !msg.data) return;
   const d = msg.data;
-  (d.b || []).forEach(id => { if (B[id]) return; const pp = pads.find(q => q.id === id); B[id] = true; if (pp && pp.rawBuy && !pp.labels) { loading = true; try { pp.rawBuy(1); } finally { loading = false; } } });
+  (d.b || []).forEach(id => { if (B[id]) return; const pp = pads.find(q => q.id === id); if (pp && pp.personal) return; B[id] = true; if (pp && pp.rawBuy && !pp.labels) { loading = true; try { pp.rawBuy(1); } finally { loading = false; } } });
   if (d.t) CHOP.forEach((t, i) => { const on = d.t[i] === '1'; if (t.gone) return; if (on && !t.alive) { t.alive = true; t.hp = t.max; t.grow = 0; syncTree(t); } else if (!on && t.alive) { t.alive = false; syncTree(t); } });
   if (d.r) rocks.forEach((rk, i) => { const on = d.r[i] === '1'; rk.hidden = rk.kind === 'gold' && !S.mine; if (rk.hidden) { rk.g.visible = false; return; } if (on !== rk.alive) { rk.alive = on; rk.hp = rk.max; rk.body.scale.setScalar(1); rk.g.visible = on; } });
   (d.k || []).forEach(([a, c, hp], i) => {
@@ -2661,10 +2662,10 @@ function onPads(msg) {
   if (!msg.data.last) return;
   const seen = new Set();
   for (const [i, lv, done, paid] of padAcc) {
-    const pp = pads[i]; if (!pp) continue; seen.add(i);
+    const pp = pads[i]; if (!pp || pp.personal) continue; seen.add(i);
     pp.level = lv; pp.done = !!done; pp.paid = {}; RES.forEach((t, k) => { if (paid[k]) pp.paid[t] = paid[k]; });
   }
-  pads.forEach((pp, i) => { if (!seen.has(i)) { pp.level = 0; pp.done = false; pp.paid = {}; } });
+  pads.forEach((pp, i) => { if (!seen.has(i) && !pp.personal) { pp.level = 0; pp.done = false; pp.paid = {}; } });
   for (const q of NET.pendPay) { const pp = pads[q.i]; if (pp) pp.paid[q.t] = (pp.paid[q.t] || 0) + q.n; }
   for (const [, v] of NET.buf) if (v[0] === '$') { const pp = pads[v[1]]; if (pp) pp.paid[RES[v[2]]] = (pp.paid[RES[v[2]]] || 0) + v[3]; }
   pads.forEach(pp => { if (pp.done) { pp.g.visible = false; pp.active = false; } drawPad(pp); });
@@ -2757,7 +2758,7 @@ function netTick(dt) {
       if (p.presence.role !== 'guest' || !Array.isArray(p.presence.a)) continue;
       if (!NET.known.has(p.peer)) { NET.known.add(p.peer); NET.worldT = 0; }
       let last = NET.lastSeq[p.peer] || 0;
-      for (const a of p.presence.a) { if (!Array.isArray(a) || a[0] <= last) continue; try { applyAct(p.peer, a); } catch (e) {} last = a[0]; }
+      for (const a of p.presence.a) { if (!Array.isArray(a) || a[0] <= last) continue; netSilent = true; try { applyAct(p.peer, a); } catch (e) {} netSilent = false; last = a[0]; }
       NET.lastSeq[p.peer] = last;
     }
     if (NET.presT <= 0) { NET.presT = 0.15; NET.room.presence(liveState()).catch(() => {}); }
@@ -2773,7 +2774,7 @@ function netTick(dt) {
     if (host) {
       NET.hostSeen = time; NET.host = host.peer;
       if (host.presence !== NET.lastHostPres) { NET.lastHostPres = host.presence; applyHost(host.presence); }
-    } else if (time - NET.hostSeen > 6) { if (ON_CLAUDE) promote(); else { banner('The host left', false, 'Returning to your own town'); setTimeout(() => location.reload(), 2000); NET.hostSeen = 1e9; } }
+    } else if (time - NET.hostSeen > 6) { if (ON_CLAUDE) promote(); else { banner('Lost the host', false, 'Trying to reconnect…'); try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {} setTimeout(() => location.reload(), 2000); NET.hostSeen = 1e9; } }
     if (NET.presT <= 0) { NET.presT = 0.1; NET.room.presence({ role: 'guest', h: heroState(), a: NET.pending }).catch(() => {}); }
   }
 }
@@ -2802,7 +2803,7 @@ function becomeHost() {
   banner('Co-op open!', true, 'Anyone who opens this page and taps Co-op joins your town');
 }
 function becomeGuest(peer) {
-  NET.mode = 'guest'; NET.host = peer; NET.hostSeen = time; S.step = 3;
+  NET.mode = 'guest'; NET.host = peer; NET.hostSeen = time; S.step = 3; loadPersonal();
   yaks.forEach(y => { scene.remove(y.g); y.bar.remove(); }); yaks.length = 0;
   $('coop').textContent = 'Leave co-op';
   banner('Joined co-op!', true, 'You are playing in the host’s town');
@@ -2839,7 +2840,9 @@ function peerRoom(code, asHost) {
       presence: async p => { mine = Object.assign({}, mine, p); if (asHost) toGuests({ k: 'p', from: myId, v: mine }); else send(hub, { k: 'p', v: mine }); },
       peers: () => [{ peer: myId, presence: mine, sameTab: true }, ...[...pres].map(([peer, presence]) => ({ peer, presence, sameTab: false }))],
       leave: async () => { try { peer.destroy(); } catch (_) {} },
+      wake: () => { try { if (peer.disconnected && !peer.destroyed) peer.reconnect(); } catch (_) {} },
     };
+    peer.on('disconnected', () => { if (asHost && done) setTimeout(() => api.wake(), 1500); });
     peer.on('error', e => bad(e));
     peer.on('open', pid => {
       myId = pid;
@@ -2859,7 +2862,7 @@ function peerRoom(code, asHost) {
 }
 async function startCoop(auto, code, asHost) {
   const btn = $('coop'); btn.disabled = true; btn.textContent = 'Connecting…';
-  const fail = msg => { btn.disabled = false; btn.textContent = 'Co-op'; banner('Co-op unavailable', false, msg); };
+  const fail = msg => { if (auto && !asHost) loadGame(); btn.disabled = false; btn.textContent = 'Co-op'; banner('Co-op unavailable', false, msg); };
   if (ON_CLAUDE) {
     const api = await window.claude.use('room');
     if (!api) return fail('Sign in to claude.ai and open the shared page to play together');
@@ -2870,6 +2873,7 @@ async function startCoop(auto, code, asHost) {
       catch (e) {
         NET.room = null;
         if (asHost && String(e && e.type) === 'unavailable-id' && attempt < 3) { code = newCode(); continue; }
+        if (!asHost && auto && attempt < 8) { btn.textContent = 'Reconnecting…'; await sleep(3000); continue; }
         if (!asHost && String(e && e.type) === 'peer-unavailable') return fail('No game is running with code ' + code);
         return fail(asHost ? 'Could not open a room. Check your connection.' : 'Could not join ' + code + '. Check the code and your connection.');
       }
@@ -2911,7 +2915,21 @@ $('coop').addEventListener('click', e => {
 const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+const HERO_KEYS = ['axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
+let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
+function savePersonal() {
+  if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
+  try { localStorage.setItem('frosthold-hero', JSON.stringify(h)); } catch (e) {}
+}
+function loadPersonal() {
+  heroReady = true; let h = null; try { h = JSON.parse(localStorage.getItem('frosthold-hero')); } catch (e) {} if (!h) return;
+  HERO_KEYS.forEach(k => { if (h[k] !== undefined) S[k] = h[k]; });
+  if (h.lv) { padAxe.level = h.lv.axe || 0; padBag.level = h.lv.bag || 0; padAxe.paid = {}; padBag.paid = {}; }
+  if (h.pickB || S.pick) { B.pick = true; const pp = pads.find(q => q.id === 'pick'); if (pp) { pp.done = true; pp.g.visible = false; } }
+  applyAxeLook();
+}
 function saveGame() {
+  savePersonal();
   if (S.over || loading || isGuest()) return;
   const data = {
     v: 1, S: Object.assign({}, S, { raidOn: false, downT: 0 }), B: Object.assign({}, B),
@@ -2925,6 +2943,7 @@ function saveGame() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
 }
 function loadGame() {
+  heroReady = true;
   let d = null;
   try { d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { d = null; }
   if (!d || d.v !== 1) return false;
@@ -2974,7 +2993,17 @@ loadModels();
 if (coopBoot === 'join') startCoop(true, bootCode, false);
 else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { saveGame(); hiddenAt = Date.now(); return; }
+  if (!hiddenAt || Date.now() - hiddenAt < 3000 || ON_CLAUDE || !NET.room) return;
+  if (isGuest() && ROOM_CODE) {   // a phone that slept has lost its connection: rejoin and take a fresh copy of the town
+    banner('Reconnecting…', true, 'Catching up with the host');
+    try { NET.room.leave(); } catch (e) {}
+    try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {}
+    setTimeout(() => location.reload(), 400);
+  } else if (isHost() && NET.room.wake) NET.room.wake();
+});
 window.addEventListener('pagehide', saveGame);
 
 let last = performance.now(), paused = false;
