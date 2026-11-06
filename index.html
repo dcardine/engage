@@ -97,9 +97,9 @@ const $ = id => document.getElementById(id);
 
 /* ================= renderer / scene ================= */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 $('game').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -210,16 +210,36 @@ for (let x = -34; x <= 34.01; x += 0.7) {
 
 /* ---- trees ---- */
 const TREE_GREENS = [0x2f7a69, 0x3b8c76, 0x2a6c66];
-function makeTreeModel(s = 1) {
+// Merge several primitives into one vertex-coloured mesh (one draw call per tree).
+const vcMat = new THREE.MeshPhongMaterial({ vertexColors: true, flatShading: true, shininess: 0, specular: 0 });
+function mergeParts(parts) {
+  const pos = [], nor = [], col = [], c = new THREE.Color(), m = new THREE.Matrix4();
+  for (const [geo, color, x, y, z, ry] of parts) {
+    const g = geo.toNonIndexed();
+    m.makeRotationY(ry || 0).setPosition(x, y, z); g.applyMatrix4(m);
+    c.setHex(color);
+    const pa = g.attributes.position.array, na = g.attributes.normal.array;
+    for (let i = 0; i < pa.length; i++) { pos.push(pa[i]); nor.push(na[i]); }
+    for (let i = 0; i < pa.length / 3; i++) col.push(c.r, c.g, c.b);
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  return out;
+}
+const TREE_GEOS = TREE_GREENS.map(col => mergeParts([
+  [Cyl(0.18, 0.24, 0.9, 6), 0x7b4a2b, 0, 0.45, 0],
+  [Cone(1.25, 1.5, 7), col, 0, 1.35, 0, 0.3],
+  [Cone(1.0, 1.3, 7), col, 0, 2.05, 0, 0.9],
+  [Cone(0.7, 1.1, 7), col, 0, 2.7, 0, 0.5],
+  [Cyl(0.9, 1.05, 0.12, 7), 0xf7fbff, 0, 1.62, 0],
+  [Cone(0.42, 0.55, 7), 0xffffff, 0, 3.15, 0],
+]));
+function makeTreeModel(s = 1, cast = true) {
   const g = new THREE.Group();
-  const top = new THREE.Group(); g.add(top);
-  const trunk = mk(Cyl(0.18, 0.24, 0.9, 6), 0x7b4a2b); trunk.position.y = 0.45; top.add(trunk);
-  const col = TREE_GREENS[(Math.random() * 3) | 0];
-  [[1.25, 1.5, 1.35], [1.0, 1.3, 2.05], [0.7, 1.1, 2.7]].forEach(([r, h, y]) => {
-    const c = mk(Cone(r, h, 7), col); c.position.y = y; c.rotation.y = Math.random(); top.add(c);
-  });
-  const snow = mk(Cone(0.42, 0.55, 7), 0xffffff); snow.position.y = 3.15; top.add(snow);
-  const snow2 = mk(Cyl(0.9, 1.05, 0.12, 7), 0xf7fbff); snow2.position.y = 1.62; top.add(snow2);
+  const top = new THREE.Mesh(TREE_GEOS[(Math.random() * 3) | 0], vcMat);
+  top.castShadow = cast; top.rotation.y = Math.random() * TAU; g.add(top);
   g.scale.setScalar(s);
   return { g, top };
 }
@@ -232,11 +252,11 @@ function placeTrees(n, x0, x1, z0, z1, spacing, choppable) {
     if (Math.abs(x) < 3.2 && z > -9 && z < 0) continue;           // keep gate trail clear
     if (trees.some(t => d2(t.x, t.z, x, z) < spacing * spacing)) continue;
     const s = choppable ? rand(0.85, 1.05) : rand(1.0, 1.35);
-    const { g, top } = makeTreeModel(s);
+    const { g, top } = makeTreeModel(s, choppable);
     g.position.set(x, 0, z); scene.add(g);
     const stump = mk(stumpGeo, 0x8a5634); stump.position.y = 0.15; stump.visible = false; g.add(stump);
     const t = { x, z, g, top, stump, hp: 4, max: 4, alive: true, respawn: 0, shake: 0, grow: 1, choppable, kind: 'tree' };
-    t.obs = addObs(x, z, 0.55 * s, () => t.alive);
+    t.obs = addObs(x, z, 0.3 * s, () => t.alive);
     trees.push(t); placed++;
   }
 }
@@ -656,7 +676,7 @@ renderer.domElement.addEventListener('pointermove', e => {
   let dx = e.clientX - jsx, dy = e.clientY - jsy; const L = Math.hypot(dx, dy), R = 50;
   if (L > R) { dx *= R / L; dy *= R / L; }
   knob.style.transform = `translate(${dx}px,${dy}px)`;
-  const m = Math.min(1, L / 18) ; joyVec = L > 4 ? { x: dx / Math.max(L, 1) * m, y: dy / Math.max(L, 1) * m } : { x: 0, y: 0 };
+  const m = Math.min(1, L / 14); joyVec = L > 4 ? { x: dx / Math.max(L, 1) * m, y: dy / Math.max(L, 1) * m } : { x: 0, y: 0 };
 });
 function endJoy(e) { if (e.pointerId !== joyId) return; joyId = null; joyVec = { x: 0, y: 0 }; joyEl.style.display = 'none'; }
 renderer.domElement.addEventListener('pointerup', endJoy);
@@ -811,11 +831,11 @@ function update(dt) {
   const mag = Math.hypot(mx, mz);
   player.moving = mag > 0.05;
   if (player.moving) {
-    const sp = 5.6 * Math.min(1, mag);
-    collide(player, player.x + mx / mag * sp * dt * Math.min(1, mag), player.z + mz / mag * sp * dt * Math.min(1, mag), 0.45);
+    const sp = 6 * Math.min(1, Math.max(0.55, mag)) * dt;
+    collide(player, player.x + mx / mag * sp, player.z + mz / mag * sp, 0.38);
     if (player.swingT <= 0) player.rot = turnTo(player.rot, Math.atan2(mx, mz), 0.25);
     player.walkT += dt;
-  } else collide(player, player.x, player.z, 0.45);
+  } else collide(player, player.x, player.z, 0.38);
   player.g.position.set(player.x, 0, player.z);
   player.g.rotation.y = player.rot;
   animWalk(player, player.walkT, player.moving);
@@ -1151,8 +1171,8 @@ function update(dt) {
 }
 
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  update(dt);
+  let dt = Math.min(0.15, (now - last) / 1000); last = now;
+  while (dt > 0.0001) { const step = Math.min(dt, 0.04); update(step); dt -= step; }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
