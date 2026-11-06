@@ -1160,9 +1160,9 @@ function playerAttack() {
   const A = AXE[S.axe], R2 = A.range * A.range, cands = [], dmg = A.dmg * heroDmg();
   for (const e of enemies) if (e.alive && d2(e.x, e.z, player.x, player.z) < R2 * (e.type === 'yeti' ? 1.6 : 1.1)) cands.push([0, e]);
   for (const m of wilds) if (m.alive && d2(m.x, m.z, player.x, player.z) < (A.range + m.T.size * 0.6) ** 2) cands.push([4, m]);
-  if (!S.noCollect.meat) for (const y of yaks) if (y.alive && d2(y.x, y.z, player.x, player.z) < R2 * 1.1) cands.push([1, y]);
-  if (!S.noCollect.log) for (const t of trees) if (t.alive && t.choppable && d2(t.x, t.z, player.x, player.z) < R2) cands.push([2, t]);
-  for (const r of rocks) if (r.alive && !r.hidden && !S.noCollect[r.item] && d2(r.x, r.z, player.x, player.z) < R2 * 1.15) cands.push([3, r]);
+  for (const y of yaks) if (y.alive && d2(y.x, y.z, player.x, player.z) < R2 * 1.1) cands.push([1, y]);
+  for (const t of trees) if (t.alive && t.choppable && d2(t.x, t.z, player.x, player.z) < R2) cands.push([2, t]);
+  for (const r of rocks) if (r.alive && !r.hidden && d2(r.x, r.z, player.x, player.z) < R2 * 1.15) cands.push([3, r]);
   if (!cands.length) return false;
   cands.sort((a, b) => (a[0] % 4) - (b[0] % 4) || d2(a[1].x, a[1].z, player.x, player.z) - d2(b[1].x, b[1].z, player.x, player.z));
   const hits = cands.slice(0, A.max);
@@ -1170,8 +1170,8 @@ function playerAttack() {
     if (k === 4) damageWild(e, dmg);
     else if (k === 0) { if (isGuest()) { e.shake = 0.25; burst(e.x, 1, e.z, 0x9aa4b1, 3, 2); netAct('e', e.id, dmg); } else damageEnemy(e, dmg); }
     else if (k === 1) { if (isGuest()) { e.shake = 0.25; burst(e.x, 1, e.z, 0xd9524b, 3, 2); netAct('y', e.id, dmg); } else damageYak(e, dmg); }
-    else if (k === 2) { const n = hitTree(e, dmg); let got = 0; for (let i = 0; i < n; i++) if (room() > 0 && giveItem('log', new THREE.Vector3(e.x, 1.6, e.z))) got++; else break; if (n > got) { dropItem('log', e.x + 0.8, e.z + 0.8, n - got); note('Pack full! Logs left on the ground'); } gainXP(n); netAct('t', e.ci, dmg); }
-    else { const n = hitRock(e, dmg); let got = 0; for (let i = 0; i < n; i++) if (room() > 0 && giveItem(e.item, new THREE.Vector3(e.x, 1.2, e.z))) got++; else break; if (n > got) { dropItem(e.item, e.x + 0.8, e.z + 0.8, n - got); note('Pack full! Left on the ground'); } gainXP(n * 2); netAct('r', e.ri, dmg); }
+    else if (k === 2) { const n = hitTree(e, dmg); let got = 0; for (let i = 0; i < n; i++) if (!S.noCollect.log && room() > 0 && giveItem('log', new THREE.Vector3(e.x, 1.6, e.z))) got++; else break; if (n > got) { dropItem('log', e.x + 0.8, e.z + 0.8, n - got); if (!S.noCollect.log) note('Pack full! Logs left on the ground'); } gainXP(n); netAct('t', e.ci, dmg); }
+    else { const n = hitRock(e, dmg); let got = 0; for (let i = 0; i < n; i++) if (!S.noCollect[e.item] && room() > 0 && giveItem(e.item, new THREE.Vector3(e.x, 1.2, e.z))) got++; else break; if (n > got) { dropItem(e.item, e.x + 0.8, e.z + 0.8, n - got); if (!S.noCollect[e.item]) note('Pack full! Left on the ground'); } gainXP(n * 2); netAct('r', e.ri, dmg); }
   }
   const tgt = hits[0][1]; player.rot = Math.atan2(tgt.x - player.x, tgt.z - player.z);
   return true;
@@ -1396,7 +1396,7 @@ function update(dt) {
     const d = drops[i]; d.t += dt;
     d.m.position.x += (d.x - d.m.position.x) * Math.min(1, dt * 6); d.m.position.z += (d.z - d.m.position.z) * Math.min(1, dt * 6);
     d.m.position.y = 0.25 + Math.abs(Math.sin(d.t * 3)) * 0.25; d.m.rotation.y += dt * 2;
-    if (S.downT <= 0 && d.t > 0.4 && d2(d.x, d.z, player.x, player.z) < 8) {
+    if (S.downT <= 0 && d.t > 0.4 && !S.noCollect[d.type] && d2(d.x, d.z, player.x, player.z) < 8) {
       if (d.type === 'cash') { giveCash(d.value, d.m.position, 3); floatText('+' + d.value + ' gold', d.x, 2, d.z, 'cash'); d.value = 0; }
       else { const n = Math.min(d.value, room()); for (let k = 0; k < n; k++) giveItem(d.type, d.m.position); d.value -= n; }
       if (d.value <= 0) { scene.remove(d.m); drops.splice(i, 1); }
@@ -1928,8 +1928,8 @@ function drawMini(dt) {
 
 /* ---- toggles ---- */
 [['cLog', 'log'], ['cMeat', 'meat'], ['cStone', 'stone'], ['cOre', 'ore']].forEach(([id, t]) => {
-  $(id).title = 'Tap to stop or resume collecting ' + resName(t);
-  $(id).addEventListener('click', e => { e.stopPropagation(); S.noCollect[t] = !S.noCollect[t]; syncToggles(); note(S.noCollect[t] ? 'Not collecting ' + resName(t) : 'Collecting ' + resName(t)); });
+  $(id).title = 'Tap to leave ' + resName(t) + ' on the ground or pick it up again';
+  $(id).addEventListener('click', e => { e.stopPropagation(); S.noCollect[t] = !S.noCollect[t]; syncToggles(); note(S.noCollect[t] ? resName(t)[0].toUpperCase() + resName(t).slice(1) + ' stays on the ground' : 'Collecting ' + resName(t)); });
 });
 function syncToggles() {
   [['cLog', 'log'], ['cMeat', 'meat'], ['cStone', 'stone'], ['cOre', 'ore']].forEach(([id, t]) => $(id).classList.toggle('off', !!S.noCollect[t]));

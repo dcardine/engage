@@ -15,7 +15,7 @@ Monster camps guard treasure chests across the wilds; the minimap marks them (or
 
 ## HUD
 - The minimap (right) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
-- Tap a resource counter to stop or resume collecting that resource.
+- Tap a resource counter to leave that resource on the ground: you still chop, mine and hunt, but nothing of that kind goes into your pack until you tap it again.
 - **Loggers: pile/stall** switches where loggers deliver. Hunters always deliver to the cookhouse once it is built.
 
 ## Co-op
