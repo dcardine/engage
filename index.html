@@ -70,6 +70,17 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(22,35,58,.16);
   border:2px solid rgba(255,255,255,.7);pointer-events:none;display:none;z-index:6}
 #joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+#lobby{position:fixed;inset:0;z-index:22;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
+#lobby .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:20px;width:min(340px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#lobby h2{margin:0 0 6px;font:28px/1 var(--display);color:#2b4a74}
+#lobby p{margin:0 0 12px;font:700 14px/1.4 var(--body)}
+#lobby button{border:0;border-radius:12px;background:var(--ember);color:#fff;font:17px/1 var(--display);padding:11px 18px;cursor:pointer}
+#lobby #closeLobby{background:transparent;color:#2b4a74;margin-top:6px}
+#lobby .joinrow{display:flex;gap:8px;align-items:center;justify-content:center;margin:14px 0 4px}
+#lobby label{font:800 12px/1 var(--body);letter-spacing:.08em;text-transform:uppercase}
+#lobby input{width:90px;font:20px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:8px;border:2px solid #b8c6da;border-radius:10px;background:#fff;color:var(--ink);-webkit-user-select:text;user-select:text}
+#lobby #joinBtn{background:#2b4a74}
+#lobby button:focus-visible,#lobby input:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
 #stats{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
 #stats .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px 18px 14px;width:min(340px,100%);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #stats h2{margin:0 0 8px;font:26px/1 var(--display);color:#2b4a74;text-align:center}
@@ -145,11 +156,16 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="newg" type="button">New game</button><span id="netTxt" hidden></span></div>
 <div id="invite" hidden><div class="box"><h2>Play together</h2><p>Scan with a phone, open Frosthold and tap <b>Co-op</b> to join your town.</p><div id="qr"></div><p class="link"><span id="inviteUrl"></span></p><div class="btns"><button id="copyLink" type="button">Copy link</button><button id="closeInvite" type="button">Done</button></div><p class="fine">Friends need access to this page: share it from the page’s Share menu first.</p></div></div>
+<div id="lobby" hidden><div class="box"><h2>Play together</h2><p>Host a town and share the code, or join a friend’s town. No account needed.</p>
+<button id="hostBtn" type="button">Host a game</button>
+<div class="joinrow"><label for="codeIn">Room code</label><input id="codeIn" maxlength="6" autocomplete="off" inputmode="text" placeholder="e.g. K7Q2"><button id="joinBtn" type="button">Join</button></div>
+<p id="lobbyMsg" class="fine"></p><button id="closeLobby" type="button" class="ghost">Cancel</button></div></div>
 <div id="stats" hidden><div class="box"><h2>Hero &amp; town</h2><div id="statsBody"></div><button id="closeStats" type="button">Close</button></div></div>
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
 (function(){
 'use strict';
@@ -238,7 +254,7 @@ const resName = t => t === 'ore' ? 'crystal' : t === 'cash' ? 'gold' : t;
 const C = { x: 0, z: 10 };                // fort centre
 const TIERS = [12, 21, 30];               // half-size of each fort ring
 const GATE_HW = 2.5;
-const BOUNDS = { x0: -86, x1: 86, z0: -76, z1: 96 };   // the valley is roughly 4x the old area
+const BOUNDS = { x0: -215, x1: 215, z0: -205, z1: 225 };   // a wide valley; danger grows with distance from the fort
 const DOOR = { x: 0, z: 12.5 };           // town hall door
 const inSquare = (x, z, h, m = 0) => Math.abs(x - C.x) < h + m && Math.abs(z - C.z) < h + m;
 
@@ -280,20 +296,20 @@ const LAKES = [], RUINS = [];
 (function lakesAndPatches() {
   const rnd = mulberryEarly(5150), R = (a, b) => a + rnd() * (b - a);
   // bare-ground and meadow patches that show through once the snow melts
-  for (let i = 0; i < 70; i++) { const x = R(-84, 84), z = R(-74, 94); if (Math.abs(x) < 24 && Math.abs(z - 10) < 24) continue;
+  for (let i = 0; i < 260; i++) { const x = R(-212, 212), z = R(-202, 222); if (Math.abs(x) < 24 && Math.abs(z - 10) < 24) continue;
     const m = new THREE.Mesh(new THREE.CircleGeometry(R(3, 9), 12), PATCH_MAT); m.rotation.x = -Math.PI / 2; m.scale.set(1, R(0.5, 1), 1); m.rotation.z = R(0, 6); m.position.set(x, 0.006, z); decor(m); }
   // lakes you have to walk around (frozen and walkable in winter)
   let tries = 0;
-  while (LAKES.length < 7 && tries++ < 400) {
-    const x = R(-74, 74), z = R(-64, 84), r = R(6, 11);
+  while (LAKES.length < 22 && tries++ < 1500) {
+    const x = R(-200, 200), z = R(-190, 210), r = R(6, 16);
     if (Math.hypot(x - C.x, z - C.z) < 46 || LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + r + 8)) continue;
     LAKES.push({ x, z, r });
   }
 })();
 (function icePonds() {
   const rnd = mulberryEarly(7781), R = (a, b) => a + rnd() * (b - a);
-  for (let i = 0; i < 20; i++) {
-    let x, z; do { x = R(-80, 80); z = R(-70, 90); } while (Math.abs(x) < 34 && Math.abs(z - 10) < 34);
+  for (let i = 0; i < 60; i++) {
+    let x, z; do { x = R(-205, 205); z = R(-195, 215); } while (Math.abs(x) < 34 && Math.abs(z - 10) < 34);
     const g = new THREE.Group(); g.position.set(x, 0.014, z); g.rotation.y = R(0, 6); decor(g);
     const rr = R(3, 5.5);
     const outer = new THREE.Mesh(new THREE.CircleGeometry(rr, 10), POND_OUT); outer.rotation.x = -Math.PI / 2; outer.receiveShadow = true; g.add(outer);
@@ -306,8 +322,8 @@ const LAKES = [], RUINS = [];
   const cliffMat = new THREE.MeshPhongMaterial({ color: 0x7f93b0, flatShading: true, shininess: 6 }), capMat = mat(0xfbfdff);
   // jagged snow-capped cliffs ringing the valley
   const rim = [];
-  for (let x = -96; x <= 96; x += 4.4) rim.push([x, -84], [x, 104]);
-  for (let z = -80; z <= 100; z += 4.4) rim.push([-94, z], [94, z]);
+  for (let x = -226; x <= 226; x += 4.6) rim.push([x, -214], [x, 234]);
+  for (let z = -210; z <= 230; z += 4.6) rim.push([-224, z], [224, z]);
   for (const [x, z] of rim) {
     const sz = R(2.6, 4.4), geo = new THREE.DodecahedronGeometry(sz, 0), pa = geo.attributes.position;
     for (let i = 0; i < pa.count; i++) pa.setXYZ(i, pa.getX(i) * R(0.8, 1.15), pa.getY(i) * R(0.9, 1.5), pa.getZ(i) * R(0.8, 1.15));
@@ -326,8 +342,8 @@ const LAKES = [], RUINS = [];
   trail([[-13, 10], [-24, 14], [-34, 8], [-42, 14]]);
   // soft snow mounds, berry bushes and little ice crystals for texture
   const moundMat = mat(0xf3f8ff), bushMat = mat(0x2f8a5e), berry = basic(0xd9524b);
-  for (let i = 0; i < 220; i++) {
-    const x = R(-86, 86), z = R(-76, 96); if (Math.abs(x) < 15 && Math.abs(z - 10) < 15) continue;
+  for (let i = 0; i < 700; i++) {
+    const x = R(-214, 214), z = R(-204, 224); if (Math.abs(x) < 15 && Math.abs(z - 10) < 15) continue;
     const t = rnd();
     if (t < 0.55) { const m = new THREE.Mesh(new THREE.SphereGeometry(R(0.6, 1.4), 14, 8).scale(1.4, 0.45, 1), moundMat); m.position.set(x, 0.05, z); m.receiveShadow = true; decor(m); }
     else if (t < 0.8) { const b = new THREE.Group(); b.position.set(x, 0, z); decor(b);
@@ -424,18 +440,31 @@ function clearSpot(x, z) {
   if (inSquare(x, z, TIERS[0], 2.5)) return false;
   if (Math.abs(x) < 3.5 && z < C.z) return false;
   if (x > 8 && x < 44 && z < -26) return false;
-  if (z > 94 || x < -85 || x > 85 || z < -74) return false;
+  if (z > 222 || x < -212 || x > 212 || z < -202) return false;
   return true;
 }
 // Easy pines fall quickly; older firs and ancient spruces take longer but give more wood.
 const TREE_KINDS = [{ hp: 4, bonus: 2, scale: 0.9 }, { hp: 10, bonus: 4, scale: 1.25 }, { hp: 22, bonus: 8, scale: 1.6 }];
-function addTree(x, z, s, choppable, kind) {
-  const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g);
-  const top = new THREE.Mesh(TREE_GEOS[kind === 1 ? 3 : kind === 2 ? 2 : (Math.random() * 2) | 0], vcMat); top.castShadow = choppable; top.rotation.y = Math.random() * TAU; g.add(top);
-  const stump = mk(stumpGeo, 0x8a5634); stump.position.y = 0.15; stump.visible = false; g.add(stump);
+// Trees are plain data until you come near: only those within ~80 m get 3D meshes (streamed in and out).
+function freeze(o) { o.updateMatrixWorld(true); o.traverse(m => { m.matrixAutoUpdate = false; }); }
+function showTree(t) {
+  if (t.g || t.gone) return;
+  const g = new THREE.Group(); g.position.set(t.x, 0, t.z); g.scale.setScalar(t.sc);
+  const top = new THREE.Mesh(TREE_GEOS[t.geo], vcMat); top.castShadow = true; top.rotation.y = t.ry; g.add(top);
+  const stump = mk(stumpGeo, 0x8a5634); stump.position.y = 0.15; g.add(stump);
   g.updateMatrix(); g.matrixAutoUpdate = false; stump.updateMatrix(); stump.matrixAutoUpdate = false;
-  const T = TREE_KINDS[kind || 0]; g.scale.setScalar(s * T.scale); 
-  const t = { x, z, g, top, stump, hp: T.hp, max: T.hp, bonus: T.bonus, tk: kind || 0, alive: true, gone: false, respawn: 0, shake: 0, grow: 1, choppable, kind: 'tree' };
+  t.g = g; t.top = top; t.stump = stump; syncTree(t); scene.add(g);
+}
+function hideTree(t) { if (!t.g) return; scene.remove(t.g); t.g = t.top = t.stump = null; }
+function syncTree(t) { if (!t.top) return; t.top.visible = t.alive; t.stump.visible = !t.alive; t.top.scale.setScalar(t.grow); }
+let streamT = 0;
+function streamTrees(dt) {
+  streamT -= dt; if (streamT > 0) return; streamT = 0.4;
+  for (const t of CHOP) { if (t.gone) continue; const dd = d2(t.x, t.z, player.x, player.z); if (dd < 80 * 80) showTree(t); else if (dd > 95 * 95) hideTree(t); }
+}
+function addTree(x, z, s, choppable, kind) {
+  const T = TREE_KINDS[kind || 0];
+  const t = { x, z, g: null, top: null, stump: null, sc: s * T.scale, geo: kind === 1 ? 3 : kind === 2 ? 2 : (Math.random() * 2) | 0, ry: Math.random() * TAU, hp: T.hp, max: T.hp, bonus: T.bonus, tk: kind || 0, alive: true, gone: false, respawn: 0, shake: 0, grow: 1, choppable, kind: 'tree' };
   t.obs = addObs(x, z, 0.3 * s, () => t.alive);
   if (t.choppable) { t.ci = CHOP.length; CHOP.push(t); }
   trees.push(t);
@@ -476,19 +505,20 @@ const CHOP = [];
   const far = (x, z, s) => pts.every(p => d2(p[0], p[1], x, z) > s * s);
   // stone quarries ring the middle distance; crystal veins only in the dangerous far reaches
   const polar = (r0, r1) => { const a = rand(0, TAU), r = rand(r0, r1); return [C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]; };
-  for (let i = 0, n = 0; i < 2000 && n < 34; i++) { const [x, z] = polar(34, 72); if (x < -84 || x > 84 || z < -74 || z > 94) continue; if (far(x, z, 6)) { pts.push([x, z]); addRock(x, z, 'stone'); n++; } }
-  for (let i = 0, n = 0; i < 3000 && n < 18; i++) { const [x, z] = polar(66, 100); if (x < -84 || x > 84 || z < -74 || z > 94) continue; if (far(x, z, 7)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
-  for (let i = 0, n = 0; i < 30000 && n < 640; i++) {
-    const x = rand(-84, 84), z = rand(-74, 94);
+  for (let i = 0, n = 0; i < 6000 && n < 80; i++) { const [x, z] = polar(36, 150); if (x < -210 || x > 210 || z < -200 || z > 220) continue; if (far(x, z, 6)) { pts.push([x, z]); addRock(x, z, 'stone'); n++; } }
+  for (let i = 0, n = 0; i < 8000 && n < 34; i++) { const [x, z] = polar(170, 290); if (x < -208 || x > 208 || z < -198 || z > 218) continue; if (far(x, z, 7)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
+  for (let i = 0, n = 0; i < 60000 && n < 1500; i++) {
+    const x = rand(-212, 212), z = rand(-202, 222);
+    if (Math.hypot(x - C.x, z - C.z) > 90 && rnd() < 0.45) continue;   // forest thins out far from the fort
     if (!clearSpot(x, z) || !far(x, z, 2.3)) continue;
     const d = Math.hypot(x - C.x, z - C.z), roll = rnd();
-    const kind = roll < Math.min(0.6, d / 140) * 0.6 ? 2 : roll < Math.min(0.75, 0.15 + d / 110) ? 1 : 0;
+    const kind = roll < Math.min(0.6, d / 260) * 0.6 ? 2 : roll < Math.min(0.75, 0.15 + d / 200) ? 1 : 0;
     pts.push([x, z]); addTree(x, z, rand(0.9, 1.05), true, kind); n++;
   }
   // the forest wall at the valley's edge never changes, so it is merged into the static scenery
   const edgeTree = (x, z, sc) => { const m = new THREE.Mesh(TREE_GEOS[(rnd() * 3) | 0], vcMat); m.position.set(x, 0, z); m.scale.setScalar(sc); m.rotation.y = rnd() * TAU; decor(m); };
-  for (let x = -92; x <= 92; x += 3.6) { edgeTree(x + rand(-1, 1), -79 + rand(-1, 1), rand(1, 1.3)); edgeTree(x + rand(-1, 1), 99 + rand(-1, 1), rand(1, 1.3)); }
-  for (let z = -76; z <= 96; z += 3.6) { edgeTree(-89 + rand(-1, 1), z, rand(1, 1.3)); edgeTree(89 + rand(-1, 1), z, rand(1, 1.3)); }
+  for (let x = -220; x <= 220; x += 4) { edgeTree(x + rand(-1, 1), -208 + rand(-1, 1), rand(1, 1.3)); edgeTree(x + rand(-1, 1), 228 + rand(-1, 1), rand(1, 1.3)); }
+  for (let z = -206; z <= 226; z += 4) { edgeTree(-218 + rand(-1, 1), z, rand(1, 1.3)); edgeTree(218 + rand(-1, 1), z, rand(1, 1.3)); }
   flushDecor();
 })();
 
@@ -957,8 +987,8 @@ function buildRuins() {
   const rnd = mulberryEarly(3131), R = (a, b) => a + rnd() * (b - a);
   const kinds = ['stones', 'cabin', 'tower', 'shrine', 'wreck'];
   let tries = 0;
-  while (RUINS.length < 12 && tries++ < 600) {
-    const x = R(-80, 80), z = R(-70, 90);
+  while (RUINS.length < 36 && tries++ < 3000) {
+    const x = R(-205, 205), z = R(-195, 215);
     if (Math.hypot(x - C.x, z - C.z) < 40 || LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + 6) || RUINS.some(r => Math.hypot(r.x - x, r.z - z) < 18)) continue;
     const kind = kinds[RUINS.length % kinds.length], g = grp(x, z), stone = 0x8f9fb6;
     if (kind === 'stones') for (let k = 0; k < 7; k++) { const a = k / 7 * TAU, h = R(1.2, 2.4), st = mk(Box(0.6, h, 0.4), stone); st.position.set(Math.cos(a) * 3.2, h / 2, Math.sin(a) * 3.2); st.rotation.y = -a; st.rotation.z = R(-0.15, 0.15); g.add(st); const cap = mk(puff(0.35, 0.4), SNOWW, false); cap.position.set(st.position.x, h, st.position.z); g.add(cap); }
@@ -968,6 +998,7 @@ function buildRuins() {
     if (kind === 'wreck') { const hull = mk(new THREE.SphereGeometry(1.4, 16, 10, 0, TAU, Math.PI / 2, Math.PI / 2), 0x6b4a2d); hull.scale.set(1, 0.6, 2.4); hull.rotation.z = 0.35; hull.position.y = 0.55; g.add(hull); const mast = mk(Cyl(0.08, 0.1, 3, 8), 0x5b3d2a); mast.position.set(0.2, 1.6, 0.4); mast.rotation.z = 0.5; g.add(mast); const sail = mk(Box(1.3, 1, 0.04), 0xd8cdb8); sail.position.set(0.8, 2.2, 0.4); sail.rotation.z = 0.5; g.add(sail); }
     const chest = mk(Box(0.8, 0.55, 0.55), 0x7a4a26); chest.position.set(0, 0.28, 0); if (kind === 'tower' || kind === 'cabin') chest.position.set(1.8, 0.28, 1.6); g.add(chest);
     const band = mk(Box(0.84, 0.1, 0.6), 0xc9b26a); band.position.copy(chest.position); band.position.y += 0.12; g.add(band);
+    freeze(g);
     const ru = { x, z, kind, g, chest, band, cx: x + chest.position.x, cz: z + chest.position.z, opened: false, i: RUINS.length };
     if (kind === 'cabin' || kind === 'tower') addObs(x, z, kind === 'tower' ? 1.3 : 1.4);
     RUINS.push(ru);
@@ -977,7 +1008,7 @@ buildRuins();
 const RUIN_NAMES = { stones: 'Standing stones', cabin: 'Abandoned cabin', tower: 'Ruined watchtower', shrine: 'Frozen shrine', wreck: 'Sled wreck' };
 function openRuin(ru) {
   ru.opened = true; ru.chest.visible = ru.band.visible = false; (S.ruins = S.ruins || []).push(ru.i);
-  const roll = Math.random(), far = Math.hypot(ru.x - C.x, ru.z - C.z) > 65;
+  const roll = Math.random(), far = Math.hypot(ru.x - C.x, ru.z - C.z) > 130;
   let msg;
   if (roll < 0.3) { const n = far ? 60 : 25; dropItem('cash', ru.cx, ru.cz, n); msg = n + ' gold'; }
   else if (roll < 0.55) { dropItem('log', ru.cx, ru.cz, 25); dropItem('stone', ru.cx + 1, ru.cz, 15); msg = 'logs and stone'; }
@@ -1283,7 +1314,7 @@ function guardPost(g) {
 const yaks = [];
 // Yaks graze north-east, just beyond the outermost wall, so meat is close from the start.
 // Herds graze in meadows scattered all around the valley, outside the town walls.
-const HERDS = (() => { const rnd = mulberryEarly(919), out = []; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU + rnd() * 0.5, r = 36 + rnd() * 30; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
+const HERDS = (() => { const rnd = mulberryEarly(919), out = []; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU + rnd() * 0.5, r = 40 + rnd() * 110; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
 const yakZone = () => ({ x0: -80, x1: 80, z0: -70, z1: 90 });
 function makeYak() {
   const g = new THREE.Group();
@@ -1307,7 +1338,7 @@ function spawnYak(px, pz, id) {
   const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: 6, max: 6, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
   yaks.push(y); return y;
 }
-for (let i = 0; i < 18; i++) spawnYak();
+for (let i = 0; i < 36; i++) spawnYak();
 
 /* ================= enemies ================= */
 const enemies = [];
@@ -1358,7 +1389,7 @@ function damageEnemy(e, dmg, by) { if (!e.alive) return; e.lastBy = by || null; 
 /* ================= combat helpers ================= */
 function hitTree(t, dmg) {
   const n = Math.max(1, Math.min(Math.round(dmg), t.hp)); t.hp -= n; t.shake = 0.35; burst(t.x, 1.4, t.z, 0x7b4a2b, 3, 2);
-  if (t.hp <= 0) { t.alive = false; t.respawn = 18 + t.tk * 12; t.top.visible = false; t.stump.visible = true; burst(t.x, 1.8, t.z, 0x3b8c76, 8 + t.tk * 4, 3); sfx(180 - t.tk * 30, 0.12, 'square', 0.05); return n + t.bonus; }
+  if (t.hp <= 0) { t.alive = false; t.respawn = 18 + t.tk * 12; syncTree(t); burst(t.x, 1.8, t.z, 0x3b8c76, 8 + t.tk * 4, 3); sfx(180 - t.tk * 30, 0.12, 'square', 0.05); return n + t.bonus; }
   sfx(300, 0.05, 'square', 0.04); return n;
 }
 function hitRock(r, dmg) {
@@ -1426,7 +1457,7 @@ function playerAttack() {
 function retireRing(i) {
   const old = rings[i - 1], r = rings[i]; old.active = false;
   old.segs.forEach(s => { s.g.visible = false; s.pad.g.visible = false; s.bar.hidden = true; });
-  trees.forEach(t => { if (!t.gone && inSquare(t.x, t.z, r.h, 1)) { t.gone = true; t.alive = false; scene.remove(t.g); } });
+  trees.forEach(t => { if (!t.gone && inSquare(t.x, t.z, r.h, 1)) { t.gone = true; t.alive = false; hideTree(t); } });
 }
 function checkRings() {
   if (!rings[0].complete && ringSecure(rings[0])) { rings[0].complete = true; banner('The camp is secure!', true, 'Now feed your people: build the cookhouse'); }
@@ -1611,7 +1642,8 @@ function update(dt) {
   /* --- trees / rocks --- */
   for (const t of trees) {
     if (t.gone) continue;
-    if (!t.alive && !isGuest()) { t.respawn -= dt; if (t.respawn <= 0 && d2(t.x, t.z, player.x, player.z) > 2.5) { t.alive = true; t.hp = t.max; t.top.visible = true; t.stump.visible = false; t.grow = 0; } }
+    if (!t.alive && !isGuest()) { t.respawn -= dt; if (t.respawn <= 0 && d2(t.x, t.z, player.x, player.z) > 2.5) { t.alive = true; t.hp = t.max; t.grow = 0; syncTree(t); } }
+    if (!t.top) { t.grow = 1; t.shake = 0; continue; }
     if (t.grow < 1) { t.grow = Math.min(1, t.grow + dt * 2); t.top.scale.setScalar(t.grow); }
     if (t.shake > 0) { t.shake -= dt; t.top.rotation.z = Math.sin(t.shake * 40) * t.shake * 0.4; } else if (t.top.rotation.z) t.top.rotation.z = 0;
   }
@@ -1935,7 +1967,7 @@ function update(dt) {
   }
 
   netTick(dt);
-  updateCalendar(dt); updateFog(dt); updateWilds(dt); drawMini(dt);
+  streamTrees(dt); updateCalendar(dt); updateFog(dt); updateWilds(dt); drawMini(dt);
   $('gearTxt').textContent = (S.medkits ? S.medkits + ' med kit' + (S.medkits > 1 ? 's' : '') + ' \u00b7 ' : '') + (S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')) + (S.armorLv >= 0 ? ' \u00b7 ' + ARMORS[S.armorLv].n : '');
 
   /* --- flyers / particles / floats / growth --- */
@@ -2060,9 +2092,9 @@ function makeGolem() {
 const MAKERS = { spider: makeSpider, goblin: makeGoblin, wolf: makeWolf, bear: makeBear, troll: makeTroll, wraith: makeWraith, golem: makeGolem };
 const wilds = [], wildCamps = [];
 const POOL = [['spider', 'goblin', 'wolf'], ['bear', 'troll'], ['wraith', 'golem']];
-function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 45 ? 0 : d < 70 ? 1 : 2; }
+function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 110 ? 0 : d < 165 ? 1 : 2; }
 // beyond the tier itself, every step farther from the fort makes guards tougher
-const distMul = (x, z) => 1 + Math.max(0, Math.hypot(x - C.x, z - C.z) - 40) / 35;
+const distMul = (x, z) => 1 + Math.max(0, Math.hypot(x - C.x, z - C.z) - 70) / 70;
 // Stakes, tents, a fire pit and a banner around the chest, dressed for whoever lives there.
 const CAMP_LOOK = { spider: [0x3a3a48, 0xd8dde6], goblin: [0x6b8a3a, 0xb8452e], wolf: [0x7d8794, 0x9a5e38], bear: [0x5a3b26, 0x8a6a4a], troll: [0x55634a, 0x7a4527], wraith: [0x8fb3d9, 0x2b4a74], golem: [0x6f7a88, 0x7fd3f0] };
 function buildCampProps(g, kind) {
@@ -2084,9 +2116,9 @@ function buildCampProps(g, kind) {
 function spawnCamp() {
   const R = outerRing();
   let x, z, n = 0;
-  do { x = rand(-82, 82); z = rand(-72, 92); n++; }
-  while (n < 60 && (inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
-  if (n >= 60) return;
+  do { x = rand(-205, 205); z = rand(-195, 215); n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
+  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
+  if (n >= 120) return;
   const tier = campTier(x, z);
   const camp = { x, z, tier, guards: [], open: false };
   const chest = grp(x, z); camp.g = chest;
@@ -2098,7 +2130,7 @@ function spawnCamp() {
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
   const kind = POOL[tier][Math.random() * POOL[tier].length | 0];
   const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : 2).fill(kind);
-  camp.kind = kind; buildCampProps(chest, kind);
+  camp.kind = kind; buildCampProps(chest, kind); chest.children.forEach(c => { if (c !== camp.glow) { c.updateMatrix(); c.matrixAutoUpdate = false; } });
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
     m.g.position.set(hx, 0, hz); m.g.scale.multiplyScalar(type === 'wolf' ? 1.1 : 1); scene.add(m.g);
@@ -2177,7 +2209,7 @@ function openTreasure(camp) {
 }
 let campT = 4; setTimeout(syncToggles, 0);
 function updateWilds(dt) {
-  campT -= dt; if (campT <= 0) { campT = 100; while (wildCamps.length < 10) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; } }
+  campT -= dt; if (campT <= 0) { campT = 100; while (wildCamps.length < 24) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; } }
   for (const c of wildCamps) {
     c.glow.rotation.z += dt; const clear = c.guards.every(o => !o.alive);
     c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
@@ -2209,7 +2241,7 @@ function updateWilds(dt) {
 
 /* ================= fog of war =================
    The minimap only shows ground you or a teammate has walked near. */
-const FOG_N = 72, FOG_X0 = -90, FOG_Z0 = -80, FOG_CELL = 180 / FOG_N;
+const FOG_CELL = 3, FOG_X0 = -225, FOG_Z0 = -215, FOG_N = Math.ceil(450 / FOG_CELL);
 let fog = new Uint8Array(FOG_N * FOG_N), fogT = 0;
 function reveal(x, z, r) {
   const cx = Math.floor((x - FOG_X0) / FOG_CELL), cz = Math.floor((z - FOG_Z0) / FOG_CELL), cr = Math.ceil(r / FOG_CELL);
@@ -2232,31 +2264,48 @@ function fogLoad(str) { if (!str) return; let cur = 0, k = 0; for (const n of st
 /* ================= minimap ================= */
 const mini = $('mini'), mctx = mini.getContext('2d');
 let miniT = 0;
-const MX = x => (x + 90) / 180 * 240, MZ = z => (z + 80) / 180 * 240;
+const MINI_W = 140, MSC = 240 / MINI_W;   // the map window spans 140 m around you
+let mcx = 0, mcz = 0;
+const MX = x => 120 + (x - mcx) * MSC, MZ = z => 120 + (z - mcz) * MSC;
+const onMini = (x, z, m = 4) => Math.abs(x - mcx) < MINI_W / 2 + m && Math.abs(z - mcz) < MINI_W / 2 + m;
 function drawMini(dt) {
   miniT -= dt; if (miniT > 0) return; miniT = 0.25;
+  mcx = player.x; mcz = player.z;
   const c = mctx; c.clearRect(0, 0, 240, 240);
   c.fillStyle = 'rgba(236,242,250,0.9)'; c.fillRect(0, 0, 240, 240);
-  c.fillStyle = '#5b9a86'; for (const t of CHOP) if (t.alive && !t.gone && seen(t.x, t.z)) c.fillRect(MX(t.x) - 1, MZ(t.z) - 1, 2, 2);
-  for (const r of rocks) if (r.alive && !r.hidden && seen(r.x, r.z)) { c.fillStyle = r.kind === 'gold' ? '#e0a92c' : '#7d8794'; c.fillRect(MX(r.x) - 3, MZ(r.z) - 3, 6, 6); }
-  c.fillStyle = '#7a5230'; for (const y of yaks) if (y.alive && seen(y.x, y.z)) { c.beginPath(); c.arc(MX(y.x), MZ(y.z), 3, 0, TAU); c.fill(); }
-  for (const L of LAKES) if (seen(L.x, L.z)) { c.fillStyle = S.season === 3 ? '#a9daf3' : '#3f97cc'; c.beginPath(); c.arc(MX(L.x), MZ(L.z), L.r * 240 / 180, 0, TAU); c.fill(); }
-  for (const ru of RUINS) if (seen(ru.x, ru.z)) { c.fillStyle = ru.opened ? '#9aa4b1' : '#d9b25a'; c.fillRect(MX(ru.x) - 3.5, MZ(ru.z) - 3.5, 7, 7); }
-  for (const r of activeRings()) { c.strokeStyle = '#8a5a36'; c.lineWidth = 3; c.strokeRect(MX(-r.h), MZ(r.zN), MX(r.h) - MX(-r.h), MZ(r.zS) - MZ(r.zN)); }
-  for (const P of piles) if (P.on) { c.fillStyle = '#ff8a3d'; c.fillRect(MX(P.x) - 3, MZ(P.z) - 3, 6, 6); }
+  const show = (x, z) => onMini(x, z) && seen(x, z);
+  c.fillStyle = '#5b9a86'; for (const t of CHOP) if (t.alive && !t.gone && show(t.x, t.z)) c.fillRect(MX(t.x) - 1.5, MZ(t.z) - 1.5, 3, 3);
+  for (const L of LAKES) if (onMini(L.x, L.z, L.r) && seen(L.x, L.z)) { c.fillStyle = S.season === 3 ? '#a9daf3' : '#3f97cc'; c.beginPath(); c.arc(MX(L.x), MZ(L.z), L.r * MSC, 0, TAU); c.fill(); }
+  for (const r of rocks) if (r.alive && !r.hidden && show(r.x, r.z)) { c.fillStyle = r.kind === 'gold' ? '#4fc6f0' : '#7d8794'; c.fillRect(MX(r.x) - 4, MZ(r.z) - 4, 8, 8); }
+  c.fillStyle = '#7a5230'; for (const y of yaks) if (y.alive && show(y.x, y.z)) { c.beginPath(); c.arc(MX(y.x), MZ(y.z), 3.5, 0, TAU); c.fill(); }
+  for (const ru of RUINS) if (show(ru.x, ru.z)) { c.fillStyle = ru.opened ? '#9aa4b1' : '#d9b25a'; c.fillRect(MX(ru.x) - 4.5, MZ(ru.z) - 4.5, 9, 9); }
+  for (const r of activeRings()) { c.strokeStyle = '#8a5a36'; c.lineWidth = 3; c.strokeRect(MX(-r.h), MZ(r.zN), (2 * r.h) * MSC, (r.zS - r.zN) * MSC); }
+  for (const P of piles) if (P.on && onMini(P.x, P.z)) { c.fillStyle = '#ff8a3d'; c.fillRect(MX(P.x) - 3, MZ(P.z) - 3, 6, 6); }
   for (const cp of wildCamps) {
-    if (!seen(cp.x, cp.z)) continue;
+    if (!show(cp.x, cp.z)) continue;
     const clear = cp.guards.every(o => !o.alive);
     c.fillStyle = clear ? '#f2c14e' : ['#c0703a', '#b8452e', '#7a2a8a'][cp.tier];
-    c.beginPath(); c.arc(MX(cp.x), MZ(cp.z), 4 + cp.tier * 1.5, 0, TAU); c.fill();
+    c.beginPath(); c.arc(MX(cp.x), MZ(cp.z), 5 + cp.tier * 2, 0, TAU); c.fill();
   }
+  // unexplored ground stays dark (only the cells inside the window are drawn)
   c.fillStyle = 'rgba(30,44,68,0.92)';
-  const cs = 240 / FOG_N;
-  for (let j = 0; j < FOG_N; j++) for (let i = 0; i < FOG_N; i++) if (!fog[j * FOG_N + i]) c.fillRect(i * cs - 0.3, j * cs - 0.3, cs + 0.6, cs + 0.6);
-  c.fillStyle = '#e2483f'; for (const e of enemies) if (e.alive) { c.beginPath(); c.arc(MX(e.x), MZ(e.z), 3, 0, TAU); c.fill(); }
-  c.fillStyle = '#2f7fb8'; for (const r of Object.values(NET.remotes)) { c.beginPath(); c.arc(MX(r.x), MZ(r.z), 4, 0, TAU); c.fill(); }
-  c.save(); c.translate(MX(player.x), MZ(player.z)); c.rotate(-player.rot + Math.PI);
-  c.fillStyle = '#fff'; c.strokeStyle = '#16233a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -8); c.lineTo(6, 6); c.lineTo(-6, 6); c.closePath(); c.fill(); c.stroke(); c.restore();
+  const cs = FOG_CELL * MSC, i0 = Math.max(0, Math.floor((mcx - MINI_W / 2 - FOG_X0) / FOG_CELL)), i1 = Math.min(FOG_N - 1, Math.ceil((mcx + MINI_W / 2 - FOG_X0) / FOG_CELL));
+  const j0 = Math.max(0, Math.floor((mcz - MINI_W / 2 - FOG_Z0) / FOG_CELL)), j1 = Math.min(FOG_N - 1, Math.ceil((mcz + MINI_W / 2 - FOG_Z0) / FOG_CELL));
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (!fog[j * FOG_N + i]) c.fillRect(MX(FOG_X0 + i * FOG_CELL) - 0.3, MZ(FOG_Z0 + j * FOG_CELL) - 0.3, cs + 0.6, cs + 0.6);
+  c.fillStyle = '#e2483f'; for (const e of enemies) if (e.alive && onMini(e.x, e.z)) { c.beginPath(); c.arc(MX(e.x), MZ(e.z), 3.5, 0, TAU); c.fill(); }
+  c.fillStyle = '#2f7fb8'; for (const r of Object.values(NET.remotes)) if (onMini(r.x, r.z)) { c.beginPath(); c.arc(MX(r.x), MZ(r.z), 4.5, 0, TAU); c.fill(); }
+  c.save(); c.translate(120, 120); c.rotate(-player.rot + Math.PI);
+  c.fillStyle = '#fff'; c.strokeStyle = '#16233a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -9); c.lineTo(7, 7); c.lineTo(-7, 7); c.closePath(); c.fill(); c.stroke(); c.restore();
+  // when the fort is off the map, an arrow on the rim points home with the distance
+  const dx = C.x - mcx, dz = C.z - mcz, dist = Math.hypot(dx, dz);
+  if (!onMini(C.x, C.z, -14)) {
+    const a = Math.atan2(dz, dx), k = 96 / Math.max(Math.abs(Math.cos(a)), Math.abs(Math.sin(a))), ax = 120 + Math.cos(a) * Math.min(k, 100), az = 120 + Math.sin(a) * Math.min(k, 100);
+    c.save(); c.translate(ax, az); c.rotate(a);
+    c.fillStyle = '#ff8a3d'; c.strokeStyle = '#16233a'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(14, 0); c.lineTo(-8, -10); c.lineTo(-3, 0); c.lineTo(-8, 10); c.closePath(); c.fill(); c.stroke(); c.restore();
+    c.font = 'bold 22px "Lilita One", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    const lx = clamp(ax - Math.cos(a) * 30, 34, 206), lz = clamp(az - Math.sin(a) * 26, 18, 222);
+    c.lineWidth = 4; c.strokeStyle = 'rgba(22,35,58,0.9)'; c.strokeText('Home ' + Math.round(dist) + 'm', lx, lz); c.fillStyle = '#fff'; c.fillText('Home ' + Math.round(dist) + 'm', lx, lz);
+  }
 }
 
 /* ---- toggles ---- */
@@ -2433,7 +2482,7 @@ function onWorld(msg) {
   if (!isGuest() || msg.peer !== NET.host || !msg.data) return;
   const d = msg.data;
   (d.b || []).forEach(id => { if (B[id]) return; const pp = pads.find(q => q.id === id); B[id] = true; if (pp && pp.rawBuy && !pp.labels) { loading = true; try { pp.rawBuy(1); } finally { loading = false; } } });
-  if (d.t) CHOP.forEach((t, i) => { const on = d.t[i] === '1'; if (t.gone) return; if (on && !t.alive) { t.alive = true; t.hp = t.max; t.top.visible = true; t.stump.visible = false; t.grow = 0; } else if (!on && t.alive) { t.alive = false; t.top.visible = false; t.stump.visible = true; } });
+  if (d.t) CHOP.forEach((t, i) => { const on = d.t[i] === '1'; if (t.gone) return; if (on && !t.alive) { t.alive = true; t.hp = t.max; t.grow = 0; syncTree(t); } else if (!on && t.alive) { t.alive = false; syncTree(t); } });
   if (d.r) rocks.forEach((rk, i) => { const on = d.r[i] === '1'; rk.hidden = rk.kind === 'gold' && !S.mine; if (rk.hidden) { rk.g.visible = false; return; } if (on !== rk.alive) { rk.alive = on; rk.hp = rk.max; rk.body.scale.setScalar(1); rk.g.visible = on; } });
   (d.k || []).forEach(([a, c, hp], i) => {
     const r = rings[i]; if (!r) return;
@@ -2509,7 +2558,7 @@ function netTick(dt) {
   }
   NET.presT -= dt;
   const n = Object.keys(NET.remotes).length + 1;
-  $('netTxt').hidden = false; $('netTxt').textContent = (isHost() ? 'Hosting' : 'Guest') + ' · ' + n + (n === 1 ? ' player' : ' players');
+  $('netTxt').hidden = false; $('netTxt').textContent = (isHost() ? 'Hosting' : 'Guest') + (ROOM_CODE ? ' ' + ROOM_CODE : '') + ' · ' + n + (n === 1 ? ' player' : ' players');
   if (isHost()) {
     for (const p of ps) {
       if (p.sameTab || !p.presence) continue;
@@ -2533,27 +2582,31 @@ function netTick(dt) {
     if (host) {
       NET.hostSeen = time; NET.host = host.peer;
       if (host.presence !== NET.lastHostPres) { NET.lastHostPres = host.presence; applyHost(host.presence); }
-    } else if (time - NET.hostSeen > 6) promote();
+    } else if (time - NET.hostSeen > 6) { if (ON_CLAUDE) promote(); else { banner('The host left', false, 'Returning to your own town'); setTimeout(() => location.reload(), 2000); NET.hostSeen = 1e9; } }
     if (NET.presT <= 0) { NET.presT = 0.1; NET.room.presence({ role: 'guest', h: heroState(), a: NET.pending }).catch(() => {}); }
   }
 }
 // The link friends open. Inside the viewer the page runs on a sandboxed origin, so use the artifact's own address.
 const INVITE_URL = 'https://claude.ai/artifact/DmUogvxzfRxUSDKnoTeB3L';
 let qrMade = false;
+function inviteUrl() { return ON_CLAUDE ? INVITE_URL : location.origin + location.pathname + '#join-' + ROOM_CODE; }
 function showInvite() {
-  $('invite').hidden = false; $('inviteUrl').textContent = INVITE_URL;
-  if (!qrMade && window.QRCode) { new QRCode($('qr'), { text: INVITE_URL, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M }); qrMade = true; }
+  const url = inviteUrl();
+  $('invite').hidden = false; $('inviteUrl').textContent = ON_CLAUDE ? url : 'Room code ' + ROOM_CODE + '  ·  ' + url;
+  $('invite').querySelector('.fine').textContent = ON_CLAUDE ? 'Friends need access to this page: share it from the page’s Share menu first.' : 'Anyone with this code can join your town while you are hosting.';
+  if (!qrMade && window.QRCode) { new QRCode($('qr'), { text: url, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M }); qrMade = true; }
   if (!window.QRCode) $('qr').textContent = 'QR code unavailable: share the link below.';
 }
 $('inviteBtn').addEventListener('click', e => { e.stopPropagation(); showInvite(); });
 $('closeInvite').addEventListener('click', () => { $('invite').hidden = true; });
 $('copyLink').addEventListener('click', () => {
   const done = ok => { $('copyLink').textContent = ok ? 'Copied' : 'Select the link'; setTimeout(() => $('copyLink').textContent = 'Copy link', 1600); };
-  try { navigator.clipboard.writeText(INVITE_URL).then(() => done(true), () => { selectInvite(); done(false); }); } catch (e) { selectInvite(); done(false); }
+  try { navigator.clipboard.writeText(inviteUrl()).then(() => done(true), () => { selectInvite(); done(false); }); } catch (e) { selectInvite(); done(false); }
 });
 function selectInvite() { const r = document.createRange(); r.selectNodeContents($('inviteUrl')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 function becomeHost() {
   NET.mode = 'host'; NET.presT = 0; NET.worldT = 0;
+  if (!ON_CLAUDE) $('netTxt').title = 'Room ' + ROOM_CODE;
   $('coop').textContent = 'Leave co-op'; $('inviteBtn').hidden = false; showInvite();
   banner('Co-op open!', true, 'Anyone who opens this page and taps Co-op joins your town');
 }
@@ -2566,35 +2619,105 @@ function becomeGuest(peer) {
 function promote() { NET.pending = []; NET.pendPay = []; NET.buf.clear(); NET.incoming = 0; becomeHost(); banner('The host left', true, 'You are hosting the town now'); }
 function demote() { saveGame(); try { sessionStorage.setItem('frost-coop', 'join'); } catch (e) {} location.reload(); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function startCoop(auto) {
+/* ---- off claude.ai: peer-to-peer rooms with a short code (PeerJS) ----
+   The host's browser is the hub: guests connect to it, and it relays presence and
+   events between everyone, matching the calls the claude.ai room offers. */
+const ON_CLAUDE = !!(window.claude && window.claude.use);
+let ROOM_CODE = '';
+const newCode = () => Array.from({ length: 4 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.random() * 31 | 0]).join('');
+function peerRoom(code, asHost) {
+  return new Promise((resolve, reject) => {
+    if (!window.Peer) return reject(new Error('peer library missing'));
+    const hubId = 'frosthold-room-' + code.toLowerCase();
+    const peer = asHost ? new Peer(hubId) : new Peer();
+    const handlers = {}, pres = new Map(), conns = new Map();
+    let mine = {}, myId = null, hub = null, done = false;
+    const ok = v => { if (!done) { done = true; resolve(v); } }, bad = e => { if (!done) { done = true; try { peer.destroy(); } catch (_) {} reject(e); } };
+    const fire = (t, d, from) => (handlers[t] || []).forEach(h => { try { h({ topic: t, data: d, peer: from }); } catch (_) {} });
+    const send = (c, m) => { try { if (c && c.open) c.send(m); } catch (_) {} };
+    const toGuests = (m, except) => { for (const [pid, c] of conns) if (pid !== except) send(c, m); };
+    function onMsg(from, m) {
+      if (!m || typeof m !== 'object') return;
+      if (m.k === 'p') { pres.set(from, m.v || {}); if (asHost) toGuests({ k: 'p', from, v: m.v }, from); }
+      else if (m.k === 'e') { fire(m.t, m.d, from); if (asHost) toGuests({ k: 'e', from, t: m.t, d: m.d }, from); }
+      else if (m.k === 'bye') pres.delete(from);
+    }
+    const api = {
+      emit: async (t, d) => { if (asHost) toGuests({ k: 'e', from: myId, t, d }); else send(hub, { k: 'e', t, d }); fire(t, d, myId); },
+      on: (t, h) => { (handlers[t] = handlers[t] || []).push(h); return () => {}; },
+      presence: async p => { mine = Object.assign({}, mine, p); if (asHost) toGuests({ k: 'p', from: myId, v: mine }); else send(hub, { k: 'p', v: mine }); },
+      peers: () => [{ peer: myId, presence: mine, sameTab: true }, ...[...pres].map(([peer, presence]) => ({ peer, presence, sameTab: false }))],
+      leave: async () => { try { peer.destroy(); } catch (_) {} },
+    };
+    peer.on('error', e => bad(e));
+    peer.on('open', pid => {
+      myId = pid;
+      if (asHost) return ok(api);
+      hub = peer.connect(hubId, { reliable: true });
+      hub.on('open', () => ok(api));
+      hub.on('data', m => onMsg(m && m.from ? m.from : hubId, m));
+      hub.on('close', () => pres.clear());
+      setTimeout(() => bad(new Error('timeout')), 12000);
+    });
+    if (asHost) peer.on('connection', c => {
+      c.on('open', () => { conns.set(c.peer, c); send(c, { k: 'p', from: myId, v: mine }); for (const [pid, v] of pres) send(c, { k: 'p', from: pid, v }); });
+      c.on('data', m => onMsg(c.peer, m));
+      c.on('close', () => { conns.delete(c.peer); pres.delete(c.peer); toGuests({ k: 'bye', from: c.peer }); });
+    });
+  });
+}
+async function startCoop(auto, code, asHost) {
   const btn = $('coop'); btn.disabled = true; btn.textContent = 'Connecting…';
   const fail = msg => { btn.disabled = false; btn.textContent = 'Co-op'; banner('Co-op unavailable', false, msg); };
-  const api = window.claude && window.claude.use ? await window.claude.use('room') : null;
-  if (!api) return fail('Open the published page to play together');
-  try { NET.room = await api.join('frosthold'); } catch (e) { NET.room = null; return fail('Could not reach the co-op room'); }
+  if (ON_CLAUDE) {
+    const api = await window.claude.use('room');
+    if (!api) return fail('Sign in to claude.ai and open the shared page to play together');
+    try { NET.room = await api.join('frosthold'); } catch (e) { NET.room = null; return fail('Could not reach the co-op room'); }
+  } else {
+    for (let attempt = 0; ; attempt++) {
+      try { NET.room = await peerRoom(code, asHost); break; }
+      catch (e) {
+        NET.room = null;
+        if (asHost && String(e && e.type) === 'unavailable-id' && attempt < 3) { code = newCode(); continue; }
+        if (!asHost && String(e && e.type) === 'peer-unavailable') return fail('No game is running with code ' + code);
+        return fail(asHost ? 'Could not open a room. Check your connection.' : 'Could not join ' + code + '. Check the code and your connection.');
+      }
+    }
+    ROOM_CODE = code;
+  }
   NET.room.on('w', onWorld); NET.room.on('wp', onPads); NET.room.on('give', onGive);
   await sleep(2500);
   const ps = NET.room.peers(); const mine = ps.find(p => p.sameTab); NET.me = mine ? mine.peer : null;
   const host = ps.find(p => !p.sameTab && p.presence && p.presence.role === 'host');
   btn.disabled = false;
   if (host) {
-    if (!auto) { saveGame(); try { sessionStorage.setItem('frost-coop', 'join'); } catch (e) {} location.reload(); return; }
+    if (!auto) { saveGame(); NET.room.leave().catch(() => {}); try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {} location.reload(); return; }
     becomeGuest(host.peer);
+  } else if (!ON_CLAUDE && !asHost) {
+    NET.room.leave().catch(() => {}); NET.room = null; return fail('No game is running with code ' + code);
   } else {
     if (auto) loadGame();
     becomeHost();
   }
 }
+$('hostBtn').addEventListener('click', () => { $('lobby').hidden = true; startCoop(false, newCode(), true); });
+$('joinBtn').addEventListener('click', () => {
+  const code = $('codeIn').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length < 4) { $('lobbyMsg').textContent = 'Enter the 4-character code from the host’s screen.'; return; }
+  $('lobby').hidden = true; startCoop(false, code, false);
+});
+$('codeIn').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('joinBtn').click(); });
+$('closeLobby').addEventListener('click', () => { $('lobby').hidden = true; });
 $('coop').addEventListener('click', e => {
   e.stopPropagation(); unlockAudio();
-  if (NET.mode === 'solo') { if (!NET.room) startCoop(false); return; }
+  if (NET.mode === 'solo') { if (NET.room) return; if (ON_CLAUDE) startCoop(false); else { $('lobbyMsg').textContent = ''; $('lobby').hidden = false; } return; }
   if (isGuest()) { location.reload(); return; }
   NET.room.leave().catch(() => {}); NET.room = null; NET.mode = 'solo'; for (const k in NET.remotes) dropRemote(k);
   $('coop').textContent = 'Co-op'; $('netTxt').hidden = true; $('inviteBtn').hidden = true; banner('Co-op closed', true);
 });
 
 /* ================= save / load (this browser only) ================= */
-const SAVE_KEY = 'frosthold-save-v5';
+const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 function saveGame() {
@@ -2654,7 +2777,10 @@ newBtn.addEventListener('click', e => {
   newT = setTimeout(() => { newBtn.classList.remove('confirm'); newBtn.textContent = 'New game'; }, 3000);
 });
 let coopBoot = null; try { coopBoot = sessionStorage.getItem('frost-coop'); sessionStorage.removeItem('frost-coop'); } catch (e) {}
-if (coopBoot === 'join') startCoop(true); else loadGame();
+let bootCode = ''; try { bootCode = sessionStorage.getItem('frost-code') || ''; sessionStorage.removeItem('frost-code'); } catch (e) {}
+const hashJoin = (location.hash.match(/^#join-([A-Za-z0-9]{4,6})$/) || [])[1];
+if (coopBoot === 'join') startCoop(true, bootCode, false);
+else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 window.addEventListener('pagehide', saveGame);
