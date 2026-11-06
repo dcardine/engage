@@ -41,6 +41,9 @@ Crystal veins only appear far out in the wilds and need a **Crystal Pick** (Blac
 **On claude.ai:**
 Tap **Co-op** on the published page. The first player in hosts, so their town is the shared one. Anyone else who opens the page and taps Co-op joins that town with their own hero, pack and wallet, and can chop, fight, build and trade alongside the host. Guests' own saved towns stay untouched; **Leave co-op** returns them to it. If the host leaves, a guest takes over hosting. Players need Contributor (interact) access or higher to host; anyone who can open the page can join as a guest.
 
+## Co-op extras
+Set your name and coat colour under **Co-op** or **Hero**. Teammates show with your name, a ring in your colour and a stack of whatever they carry (icons in the name tag too). Everyone appears on the minimap as a star in their colour, pinned to the rim when far away, and you get an alert when a teammate is under attack or knocked out.
+
 ## Saving
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 

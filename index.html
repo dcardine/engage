@@ -1,4 +1,5 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Frosthold Outpost</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800&display=swap">
@@ -70,6 +71,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(22,35,58,.16);
   border:2px solid rgba(255,255,255,.7);pointer-events:none;display:none;z-index:6}
 #joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+.prof{margin:6px 0 12px;text-align:left}.prof label{display:block;font:800 13px var(--body);color:#2b4a74;margin-bottom:4px}.prof input{width:100%;box-sizing:border-box;font:800 17px var(--body);padding:9px 11px;border:2px solid #c9d6e8;border-radius:10px;color:var(--ink)}.prof .sw{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.prof .sw button{width:30px;height:30px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #c9d6e8;padding:0;cursor:pointer}.prof .sw button[aria-pressed=true]{box-shadow:0 0 0 3px #16233a}
 #lobby{position:fixed;inset:0;z-index:22;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
 #lobby .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:20px;width:min(340px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #lobby h2{margin:0 0 6px;font:28px/1 var(--display);color:#2b4a74}
@@ -156,11 +158,11 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="newg" type="button">New game</button><span id="netTxt" hidden></span></div>
 <div id="invite" hidden><div class="box"><h2>Play together</h2><p>Scan with a phone, open Frosthold and tap <b>Co-op</b> to join your town.</p><div id="qr"></div><p class="link"><span id="inviteUrl"></span></p><div class="btns"><button id="copyLink" type="button">Copy link</button><button id="closeInvite" type="button">Done</button></div><p class="fine">Friends need access to this page: share it from the page’s Share menu first.</p></div></div>
-<div id="lobby" hidden><div class="box"><h2>Play together</h2><p>Host a town and share the code, or join a friend’s town. No account needed.</p>
+<div id="lobby" hidden><div class="box"><h2>Play together</h2><div class="prof"></div><p>Host a town and share the code, or join a friend’s town. No account needed.</p>
 <button id="hostBtn" type="button">Host a game</button>
 <div class="joinrow"><label for="codeIn">Room code</label><input id="codeIn" maxlength="6" autocomplete="off" inputmode="text" placeholder="e.g. K7Q2"><button id="joinBtn" type="button">Join</button></div>
 <p id="lobbyMsg" class="fine"></p><button id="closeLobby" type="button" class="ghost">Cancel</button></div></div>
-<div id="stats" hidden><div class="box"><h2>Hero &amp; town</h2><div id="statsBody"></div><button id="closeStats" type="button">Close</button></div></div>
+<div id="stats" hidden><div class="box"><h2>Hero &amp; town</h2><div class="prof"></div><div id="statsBody"></div><button id="closeStats" type="button">Close</button></div></div>
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -198,7 +200,7 @@ const FWD = new THREE.Vector2(-CAM_OFF.x, -CAM_OFF.z).normalize();
 const RIGHT = new THREE.Vector2(-FWD.y, FWD.x);
 function resize() {
   const w = window.innerWidth, h = window.innerHeight, a = w / h;
-  const halfH = Math.max(8.5, 6.6 / a), halfW = halfH * a;
+  const halfH = Math.max(8.5, 6.0 / a), halfW = halfH * a;
   camera.left = -halfW; camera.right = halfW; camera.top = halfH; camera.bottom = -halfH;
   camera.updateProjectionMatrix(); renderer.setSize(w, h);
 }
@@ -643,8 +645,28 @@ function makeAxe() {
 }
 
 /* ---- player ---- */
-const P0 = makePerson(0xc8452f, 0xf3e6cf, 0x2f4a6d);
-skin(P0.g, 'hero', 1.95, { by: 'y', parts: P0.g.userData.body });
+// ---- player profile: name and coat colour, shown to teammates ----
+const COLORS = [['Red', 0xd9443a], ['Blue', 0x2f7fb8], ['Green', 0x3fa34d], ['Purple', 0x8e44ad], ['Gold', 0xe0a91c], ['Pink', 0xe85d9e], ['Teal', 0x1fa3a3], ['Charcoal', 0x3a414c]];
+const PROFILE = (() => { try { const p = JSON.parse(localStorage.getItem('frosthold-profile')); if (p && typeof p.color === 'number') return { name: String(p.name || '').slice(0, 12), color: p.color }; } catch (e) {} return { name: '', color: 0xd9443a }; })();
+function saveProfile() { try { localStorage.setItem('frosthold-profile', JSON.stringify(PROFILE)); } catch (e) {} }
+const hex = c => '#' + c.toString(16).padStart(6, '0');
+// The hero model's coat is red in its texture: a shader swaps red hues for the chosen colour, leaving skin, wood and fur alone.
+function coatShader(sh, u) {
+  sh.uniforms.uCoat = u;
+  sh.fragmentShader = 'uniform vec3 uCoat;\nvec3 rgb2hsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.*d+1e-10)),d/(q.x+1e-10),q.x);}\nvec3 hsv2rgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.);return c.z*mix(vec3(1.),clamp(p-1.,0.,1.),c.y);}\n' +
+    sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n{ vec3 hv = rgb2hsv(diffuseColor.rgb); float red = (1. - smoothstep(0.03, 0.07, min(hv.x, 1. - hv.x))) * smoothstep(0.35, 0.55, hv.y);\n  vec3 t = uCoat; vec3 rec = hsv2rgb(vec3(t.x, mix(hv.y * 0.12, hv.y, step(0.2, t.y)), hv.z * mix(0.42, 1., step(0.35, t.z))));\n  diffuseColor.rgb = mix(diffuseColor.rgb, rec, red); }');
+}
+function hsvOf(c) { const col = new THREE.Color(c), o = {}; col.getHSL(o); const v = Math.max(col.r, col.g, col.b), mn = Math.min(col.r, col.g, col.b); return new THREE.Vector3(o.h, v ? (v - mn) / v : 0, v); }
+function applyCoat(g, color) {
+  if (!g.userData.coatU) g.userData.coatU = { value: hsvOf(color) };
+  const u = g.userData.coatU; u.value.copy(hsvOf(color));
+  if (g.userData.body) g.userData.body.forEach(m => { if (m.isMesh && m.userData.coatPart) m.material.color.setHex(color); });
+  const sk = g.userData.skin; if (!sk || sk === true || sk.userData.coated) return; sk.userData.coated = true;
+  sk.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); o.material.onBeforeCompile = sh => coatShader(sh, u); o.material.customProgramCacheKey = () => 'coat'; o.material.needsUpdate = true; });
+}
+function personCoat(g) { const b = g.userData.body && g.userData.body[0]; if (b && b.isMesh) { b.material = b.material.clone(); b.userData.coatPart = true; } }
+const P0 = makePerson(0xc8452f, 0xf3e6cf, 0x2f4a6d); personCoat(P0.g);
+skin(P0.g, 'hero', 1.95, { by: 'y', parts: P0.g.userData.body, after: () => applyCoat(P0.g, PROFILE.color) }); applyCoat(P0.g, PROFILE.color);
 const player = { x: 0, z: 8, rot: Math.PI, moving: false, atkT: 0, swingT: 0, walkT: 0, ...P0 };
 scene.add(player.g);
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
@@ -2389,6 +2411,10 @@ const MINI_W = 140, MSC = 240 / MINI_W;   // the map window spans 140 m around y
 let mcx = 0, mcz = 0;
 const MX = x => 120 + (x - mcx) * MSC, MZ = z => 120 + (z - mcz) * MSC;
 const onMini = (x, z, m = 4) => Math.abs(x - mcx) < MINI_W / 2 + m && Math.abs(z - mcz) < MINI_W / 2 + m;
+function star(c, x, y, R, fill, faint) {
+  c.save(); c.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? R * 0.45 : R; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } c.closePath();
+  c.globalAlpha = faint ? 0.85 : 1; c.fillStyle = fill; c.strokeStyle = '#fff'; c.lineWidth = 2; c.fill(); c.stroke(); c.restore();
+}
 function drawMini(dt) {
   miniT -= dt; if (miniT > 0) return; miniT = 0.25;
   mcx = player.x; mcz = player.z;
@@ -2414,7 +2440,11 @@ function drawMini(dt) {
   const j0 = Math.max(0, Math.floor((mcz - MINI_W / 2 - FOG_Z0) / FOG_CELL)), j1 = Math.min(FOG_N - 1, Math.ceil((mcz + MINI_W / 2 - FOG_Z0) / FOG_CELL));
   for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (!fog[j * FOG_N + i]) c.fillRect(MX(FOG_X0 + i * FOG_CELL) - 0.3, MZ(FOG_Z0 + j * FOG_CELL) - 0.3, cs + 0.6, cs + 0.6);
   c.fillStyle = '#e2483f'; for (const e of enemies) if (e.alive && onMini(e.x, e.z)) { c.beginPath(); c.arc(MX(e.x), MZ(e.z), 3.5, 0, TAU); c.fill(); }
-  c.fillStyle = '#2f7fb8'; for (const r of Object.values(NET.remotes)) if (onMini(r.x, r.z)) { c.beginPath(); c.arc(MX(r.x), MZ(r.z), 4.5, 0, TAU); c.fill(); }
+  for (const r of Object.values(NET.remotes)) { const inside = onMini(r.x, r.z); let x = MX(r.x), y = MZ(r.z);
+    if (!inside) { const a = Math.atan2(y - 120, x - 120); x = 120 + Math.cos(a) * 108; y = 120 + Math.sin(a) * 108; }   // teammates off the map sit on the rim
+    if (r.alertT > 0 && (time * 4 | 0) % 2) { c.fillStyle = 'rgba(226,72,63,0.55)'; c.beginPath(); c.arc(x, y, 13, 0, TAU); c.fill(); }
+    star(c, x, y, inside ? 8 : 6.5, hex(r.col ?? 0x2f7fb8)); }
+  star(c, MX(player.x), MZ(player.z), 11, hex(PROFILE.color), true);
   c.save(); c.translate(120, 120); c.rotate(-player.rot + Math.PI);
   c.fillStyle = '#fff'; c.strokeStyle = '#16233a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -9); c.lineTo(7, 7); c.lineTo(-7, 7); c.closePath(); c.fill(); c.stroke(); c.restore();
   // when the fort is off the map, an arrow on the rim points home with the distance
@@ -2507,16 +2537,18 @@ function netAct(kind, target, a, b) {
   else NET.buf.set(key, cur ? [kind, target, a, cur[3] + b] : [kind, target, a, b]);
 }
 function netGive(peer, t, n, q) { if (NET.room && n > 0) NET.room.emit('give', { to: peer, t, n, q: q || 0 }).catch(() => {}); }
-function heroState() { return [R2(player.x), R2(player.z), R2(player.rot), player.swingT > 0 ? 1 : 0, S.downT > 0 ? 1 : 0]; }
+function heroState() { return [R2(player.x), R2(player.z), R2(player.rot), player.swingT > 0 ? 1 : 0, S.downT > 0 ? 1 : 0, PROFILE.name, PROFILE.color, [carry.log.length, carry.meat.length, carry.ore.length, carry.stone.length], S.hurtT > 2.2 ? 1 : 0]; }
 
 const COOP_COATS = [0x2f7fb8, 0x8e44ad, 0xd4a017, 0x2e8b57, 0xc0392b];
 function makeRemote(peer, n) {
-  const p = makePerson(COOP_COATS[n % COOP_COATS.length], 0xf3e6cf, 0x2f4a6d);
-  skin(p.g, 'hero', 1.95, { by: 'y', parts: p.g.userData.body });
+  const p = makePerson(COOP_COATS[n % COOP_COATS.length], 0xf3e6cf, 0x2f4a6d); personCoat(p.g);
+  skin(p.g, 'hero', 1.95, { by: 'y', parts: p.g.userData.body, after: () => applyCoat(p.g, p.g.userData.col ?? COOP_COATS[n % COOP_COATS.length]) });
+  const packG = new THREE.Group(); packG.position.set(0, 1.25, -0.42); p.g.add(packG);
   scene.add(p.g);
   const a = makeAxe(); a.position.set(0.5, 0.8, 0.15); a.rotation.z = -1.1; p.g.add(a);
   const tag = document.createElement('div'); tag.className = 'tag p2'; ov.appendChild(tag);
-  return { ...p, peer, kind: 'remote', x: 0, z: 8, nx: 0, nz: 8, rot: 0, nrot: 0, walkT: 0, axe: a, tag, n };
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.72, 24), new THREE.MeshBasicMaterial({ color: COOP_COATS[n % COOP_COATS.length], transparent: true, opacity: 0.75 })); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; p.g.add(ring);
+  return { ...p, peer, kind: 'remote', x: 0, z: 8, nx: 0, nz: 8, rot: 0, nrot: 0, walkT: 0, axe: a, tag, n, packG, ring, col: null, packKey: '', hurtWarn: -99 };
 }
 function dropRemote(peer) { const r = NET.remotes[peer]; if (!r) return; scene.remove(r.g); r.tag.remove(); delete NET.remotes[peer]; }
 
@@ -2651,6 +2683,42 @@ function onGive(msg) {
   if (left > 0) dropItem(d.t, player.x + 1, player.z + 1, left);
 }
 
+const PACK_ICON = ['🪵', '🍖', '💎', '🪨'], PACK_T = ['log', 'meat', 'ore', 'stone'];
+function remoteName(r, i) { return r.name || (r.role === 'host' ? 'Host' : 'Player ' + ((i || r.n + 1) + 1)); }
+function remoteLabel(r, i) { const c = r.pack || []; const bits = c.map((n, k) => n ? PACK_ICON[k] + n : '').filter(Boolean).join(' '); return remoteName(r, i) + (bits ? '  ' + bits : ''); }
+function remoteExtras(r, h, wasDown) {
+  if (typeof h[5] === 'string') r.name = h[5].slice(0, 12);
+  if (typeof h[6] === 'number' && h[6] !== r.col) { r.col = r.g.userData.col = h[6]; applyCoat(r.g, r.col); r.ring.material.color.setHex(r.col); }
+  if (Array.isArray(h[7])) {
+    r.pack = h[7].slice(0, 4).map(v => Math.max(0, v | 0));
+    const key = r.pack.join(',');
+    if (key !== r.packKey) {   // a visible stack on their back, like your own
+      r.packKey = key; while (r.packG.children.length) r.packG.remove(r.packG.children[0]);
+      let y = 0, shown = 0;
+      r.pack.forEach((n, k) => { for (let j = 0; j < Math.min(n, 12) && shown < 16; j++, shown++) { const m = itemMesh(PACK_T[k]); m.castShadow = false; m.position.y = y; y += ITEM_H[PACK_T[k]]; r.packG.add(m); } });
+    }
+  }
+  const nm = remoteName(r), far = Math.round(Math.hypot(r.x - player.x, r.z - player.z));
+  if (h[8] && time - r.hurtWarn > 10 && !r.down) { r.hurtWarn = time; banner(nm + ' is under attack!', false, far > 12 ? far + ' m away: look for the ' + colorName(r.col) + ' star on the map' : 'Right beside you'); sfx(520, 0.12, 'square', 0.04); }
+  if (h[4] && !wasDown && time > 3) banner(nm + ' was knocked out!', false, S.medkits > 0 ? 'Stand next to them to revive' : 'A med kit can revive them');
+  r.alertT = h[8] || h[4] ? 3 : Math.max(0, (r.alertT || 0) - 0.1);
+}
+function colorName(c) { const k = COLORS.find(x => x[1] === c); return k ? k[0].toLowerCase() : 'blue'; }
+function mountProfiles() {
+  document.querySelectorAll('.prof').forEach(el => {
+    el.innerHTML = '<label>Your name</label><input maxlength="12" autocomplete="off" placeholder="Name shown to friends"><label style="margin-top:10px">Coat colour</label><div class="sw"></div>';
+    const inp = el.querySelector('input'); inp.value = PROFILE.name;
+    inp.addEventListener('input', () => { PROFILE.name = inp.value.trim().slice(0, 12); saveProfile(); document.querySelectorAll('.prof input').forEach(o => { if (o !== inp) o.value = inp.value; }); });
+    ['keydown', 'pointerdown', 'touchstart', 'mousedown'].forEach(ev => inp.addEventListener(ev, e => e.stopPropagation()));
+    const sw = el.querySelector('.sw');
+    COLORS.forEach(([nm, c]) => { const b = document.createElement('button'); b.type = 'button'; b.style.background = hex(c); b.setAttribute('aria-label', nm); b.dataset.c = c;
+      b.addEventListener('click', e => { e.stopPropagation(); PROFILE.color = c; saveProfile(); applyCoat(P0.g, c); syncSwatches(); }); sw.appendChild(b); });
+  });
+  syncSwatches();
+}
+function syncSwatches() { document.querySelectorAll('.prof .sw button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.c === PROFILE.color)); }
+mountProfiles();
+
 /* ---- per-frame network tick ---- */
 function netTick(dt) {
   if (!NET.room) return;
@@ -2662,7 +2730,8 @@ function netTick(dt) {
     seen.add(p.peer);
     let r = NET.remotes[p.peer];
     if (!r) { r = NET.remotes[p.peer] = makeRemote(p.peer, Object.keys(NET.remotes).length); r.x = r.nx = pr.h[0]; r.z = r.nz = pr.h[1]; if (time > 3) banner(pr.role === 'host' ? 'Joined the host’s town' : 'A friend joined!', true); }
-    r.nx = pr.h[0]; r.nz = pr.h[1]; r.nrot = pr.h[2]; r.swing = pr.h[3]; r.down = pr.h[4]; r.role = pr.role;
+    r.nx = pr.h[0]; r.nz = pr.h[1]; r.nrot = pr.h[2]; r.swing = pr.h[3]; const wasDown = r.down; r.down = pr.h[4]; r.role = pr.role;
+    remoteExtras(r, pr.h, wasDown);
   }
   for (const k in NET.remotes) if (!seen.has(k)) { dropRemote(k); if (isHost()) delete NET.lastSeq[k]; }
   let i = 0;
@@ -2676,7 +2745,7 @@ function netTick(dt) {
       if (r.revT >= 2) { r.revT = 0; S.medkits--; netGive(r.peer, 'revive', 1); banner('Teammate revived!', true, S.medkits + ' med kits left'); gainXP(20); }
     } else r.revT = 0;
     r.axe.rotation.y = r.swing ? r.axe.rotation.y + dt * 20 : 0;
-    r.tag.hidden = false; r.tag.textContent = r.down ? (S.medkits > 0 ? 'Downed: stand here to revive' : 'Downed: needs a med kit') : r.role === 'host' ? 'Host' : 'Player ' + (++i + 1); place(r.tag, r.x, 2.5, r.z);
+    r.tag.hidden = false; r.tag.textContent = r.down ? (S.medkits > 0 ? 'Downed: stand here to revive' : 'Downed: needs a med kit') : remoteLabel(r, ++i); place(r.tag, r.x, 2.5, r.z);
   }
   NET.presT -= dt;
   const n = Object.keys(NET.remotes).length + 1;
@@ -2922,6 +2991,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>
