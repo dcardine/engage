@@ -239,6 +239,7 @@ const BOUNDS = { x0: -46, x1: 46, z0: -47, z1: 50 };
 const DOOR = { x: 0, z: 12.5 };           // town hall door
 const inSquare = (x, z, h, m = 0) => Math.abs(x - C.x) < h + m && Math.abs(z - C.z) < h + m;
 
+const crystalMatEarly = new THREE.MeshLambertMaterial({ color: 0x6fd3ff, emissive: 0x1a6c9a, transparent: true, opacity: 0.9 });
 function mulberryEarly(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const ground = mk(new THREE.PlaneGeometry(260, 260), 0xf6faff, false, true);
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
@@ -257,6 +258,43 @@ const lake = mk(new THREE.CircleGeometry(7, 9), 0xc6dcef, false, true); lake.rot
     const outer = new THREE.Mesh(new THREE.CircleGeometry(rr, 10), new THREE.MeshLambertMaterial({ color: 0x8fd0f2 })); outer.rotation.x = -Math.PI / 2; outer.receiveShadow = true; g.add(outer);
     const inner = new THREE.Mesh(new THREE.CircleGeometry(rr * 0.72, 9), new THREE.MeshLambertMaterial({ color: 0xb9e6fb })); inner.rotation.x = -Math.PI / 2; inner.position.y = 0.004; g.add(inner);
     for (let k = 0; k < 5; k++) { const c = new THREE.Mesh(new THREE.PlaneGeometry(R(1, rr * 1.1), 0.05), basic(0x6fb8de)); c.rotation.set(-Math.PI / 2, 0, R(0, 6)); c.position.set(R(-rr / 2, rr / 2), 0.008, R(-rr / 2, rr / 2)); g.add(c); }
+  }
+})();
+(function terrain() {
+  const rnd = mulberryEarly(4242), R = (a, b) => a + rnd() * (b - a);
+  const cliffMat = new THREE.MeshPhongMaterial({ color: 0x7f93b0, flatShading: true, shininess: 6 }), capMat = mat(0xfbfdff);
+  // jagged snow-capped cliffs ringing the valley
+  const rim = [];
+  for (let x = -58; x <= 58; x += 4.2) rim.push([x, -55], [x, 57]);
+  for (let z = -52; z <= 54; z += 4.2) rim.push([-55, z], [55, z]);
+  for (const [x, z] of rim) {
+    const sz = R(2.6, 4.4), geo = new THREE.DodecahedronGeometry(sz, 0), pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) pa.setXYZ(i, pa.getX(i) * R(0.8, 1.15), pa.getY(i) * R(0.9, 1.5), pa.getZ(i) * R(0.8, 1.15));
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, cliffMat); m.position.set(x + R(-1, 1), sz * 0.55, z + R(-1, 1)); m.rotation.y = R(0, 6); scene.add(m);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(sz * 0.75, 14, 8).scale(1, 0.35, 1), capMat); cap.position.set(m.position.x, sz * 1.35, m.position.z); scene.add(cap);
+  }
+  // worn trails leading out of the four camp gates
+  const trailMat = new THREE.MeshLambertMaterial({ color: 0xe8dccb });
+  const trail = (pts) => { for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az);
+    const st = new THREE.Mesh(new THREE.PlaneGeometry(2.6, L + 1.2), trailMat); st.rotation.x = -Math.PI / 2; st.rotation.z = -Math.atan2(bx - ax, bz - az); st.position.set((ax + bx) / 2, 0.009, (az + bz) / 2); st.receiveShadow = true; scene.add(st);
+    const dot = new THREE.Mesh(new THREE.CircleGeometry(1.3, 12), trailMat); dot.rotation.x = -Math.PI / 2; dot.position.set(bx, 0.009, bz); scene.add(dot); } };
+  trail([[0, -3], [2, -14], [-2, -26], [4, -38], [10, -44]]);
+  trail([[0, 23], [-3, 32], [2, 41]]);
+  trail([[13, 10], [24, 6], [34, 12], [42, 6]]);
+  trail([[-13, 10], [-24, 14], [-34, 8], [-42, 14]]);
+  // soft snow mounds, berry bushes and little ice crystals for texture
+  const moundMat = mat(0xf3f8ff), bushMat = mat(0x2f8a5e), berry = basic(0xd9524b);
+  for (let i = 0; i < 70; i++) {
+    const x = R(-50, 50), z = R(-50, 52); if (Math.abs(x) < 15 && Math.abs(z - 10) < 15) continue;
+    const t = rnd();
+    if (t < 0.55) { const m = new THREE.Mesh(new THREE.SphereGeometry(R(0.6, 1.4), 14, 8).scale(1.4, 0.45, 1), moundMat); m.position.set(x, 0.05, z); m.receiveShadow = true; scene.add(m); }
+    else if (t < 0.8) { const b = new THREE.Group(); b.position.set(x, 0, z); scene.add(b);
+      for (let k = 0; k < 3; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(R(0.3, 0.45), 12, 8), bushMat); s.position.set(R(-0.35, 0.35), 0.3, R(-0.35, 0.35)); s.castShadow = true; b.add(s); }
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 8).scale(1.2, 0.4, 1.2), moundMat); cap.position.y = 0.62; b.add(cap);
+      for (let k = 0; k < 4; k++) { const r = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), berry); r.position.set(R(-0.4, 0.4), R(0.25, 0.5), R(-0.4, 0.4)); b.add(r); } }
+    else { const c = new THREE.Group(); c.position.set(x, 0, z); scene.add(c);
+      for (let k = 0; k < 3; k++) { const h = R(0.3, 0.8), sp = new THREE.Mesh(new THREE.ConeGeometry(0.12, h, 6), crystalMatEarly); sp.position.set(R(-0.25, 0.25), h / 2, R(-0.25, 0.25)); sp.rotation.set(R(-0.4, 0.4), 0, R(-0.4, 0.4)); c.add(sp); } }
   }
 })();
 const obstacles = [];
@@ -401,15 +439,29 @@ const CHOP = [];
 /* ================= characters ================= */
 function makePerson(coat, trim, hat) {
   const g = new THREE.Group();
-  const body = mk(Cyl(0.3, 0.4, 0.78, 8), coat); body.position.y = 0.78; g.add(body);
-  const belt = mk(Cyl(0.36, 0.38, 0.1, 8), 0x4a3424); belt.position.y = 0.62; g.add(belt);
-  const head = mk(new THREE.SphereGeometry(0.33, 18, 14), 0xf3c9a3); head.position.y = 1.45; g.add(head);
-  [-1, 1].forEach(k => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), basic(0x1d2128)); e.position.set(k * 0.11, 1.5, 0.3); g.add(e); });
-  const hood = mk(new THREE.SphereGeometry(0.38, 18, 10, 0, TAU, 0, Math.PI * 0.5), hat || coat); hood.position.y = 1.5; hood.rotation.x = -0.25; g.add(hood);
-  const fur = mk(new THREE.TorusGeometry(0.3, 0.08, 8, 18), trim); fur.position.set(0, 1.25, 0); fur.rotation.x = Math.PI / 2; g.add(fur);
-  const legs = [-1, 1].map(s => { const l = mk(Box(0.17, 0.42, 0.2), 0x3e3a46); l.geometry.translate(0, -0.21, 0); l.position.set(s * 0.14, 0.44, 0); g.add(l);
-    const b = mk(Box(0.2, 0.12, 0.28), 0x5a3a24); b.position.set(0, -0.38, 0.03); l.add(b); return l; });
-  const arms = [-1, 1].map(s => { const a = mk(Box(0.15, 0.48, 0.17), coat); a.geometry.translate(0, -0.2, 0); a.position.set(s * 0.4, 1.06, 0); g.add(a); return a; });
+  // puffy coat body
+  const body = mk(new THREE.SphereGeometry(0.42, 18, 14).scale(1, 1.05, 0.95), coat); body.position.y = 0.8; g.add(body);
+  const hem = mk(Cyl(0.4, 0.43, 0.12, 16), trim); hem.position.y = 0.5; g.add(hem);
+  const belt = mk(Cyl(0.41, 0.43, 0.09, 16), 0x4a3424); belt.position.y = 0.72; g.add(belt);
+  const buckle = mk(Box(0.12, 0.1, 0.04), 0xd9b25a); buckle.position.set(0, 0.72, 0.41); g.add(buckle);
+  // big head with a simple friendly face
+  const head = mk(new THREE.SphereGeometry(0.36, 20, 16), 0xf3c9a3); head.position.y = 1.5; g.add(head);
+  [-1, 1].forEach(k => {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8).scale(1, 1.3, 0.6), basic(0x1d2128)); e.position.set(k * 0.12, 1.53, 0.32); g.add(e);
+    const hl = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), basic(0xffffff)); hl.position.set(k * 0.12 + 0.015, 1.56, 0.355); g.add(hl);
+    const cheek = new THREE.Mesh(new THREE.CircleGeometry(0.06, 12), new THREE.MeshBasicMaterial({ color: 0xff9a9a, transparent: true, opacity: 0.55 })); cheek.position.set(k * 0.2, 1.43, 0.3); cheek.rotation.y = k * 0.5; g.add(cheek);
+  });
+  const nose = mk(new THREE.SphereGeometry(0.05, 8, 6), 0xf0a98a, false); nose.position.set(0, 1.47, 0.36); g.add(nose);
+  const hood = mk(new THREE.SphereGeometry(0.42, 20, 12, 0, TAU, 0, Math.PI * 0.52), hat || coat); hood.position.y = 1.55; hood.rotation.x = -0.3; g.add(hood);
+  const pom = mk(new THREE.SphereGeometry(0.11, 10, 8), trim); pom.position.set(0, 2.0, -0.12); g.add(pom);
+  const fur = mk(new THREE.TorusGeometry(0.34, 0.09, 10, 20), trim); fur.position.set(0, 1.62, 0.1); fur.rotation.x = -0.25; g.add(fur);
+  // scarf with a trailing end
+  const scarf = mk(new THREE.TorusGeometry(0.27, 0.08, 8, 18), 0xd9524b); scarf.position.y = 1.18; scarf.rotation.x = Math.PI / 2; g.add(scarf);
+  const tail = mk(Box(0.14, 0.38, 0.06), 0xd9524b); tail.position.set(0.16, 1.0, -0.3); tail.rotation.z = 0.2; g.add(tail);
+  const legs = [-1, 1].map(s => { const l = mk(Cyl(0.11, 0.12, 0.34, 10), 0x3e3a46); l.geometry.translate(0, -0.17, 0); l.position.set(s * 0.16, 0.42, 0); g.add(l);
+    const b = mk(new THREE.SphereGeometry(0.15, 12, 8).scale(1, 0.7, 1.35), 0x5a3a24); b.position.set(0, -0.36, 0.05); l.add(b); return l; });
+  const arms = [-1, 1].map(s => { const a = mk(Cyl(0.1, 0.12, 0.42, 10), coat); a.geometry.translate(0, -0.2, 0); a.position.set(s * 0.44, 1.02, 0); a.rotation.z = s * 0.15; g.add(a);
+    const mitt = mk(new THREE.SphereGeometry(0.12, 10, 8), trim); mitt.position.set(0, -0.44, 0); a.add(mitt); return a; });
   return { g, legs, arms };
 }
 function animWalk(p, t, moving) { const a = moving ? Math.sin(t * 12) * 0.6 : 0; p.legs[0].rotation.x = a; p.legs[1].rotation.x = -a; p.arms[0].rotation.x = -a * 0.6; p.arms[1].rotation.x = a * 0.6; }
@@ -716,8 +768,31 @@ function collide(e, nx, nz, r) {
 
 /* ================= buildings ================= */
 function grp(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g); return g; }
-function roofPrism(w, h, d, c) { const r = mk(Cyl(0.01, 1, h, 4), c); r.rotation.y = Math.PI / 4; r.scale.set(w * 0.72, 1, d * 0.72); return r; }
-function windowLight(g, x, y, z) { const w = new THREE.Mesh(Box(0.4, 0.4, 0.05), basic(0xffd27a)); w.position.set(x, y, z); g.add(w); }
+// Gabled roof with a deep overhang, a thick snow blanket and drooping snow along the eaves.
+function roofPrism(w, h, d, c) {
+  const g = new THREE.Group(); if (c === 0xffffff) return g;   // old separate snow layers are now part of the roof
+  const half = w / 2 + 0.25, ang = Math.atan2(h, half), L = Math.hypot(half, h) + 0.1, D = d + 0.5;
+  const tri = new THREE.Shape(); tri.moveTo(-w / 2, -h / 2); tri.lineTo(w / 2, -h / 2); tri.lineTo(0, h / 2); tri.closePath();
+  const gab = new THREE.Mesh(new THREE.ExtrudeGeometry(tri, { depth: d, bevelEnabled: false }), mat(0xe8d9c2)); gab.position.z = -d / 2; gab.castShadow = true; g.add(gab);
+  [-1, 1].forEach(k => {
+    const slab = mk(Box(L, 0.18, D), c); slab.position.set(k * half / 2, 0.02, 0); slab.rotation.z = -k * ang; g.add(slab);
+    const snow = mk(Box(L - 0.05, 0.22, D - 0.1), 0xfbfdff); snow.position.set(k * half / 2 - k * Math.sin(ang) * 0.17, 0.02 + Math.cos(ang) * 0.17, 0); snow.rotation.z = -k * ang; g.add(snow);
+    for (let i = 0; i < 5; i++) { const drip = mk(new THREE.SphereGeometry(0.16, 10, 8).scale(1, 0.75, 1), 0xfbfdff, false); drip.position.set(k * (half - 0.02), -h / 2 - 0.02, -D / 2 + 0.25 + i * (D - 0.5) / 4); g.add(drip); }
+  });
+  for (let i = 0; i < 4; i++) { const ridge = mk(new THREE.SphereGeometry(0.22, 12, 8).scale(1, 0.6, 1), 0xfbfdff, false); ridge.position.set(0, h / 2 + 0.12, -D / 2 + 0.3 + i * (D - 0.6) / 3); g.add(ridge); }
+  return g;
+}
+function lantern(g, x, z, h = 1.6) {
+  const post = mk(Cyl(0.06, 0.07, h, 8), 0x3a2a1e); post.position.set(x, h / 2, z); g.add(post);
+  const box = mk(Box(0.26, 0.3, 0.26), 0x2e2a28); box.position.set(x, h + 0.12, z); g.add(box);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), basic(0xffc66b)); glow.position.set(x, h + 0.12, z); g.add(glow);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(0.9, 18), new THREE.MeshBasicMaterial({ color: 0xffd28a, transparent: true, opacity: 0.22, depthWrite: false })); halo.rotation.x = -Math.PI / 2; halo.position.set(x, 0.03, z); g.add(halo);
+}
+function windowLight(g, x, y, z) {
+  const fr = mk(Box(0.52, 0.52, 0.06), 0x5b3416); fr.position.set(x, y, z - 0.01); g.add(fr);
+  const w = new THREE.Mesh(Box(0.4, 0.4, 0.07), basic(0xffcf74)); w.position.set(x, y, z); g.add(w);
+  const sill = mk(Box(0.6, 0.08, 0.16), 0xfbfdff); sill.position.set(x, y - 0.3, z + 0.04); g.add(sill);
+}
 function modelHouse(x, z) {
   const g = grp(x, z);
   const b = mk(Box(2.4, 1.5, 2), 0xb07444); b.position.y = 0.75; g.add(b);
@@ -726,6 +801,8 @@ function modelHouse(x, z) {
   const ch = mk(Box(0.35, 0.8, 0.35), 0x7d8794); ch.position.set(0.7, 2.4, -0.3); g.add(ch);
   const d = mk(Box(0.55, 0.95, 0.06), 0x5b3416); d.position.set(0, 0.48, 1.02); g.add(d);
   windowLight(g, -0.75, 0.95, 1.02); windowLight(g, 0.75, 0.95, 1.02);
+  const base = mk(Box(2.6, 0.3, 2.2), 0x8f9fb6); base.position.y = 0.15; g.add(base); lantern(g, 1.35, 1.35, 1.3);
+  const smoke = mk(new THREE.SphereGeometry(0.2, 10, 8), 0xe4ecf5, false); smoke.position.set(0.7, 3.05, -0.3); g.add(smoke);
   addObs(x, z, 1.45); popIn(g); burst(x, 1, z, 0xb07444, 12); return g;
 }
 function modelHut(x, z, roofCol, item) {
@@ -809,6 +886,8 @@ function modelTownHall() {
   const sn = roofPrism(t >= 2 ? 2.8 : 4, 0.7, t >= 2 ? 2.2 : 3, 0xffffff); sn.position.y = top + 1.25; g.add(sn);
   const d = mk(Box(1, 1.5, 0.08), 0x5b3416); d.position.set(0, y0 + 0.75, 1.72); g.add(d);
   windowLight(g, -1.4, y0 + 1.3, 1.72); windowLight(g, 1.4, y0 + 1.3, 1.72);
+  lantern(g, -1.9, 2.4); lantern(g, 1.9, 2.4);
+  [-1, 1].forEach(k => { const br = mk(Cyl(0.32, 0.22, 0.4, 10), 0x3b3f47); br.position.set(k * 2.6, y0 + 0.2, 2.1); g.add(br); const f = new THREE.Mesh(Cone(0.24, 0.6, 7), basic(0xff9a3c)); f.position.set(k * 2.6, y0 + 0.65, 2.1); g.add(f); });
   if (t >= 3) [-1, 1].forEach(k => { const tw = mk(Cyl(0.6, 0.7, 4.2, 8), 0xb9c0c9); tw.position.set(k * 2.7, 2.1, 1); g.add(tw);
     const tr = mk(Cone(0.85, 1.2, 8), 0x2b4a74); tr.position.set(k * 2.7, 4.8, 1); g.add(tr); });
   const pole = mk(Cyl(0.05, 0.05, 1.8, 5), 0x5b3416); pole.position.set(0, top + 2.3, 0); g.add(pole);
@@ -1136,7 +1215,8 @@ function makeWolf() {
   const head = mk(Box(0.45, 0.42, 0.45), 0x6c7683); head.position.set(0, 0.95, 0.75); g.add(head);
   const snout = mk(Box(0.24, 0.2, 0.3), 0x5a636f); snout.position.set(0, 0.86, 1.07); g.add(snout);
   [-1, 1].forEach(s => { const e = mk(Cone(0.1, 0.25, 4), 0x5a636f); e.position.set(s * 0.15, 1.25, 0.7); g.add(e); const eye = mk(Box(0.07, 0.07, 0.04), 0xffd166, false); eye.position.set(s * 0.12, 1.0, 0.98); g.add(eye); });
-  const tail = mk(Box(0.15, 0.15, 0.6), 0x6c7683); tail.position.set(0, 0.85, -0.8); tail.rotation.x = 0.6; g.add(tail);
+  const tail = mk(new THREE.SphereGeometry(0.2, 12, 8).scale(0.8, 0.8, 2.2), 0x8d97a4); tail.position.set(0, 0.95, -0.85); tail.rotation.x = -0.5; g.add(tail);
+  const ruff = mk(new THREE.SphereGeometry(0.32, 14, 10).scale(1, 0.9, 0.7), 0xe4e9ef); ruff.position.set(0, 0.85, 0.5); g.add(ruff);
   const legs = [[-0.18, 0.4], [0.18, 0.4], [-0.18, -0.4], [0.18, -0.4]].map(([x, z]) => { const l = mk(Box(0.14, 0.45, 0.14), 0x5a636f); l.geometry.translate(0, -0.22, 0); l.position.set(x, 0.45, z); g.add(l); return l; });
   return { g, legs };
 }
