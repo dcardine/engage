@@ -1,4 +1,9 @@
 {
+  "blacksmith": {
+    "hash": "f8a4a8a487aec881",
+    "preview": "01a1b250-3d77-7503-b4bb-245097c516d4",
+    "refine": "01a1b251-3ed0-7531-900f-9f8043b674ab"
+  },
   "gate": {
     "file": "assets/models/gate.glb",
     "hash": "b1dcf92ef94bf9ec",
@@ -16,8 +21,12 @@
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b245-297f-700d-a870-d03727e199f2/output/preview.png?Expires=4947523200&Signature=mUwDv-keXRgldD~dZltdkGqQ4oMxLrydey8HoK6J1GdA~7aJtWmO-Mb8OudxcLabwYBHR5s4oLcwNdSDytsSNC3erq-8QYj5BYWVdXQjxhBa6-VkcqWv6za4fOiTNp2aX99Fbiz0KIfISEtwt7epORImqtt6i6da1QxKl1SdQtXlFKtCEYh~5AUt1Scij~uEcuN1H-nXsNirvBhLRBv0KcJbzPf4yOMmuJldhCzE3LdJ0QnomZVmsFqB-5WUWg~z2lgwClqYQHQ2YQVfVZtsTYi7yfwAvdBneSkPOKUcmYXjPyOkqWK~Vajjv15yn6FcnXhrzsvGqjQWZ456FBSGmQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "town_hall": {
+    "file": "assets/models/town_hall.glb",
     "hash": "758081bc5457da93",
-    "preview": "01a1b24b-03a5-72ce-b761-add5bf3480fc"
+    "preview": "01a1b24b-03a5-72ce-b761-add5bf3480fc",
+    "refine": "01a1b24c-d0a2-7650-be21-ca3d44aa7fbf",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b24c-d0a2-7650-be21-ca3d44aa7fbf/output/preview.png?Expires=4947523200&Signature=MfFALEjqQxT9XzKYkStDv8rIEaiJXF5Vwk7G56AMM0-KX6shnybceSU3tFSzZMyGMMLalpB5NBsdznXXPzabuZlYNspLxVAzrG3rupejn5lPoWzuKJtOxyo8v96CUyy6ljwA6oIN8FA75uRn6Qu2~lYIQeWUcJk2h4pqd01H3JB6Wr2CLHhNOFZYxFKnac9T1Vho4rhRWEW80ZAYYcZnuggHwZ6uEC6pdDBIt8O7DEXdw8vE0LQFG~5NEcAe1w3~ESVHUS9wJog0nyNcf2kBM2OvFoYiEQJpl8BpJfwSJ74-YfFhwgqzmQm6tqiVn8EMFsw9AXuQXqy3YHexfIjRFw__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "wall_section": {
     "file": "assets/models/wall_section.glb",
@@ -26,5 +35,13 @@
     "refine": "01a1b249-04e2-7210-9a1e-5b12418fbe2f",
     "status": "done",
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b249-04e2-7210-9a1e-5b12418fbe2f/output/preview.png?Expires=4947523200&Signature=PY0Kqp7NWbNp7VSUYmZWV2uOBBcmUzt-mkvcWWG0f8JZTQVQrQAwEQhdq0B3vpgKsY8HR66hh5G7kVODR8EYa3jrj4JQ2sHs7q0XF4SySrmIg8cPN1Z78IIsVbyN-eIvCOYw-3VG8pWwxnBn4KOGSTcRvUvf8tB8u4LNKPFttDwWHdkSI1YXmWXTCm1Ub-yqD9vWbWZoZFR883~G8mDbVFciWULx8-uHB2cROLAIYyV9voz~bx4VOc6GV1KmFGqvqmTcqYLHXSl2XbUwzXJIgvpv652II0lxanjR17HpOJT3QjbyX4eQbOumQob2FpmjdFTZDybQqEgFa5zvD8D0fQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  },
+  "watchtower": {
+    "file": "assets/models/watchtower.glb",
+    "hash": "7ecb4041060d4045",
+    "preview": "01a1b24d-a1c3-71de-ab22-1bcfa26732ff",
+    "refine": "01a1b24f-1ae8-72ec-a7f7-72c348498263",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b24f-1ae8-72ec-a7f7-72c348498263/output/preview.png?Expires=4947523200&Signature=oimQryqpmTsemsh1AyLezhBGRwafOUO1AIavgJW10gt8KoeVAXx7~M3XyxUmiFW8JBHXkJPk6bwyr2p4aUoPe08f4ErgQ1~P1MT1AutKDq5GgE0s5M9POISZvEOsc814XoQb3ifzNFh8il8k7cMzOtzRWFd3V-JdHtM7LIQIApdj88Tgf6-1dxQNV9jmsVZ51CkidbESIr7Z~0jxq9zzxDeW7kE6z7d~gnjh8Qug0YUo0L0LgdZjfpTniox1lzOgHUUKT5gcMqOY~uG45IMwMRKhFHvo8nKK-eQMDWDbtEpciDNx63LhlOKK8LLVWHcDLFJJZAjv3aPuZ0hvk91umg__&Key-Pair-Id=K1VGYTHIYLM9UM"
   }
 }
