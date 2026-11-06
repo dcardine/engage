@@ -31,6 +31,11 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #quest{background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:8px 12px;color:#fff;
   font:800 14px/1.3 var(--body);text-wrap:balance}
 #quest b{display:block;font:13px/1 var(--display);letter-spacing:.12em;color:var(--ember);margin-bottom:4px;text-transform:uppercase}
+#lvl{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:6px 10px;color:#fff;font:800 11px/1 var(--body);font-variant-numeric:tabular-nums}
+#lvl #lvTxt{font:18px/1 var(--display);color:var(--gold);letter-spacing:.04em;white-space:nowrap}
+#lvl .bar{flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden;min-width:50px}
+#lvl .bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .25s}
+#lvl #xpTxt{opacity:.8;white-space:nowrap}
 #defense{display:flex;flex-direction:column;gap:5px;background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;padding:8px 12px;color:#fff;font:800 12px/1 var(--body)}
 #defense .row{display:flex;justify-content:space-between;gap:10px;letter-spacing:.06em;text-transform:uppercase}
 #defense .bar{height:8px;border-radius:5px;background:rgba(255,255,255,.18);overflow:hidden}
@@ -65,6 +70,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="brand" class="hud">
   <div id="logo">FROSTHOLD<small>OUTPOST</small></div>
+  <div id="lvl"><span id="lvTxt">LV 1</span><div class="bar"><i id="xpBar"></i></div><span id="xpTxt">0 / 15</span></div>
   <div id="quest"><b>Goal</b><span id="questTxt">Chop trees to gather logs</span></div>
   <div id="defense" hidden>
     <div class="row"><span>Palisade</span><span id="wallTxt">100</span></div>
@@ -265,7 +271,7 @@ placeTrees(12, -6, 6, -38, -16, 2.2, true);
 // decorative border forest (not choppable)
 for (let x = -40; x <= 40; x += 2.6) { placeTrees(1, x - 1, x + 1, -64, -60, 1.5, false); }
 for (let z = -60; z <= 28; z += 2.6) { placeTrees(1, -40, -36, z - 1, z + 1, 1.5, false); placeTrees(1, 36, 40, z - 1, z + 1, 1.5, false); }
-placeTrees(8, 22, 34, 14, 26, 2.4, false);
+placeTrees(6, 27, 34, 21, 27, 2.4, false);
 placeTrees(6, -34, -28, 4, 14, 2.4, false);
 
 /* ---- decor ---- */
@@ -333,10 +339,11 @@ const AXE = [null,
   { dmg: 1, int: 0.46, range: 2.2, max: 3 },
   { dmg: 2, int: 0.44, range: 2.45, max: 3 },
   { dmg: 2, int: 0.34, range: 2.7, max: 4 }];
-const CAPS = [10, 18, 30, 46];
+const CAPS = [50, 100, 200, 400];
+const VIS = { log: 45, meat: 60, ore: 45 };   // meshes drawn per column; the rest are counted only
 const S = {
   wallet: 0, axe: 1, bag: 0, step: 0, wallMax: 100, wallHP: 100, wallLv: 1, wallBroken: false,
-  towers: 0, helper: false, mine: false, grill: false, gold: false, wave: 0, waveT: 75, raidOn: false,
+  towers: 0, towerLv: 0, level: 1, xp: 0, bank: false, carpenter: false, mine: false, grill: false, gold: false, wave: 0, waveT: 75, raidOn: false,
 };
 const cap = () => CAPS[S.bag];
 const carry = { log: [], meat: [], ore: [] };
@@ -393,7 +400,7 @@ const _to = new THREE.Vector3();
 /* ================= player stack ================= */
 function stackLocal(type, n) { const c = COLS[type]; return new THREE.Vector3(c[0], n * ITEM_H[type] + ITEM_H[type] / 2, c[1]); }
 function stackWorld(type) {
-  const n = type === 'cash' ? cashShown : carry[type].length;
+  const n = type === 'cash' ? cashShown : Math.min(carry[type].length, VIS[type]);
   return stackGroup.localToWorld(stackLocal(type, n));
 }
 const CASH_VIS = 110;
@@ -403,11 +410,14 @@ let cashShown = 0;
 function syncCash() { const n = Math.min(CASH_VIS, Math.ceil(S.wallet / 2)); if (n !== cashShown) { for (let i = 0; i < CASH_VIS; i++) cashPool[i].visible = i < n; cashShown = n; } }
 
 function addToStack(type) {
+  if (carry[type].length >= VIS[type]) { carry[type].push(null); bump(type); return; }
   const m = itemMesh(type); m.position.copy(stackLocal(type, carry[type].length)); m.rotation.y = (Math.random() - 0.5) * 0.2;
   stackGroup.add(m); carry[type].push(m); bump(type);
 }
 function takeFromStack(type) {
-  const m = carry[type].pop(); if (!m) return null;
+  if (!carry[type].length) return null;
+  const m = carry[type].pop();
+  if (!m) return stackGroup.localToWorld(stackLocal(type, VIS[type]));
   const wp = new THREE.Vector3(); m.getWorldPosition(wp); stackGroup.remove(m); return wp;
 }
 function giveItem(type, from) {
@@ -484,6 +494,15 @@ function counterSlot(s, i) {
   const k = i % 32, col = k % 4, row = Math.floor((k % 8) / 4), layer = Math.floor(k / 8);
   return new THREE.Vector3(s.x - 1.05 + col * 0.7, 0.94 + layer * ITEM_H[s.type] + ITEM_H[s.type] / 2, s.z - 0.25 + row * 0.5);
 }
+function stallReceive(s, wp) {
+  const m = itemMesh(s.type); m.position.copy(wp); scene.add(m);
+  const idx = s.stock + s.incoming; s.incoming++;
+  fly(m, counterSlot(s, idx), 0.28, 1.1, () => {
+    scene.remove(m); s.incoming--; s.stock++; s.received++;
+    if (s.counter.length < 32) { const cm = itemMesh(s.type); cm.position.copy(counterSlot(s, s.counter.length)); scene.add(cm); s.counter.push(cm); }
+    else s.counter.push(null);
+  });
+}
 function syncPallet(s) { const n = Math.min(126, Math.ceil(s.pallet / 2)); s.palletPool.forEach((m, i) => m.visible = i < n); }
 function spawnVillager(s, i) {
   const p = makePerson(VCOLORS[(Math.random() * VCOLORS.length) | 0], 0xf3e6cf);
@@ -502,7 +521,7 @@ function makePad(cfg) {
   p.remaining = p.costs[0];
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; p.ctx = cv.getContext('2d');
   p.tex = new THREE.CanvasTexture(cv);
-  p.g = new THREE.Group(); p.g.position.set(p.x, 0.04, p.z); p.g.rotation.y = PAD_ROT; scene.add(p.g);
+  p.g = new THREE.Group(); p.g.position.set(p.x, 0.04, p.z); p.g.rotation.y = PAD_ROT; p.g.visible = false; scene.add(p.g);
   const pl = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.3), new THREE.MeshBasicMaterial({ map: p.tex, transparent: true, depthWrite: false }));
   pl.rotation.x = -Math.PI / 2; p.g.add(pl);
   if (p.ghost) { p.ghost.forEach(m => p.g.add(m)); }
@@ -517,7 +536,7 @@ function drawPad(p) {
   c.fillStyle = 'rgba(255,255,255,0.18)'; roundRect(c, 46, 196, 164, 18, 9); c.fill();
   if (frac > 0) { c.fillStyle = '#ff8a3d'; roundRect(c, 46, 196, Math.max(18, 164 * frac), 18, 9); c.fill(); }
   c.fillStyle = '#ffd9b8'; c.textAlign = 'center'; c.textBaseline = 'middle';
-  c.font = '34px "Lilita One", sans-serif'; c.fillText(p.labels ? p.labels[p.level] : p.label, 128, 66);
+  c.font = '34px "Lilita One", sans-serif'; c.fillText(p.labels ? p.labels[Math.min(p.level, p.labels.length - 1)] : p.label, 128, 66);
   c.fillStyle = '#43b96a'; roundRect(c, 46, 112, 46, 32, 5); c.fill(); c.fillStyle = '#bff0cd'; c.beginPath(); c.arc(69, 128, 8, 0, TAU); c.fill();
   c.fillStyle = '#ffffff'; c.font = '74px "Lilita One", sans-serif'; c.textAlign = 'left'; c.fillText(String(p.remaining), 102, 132);
   p.tex.needsUpdate = true;
@@ -549,25 +568,50 @@ function buildTower(x, z) {
 const arrows = [];
 const arrowGeo = (() => { const g = Box(0.06, 0.06, 0.7); return g; })();
 
-/* ---- lumber helper ---- */
-let helper = null;
-function buildHut(x, z) {
+/* ---- workers & their buildings ---- */
+const workers = [];
+const ROLES = {
+  logger: { coat: 0x3d6b3a, hat: 0x8a3b2a, item: 'log', cap: 8, speed: 3.4, hit: 0.85, reach: 1.5 },
+  hunter: { coat: 0x7a5230, hat: 0x2f3f24, item: 'meat', cap: 6, speed: 3.9, hit: 0.6, reach: 1.9 },
+  miner:  { coat: 0x4a5568, hat: 0xd9a520, item: 'ore', cap: 6, speed: 3.2, hit: 0.9, reach: 1.8 },
+};
+function buildHut(x, z, roofCol, item) {
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
   const base = mk(Box(2.6, 1.6, 2.2), 0x9b6338); base.position.y = 0.8; g.add(base);
-  const roof = mk(Cyl(0.01, 1.9, 1.3, 4), 0x2b4a74); roof.rotation.y = Math.PI / 4; roof.scale.set(1.05, 1, 0.9); roof.position.y = 2.25; g.add(roof);
+  const roof = mk(Cyl(0.01, 1.9, 1.3, 4), roofCol); roof.rotation.y = Math.PI / 4; roof.scale.set(1.05, 1, 0.9); roof.position.y = 2.25; g.add(roof);
   const door = mk(Box(0.7, 1.1, 0.06), 0x5b3416); door.position.set(0, 0.55, 1.12); g.add(door);
-  const pile = new THREE.Group(); for (let i = 0; i < 6; i++) { const l = itemMesh('log'); l.position.set(1.65, 0.12 + Math.floor(i / 3) * 0.22, -0.5 + (i % 3) * 0.26); l.rotation.y = Math.PI / 2; pile.add(l); } g.add(pile);
+  for (let i = 0; i < 6; i++) { const l = itemMesh(item); l.position.set(1.65, 0.12 + Math.floor(i / 3) * ITEM_H[item], -0.5 + (i % 3) * 0.3); if (item === 'log') l.rotation.y = Math.PI / 2; g.add(l); }
   addObs(x, z, 1.5);
   burst(x, 1, z, 0x9b6338, 14);
 }
-function spawnHelper(x, z) {
-  const p = makePerson(0x3d6b3a, 0xf3e6cf, 0x8a3b2a);
-  p.g.position.set(x, 0, z); scene.add(p.g);
-  const a = makeAxe(); a.position.set(0.45, 0.9, 0.15); a.rotation.z = -0.5; p.g.add(a);
-  const sg = new THREE.Group(); sg.position.set(0, 1.25, -0.5); p.g.add(sg);
-  helper = { ...p, x, z, axe: a, sg, logs: [], state: 'seek', tree: null, t: 0, walkT: 0 };
+function buildBank(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const base = mk(Box(2.4, 1.8, 2), 0xb9c0c9); base.position.y = 0.9; g.add(base);
+  const roof = mk(Cone(1.9, 1.1, 4), 0xc9962e); roof.rotation.y = Math.PI / 4; roof.position.y = 2.35; g.add(roof);
+  [-0.7, 0, 0.7].forEach(px => { const c = mk(Cyl(0.12, 0.12, 1.6, 6), 0xf1f3f6); c.position.set(px, 0.8, 1.1); g.add(c); });
+  const coin = mk(Cyl(0.35, 0.35, 0.1, 10), 0xf2c14e); coin.rotation.x = Math.PI / 2; coin.position.set(0, 2.2, 1.05); g.add(coin);
+  addObs(x, z, 1.4); burst(x, 1, z, 0xf2c14e, 16);
 }
-
+function buildBench(x, z) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  const top = mk(Box(1.6, 0.15, 0.6), 0xa86b3d); top.position.y = 0.7; g.add(top);
+  [-0.65, 0.65].forEach(px => { const l = mk(Box(0.12, 0.7, 0.5), 0x7a4527); l.position.set(px, 0.35, 0); g.add(l); });
+  const saw = mk(Box(0.7, 0.2, 0.03), 0xc9d1da); saw.position.set(0.1, 0.9, 0); g.add(saw);
+  addObs(x, z, 0.8); burst(x, 1, z, 0xa86b3d, 10);
+}
+function spawnWorker(role, x, z) {
+  const R = ROLES[role]; const p = makePerson(R.coat, 0xf3e6cf, R.hat);
+  p.g.position.set(x, 0, z); scene.add(p.g);
+  const tool = makeAxe(); tool.position.set(0.45, 0.9, 0.15); tool.rotation.z = -0.5; p.g.add(tool);
+  const sg = new THREE.Group(); sg.position.set(0, 1.25, -0.5); p.g.add(sg);
+  workers.push({ ...p, role, R, x, z, rot: 0, tool, sg, items: [], state: 'seek', tgt: null, t: 0, walkT: 0, idx: workers.length });
+  burst(x, 1, z, R.coat, 10);
+}
+function workerTake(w, n) {
+  for (let i = 0; i < n && w.items.length < w.R.cap; i++) {
+    const m = itemMesh(w.R.item); m.position.set(0, w.items.length * ITEM_H[w.R.item], 0); w.sg.add(m); w.items.push(m);
+  }
+}
 /* ---- yaks ---- */
 const yaks = [];
 const YAK_ZONE = { x0: 8, x1: 30, z0: -36, z1: -7 };
@@ -632,31 +676,53 @@ function spawnWolf(n) {
 }
 
 /* ================= pads config ================= */
-const ghostMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false });
-const padAxe = makePad({ x: 0, z: 9, labels: ['AXE II', 'AXE III', 'AXE IV'], costs: [15, 45, 110],
-  requires: () => S.step >= 3,
+const LV_XP = [0, 0, 15, 60, 140, 260, 420, 650, 950, 1350, 1900, 2600, 3500];
+const xpFor = L => L < LV_XP.length ? LV_XP[L] : LV_XP[LV_XP.length - 1] + (L - LV_XP.length + 1) * 1200;
+const BANK = { x: -4, z: 15.8 };
+// Each pad tier unlocks at a player level (lv); req adds any extra prerequisite.
+function mkPad(cfg) {
+  const p = makePad(cfg); const req = cfg.req || (() => true);
+  p.requires = () => S.level >= p.lv[Math.min(p.level, p.lv.length - 1)] && req();
+  return p;
+}
+const padName = p => (p.labels ? p.labels[Math.min(p.level, p.labels.length - 1)] : p.label);
+const padAxe = mkPad({ x: 0, z: 9, labels: ['AXE II', 'AXE III', 'AXE IV'], costs: [15, 120, 500], lv: [1, 4, 10],
+  req: () => S.step >= 3,
   onBuy: lv => { S.axe = lv + 1; axe2.visible = S.axe >= 2; axe1.scale.setScalar(1 + (S.axe - 1) * 0.12); axe2.scale.copy(axe1.scale); banner(['', '', 'Twin axes!', 'Heavier blades!', 'Master axes!'][S.axe], true); } });
-const padGrill = makePad({ x: grillStall.drop.x, z: grillStall.drop.z, label: 'GRILL', costs: [30],
-  requires: () => S.axe >= 2,
+const padGrill = mkPad({ x: grillStall.drop.x, z: grillStall.drop.z, label: 'GRILL', costs: [40], lv: [2],
   onBuy: () => { S.grill = true; setUnlocked(grillStall, true); burst(grillStall.x, 1.5, grillStall.z, 0xb8452e, 16); banner('Grill open!', true); } });
-const padBag = makePad({ x: 0, z: 12.6, labels: ['PACK +8', 'PACK +12', 'PACK +16'], costs: [25, 60, 120],
-  requires: () => S.grill,
+const padBag = mkPad({ x: 0, z: 12.6, labels: ['PACK 100', 'PACK 200', 'PACK 400'], costs: [80, 250, 800], lv: [3, 6, 10],
   onBuy: lv => { S.bag = lv; pack.scale.setScalar(1 + lv * 0.15); banner('Carry ' + cap() + ' items', true); } });
-const padTowerL = makePad({ x: -12, z: 1.9, label: 'TOWER', costs: [40], requires: () => S.grill,
-  onBuy: () => { buildTower(-12, 1.9); S.towers++; banner('Watchtower built!', true); } });
-const padTowerR = makePad({ x: 12, z: 1.9, label: 'TOWER', costs: [40], requires: () => S.grill,
-  onBuy: () => { buildTower(12, 1.9); S.towers++; banner('Watchtower built!', true); } });
-const padHelper = makePad({ x: -16, z: 8.5, label: 'WOODCUTTER', costs: [60], requires: () => S.towers >= 1,
-  onBuy: () => { buildHut(-16, 9.2); spawnHelper(-16, 11); S.helper = true; banner('Woodcutter hired!', true); } });
-const padWall = makePad({ x: -4.5, z: 4.6, label: 'STONE WALL', costs: [80], requires: () => S.towers >= 1,
+const padLog1 = mkPad({ x: -16, z: 8.5, label: 'LOGGER', costs: [60], lv: [3],
+  onBuy: () => { buildHut(-16, 9.2, 0x2b4a74, 'log'); spawnWorker('logger', -16, 11); banner('Logger hired!', true); } });
+const padTowerL = mkPad({ x: -12, z: 1.9, label: 'TOWER', costs: [80], lv: [4],
+  onBuy: () => { buildTower(-12, 1.9); S.towers++; banner('Guard tower built!', true); } });
+const padHunt1 = mkPad({ x: 13.5, z: 15.5, label: 'HUNTER', costs: [150], lv: [5], req: () => S.grill,
+  onBuy: () => { buildHut(13.5, 16.2, 0x6b3a22, 'meat'); spawnWorker('hunter', 13.5, 18); banner('Hunter hired!', true); } });
+const padTowerR = mkPad({ x: 12, z: 1.9, label: 'TOWER', costs: [120], lv: [6],
+  onBuy: () => { buildTower(12, 1.9); S.towers++; banner('Guard tower built!', true); } });
+const padWall = mkPad({ x: -4.5, z: 4.6, label: 'STONE WALL', costs: [300], lv: [7],
   onBuy: () => { S.wallLv = 2; S.wallMax = 220; S.wallHP = 220; S.wallBroken = false; posts.material = wallMatStone; wallGroup.scale.y = 1; banner('Stone palisade!', true); } });
-const padRepair = makePad({ x: 4.5, z: 4.6, label: 'REPAIR', costs: [10], repeat: true,
-  requires: () => S.wallHP < S.wallMax - 0.5,
-  onBuy: () => { S.wallHP = S.wallMax; S.wallBroken = false; wallGroup.scale.y = 1; burst(0, 2, 0, 0x9a5e38, 14); banner('Palisade repaired', true); } });
-const padMine = makePad({ x: 0, z: MINE_Z + 2.4, label: 'GOLD MINE', costs: [90], requires: () => S.helper,
+const padLog2 = mkPad({ x: -22, z: 9, label: 'LOGGER', costs: [200], lv: [7],
+  onBuy: () => { buildHut(-22, 9.7, 0x2b4a74, 'log'); spawnWorker('logger', -22, 11.5); banner('Second logger hired!', true); } });
+const padMine = mkPad({ x: 0, z: MINE_Z + 2.4, label: 'GOLD MINE', costs: [400], lv: [8],
   onBuy: () => { S.mine = true; scene.remove(mineGate); banner('Mine opened!', true); } });
-const padGold = makePad({ x: goldStall.drop.x, z: goldStall.drop.z, label: 'GOLD TRADER', costs: [50], requires: () => S.mine,
+const padHunt2 = mkPad({ x: 24, z: 15.5, label: 'HUNTER', costs: [350], lv: [8], req: () => S.grill,
+  onBuy: () => { buildHut(24, 16.2, 0x6b3a22, 'meat'); spawnWorker('hunter', 24, 18); banner('Second hunter hired!', true); } });
+const padGold = mkPad({ x: goldStall.drop.x, z: goldStall.drop.z, label: 'GOLD TRADER', costs: [300], lv: [9], req: () => S.mine,
   onBuy: () => { S.gold = true; setUnlocked(goldStall, true); burst(goldStall.x, 1.5, goldStall.z, 0x6a4fa3, 16); banner('Gold trader open!', true); } });
+const padMiner = mkPad({ x: 8, z: MINE_Z + 4.5, label: 'MINER', costs: [400], lv: [9], req: () => S.gold,
+  onBuy: () => { buildHut(8.5, MINE_Z + 5.3, 0x4a5568, 'ore'); spawnWorker('miner', 8.5, MINE_Z + 3.4); banner('Miner hired!', true); } });
+const padArrows = mkPad({ x: 8, z: 4.6, labels: ['ARROWS II', 'ARROWS III'], costs: [300, 600], lv: [9, 11], req: () => S.towers >= 1,
+  onBuy: lv => { S.towerLv = lv; banner('Sharper arrows!', true); } });
+const padBank = mkPad({ x: BANK.x, z: BANK.z, label: 'TREASURY', costs: [500], lv: [10],
+  onBuy: () => { S.bank = true; buildBank(BANK.x, BANK.z + 0.6); banner('Treasury collects your cash!', true); } });
+const padCarp = mkPad({ x: -9.5, z: 4.4, label: 'CARPENTER', costs: [400], lv: [11],
+  onBuy: () => { S.carpenter = true; buildBench(-9.5, 4.6); banner('Carpenter repairs the wall', true); } });
+const padRepair = makePad({ x: 4.5, z: 4.6, label: 'REPAIR', costs: [10], repeat: true,
+  requires: () => S.level >= 4 && S.wallHP < S.wallMax - 0.5,
+  onBuy: () => { S.wallHP = S.wallMax; S.wallBroken = false; wallGroup.scale.y = 1; burst(0, 2, 0, 0x9a5e38, 14); banner('Palisade repaired', true); } });
+function unlocksAt(L) { return pads.filter(p => p.lv && p.lv.includes(L)).map(p => padName(Object.assign({}, p, { level: p.lv.indexOf(L) })).toLowerCase()); }
 
 /* ================= input ================= */
 const input = { x: 0, y: 0 };
@@ -708,12 +774,16 @@ function collide(e, nx, nz, r) {
   e.x = nx; e.z = nz;
 }
 function turnTo(cur, target, k) { let d = target - cur; d = Math.atan2(Math.sin(d), Math.cos(d)); return cur + d * k; }
+// Route through gates: find the first fence line between here and the target and aim for its gap.
 function waypoint(x, z, tx, tz) {
-  if ((z < WALL_Z) !== (tz < WALL_Z) && !S.wallBroken) {
-    if (Math.abs(x) > 0.9) return [0, z < WALL_Z ? -2 : 2];
-    return [0, z < WALL_Z ? 2.2 : -2.2];
-  }
-  return [tx, tz];
+  const lines = [];
+  if (!S.wallBroken) lines.push(WALL_Z);
+  lines.push(MINE_Z);
+  let L = null;
+  for (const ln of lines) if ((z < ln) !== (tz < ln) && (L === null || Math.abs(z - ln) < Math.abs(z - L))) L = ln;
+  if (L === null) return [tx, tz];
+  if (Math.abs(x) > 0.9) return [0, z < L ? L - 2 : L + 2];
+  return [0, z < L ? L + 2.2 : L - 2.2];
 }
 function walkTo(e, tx, tz, speed, dt) {
   const [wx, wz] = waypoint(e.x, e.z, tx, tz);
@@ -733,12 +803,14 @@ function hitTree(t, dmg) {
   sfx(300, 0.05, 'square', 0.04);
   return n;
 }
-function damageYak(y, dmg) {
-  y.hp -= dmg; y.shake = 0.25; y.flee = 1.4; burst(y.x, 1, y.z, 0xd9524b, 3, 2); sfx(240, 0.06, 'sawtooth', 0.03);
-  const a = Math.atan2(y.x - player.x, y.z - player.z); y.tx = clamp(y.x + Math.sin(a) * 6, YAK_ZONE.x0 - 4, YAK_ZONE.x1); y.tz = clamp(y.z + Math.cos(a) * 6, YAK_ZONE.z0, -3);
+function damageYak(y, dmg, by) {
+  y.hp -= dmg; y.shake = 0.25; y.flee = 1.4; burst(y.x, 1, y.z, 0xd9524b, 3, 2); if (!by) sfx(240, 0.06, 'sawtooth', 0.03);
+  const src = by || player, a = Math.atan2(y.x - src.x, y.z - src.z); y.tx = clamp(y.x + Math.sin(a) * 6, YAK_ZONE.x0 - 4, YAK_ZONE.x1); y.tz = clamp(y.z + Math.cos(a) * 6, YAK_ZONE.z0, -3);
   if (y.hp <= 0) {
     y.alive = false; scene.remove(y.g); y.bar.remove();
-    for (let i = 0; i < 3; i++) dropItem('meat', y.x, y.z);
+    const kept = by ? Math.min(3, by.R.cap - by.items.length) : 0;
+    if (by) workerTake(by, kept);
+    for (let i = kept; i < 3; i++) dropItem('meat', y.x, y.z);
     burst(y.x, 1, y.z, 0x6b4a33, 10);
     setTimeout(spawnYak, 9000);
   }
@@ -785,18 +857,28 @@ function goal() {
     case 1: return { txt: 'Bring logs to the woodstall', tgt: woodStall.drop, done: woodStall.received >= 3 && carry.log.length === 0 };
     case 2: return { txt: 'Collect your cash from the pallet', tgt: woodStall.pallet > 0 ? woodStall.palletPos : nearestTree(), done: S.wallet >= 15 || (S.wallet > 0 && woodStall.pallet === 0 && woodStall.sold > 0) };
     case 3: return { txt: 'Upgrade your axe ($15)', tgt: S.wallet > 0 ? padAxe : (woodStall.pallet > 0 ? woodStall.palletPos : nearestTree()), done: S.axe >= 2 };
-    case 4: return { txt: 'Open the grill ($30)', tgt: S.wallet > 0 ? padGrill : (woodStall.pallet > 0 ? woodStall.palletPos : nearestTree()), done: S.grill };
+    case 4: if (!padGrill.active && !S.grill) return { txt: 'Sell more logs to reach level 2', tgt: carry.log.length ? woodStall.drop : (bestPallet() || nearestTree()), done: false };
+      return { txt: 'Open the grill ($40)', tgt: S.wallet > 0 ? padGrill : (woodStall.pallet > 0 ? woodStall.palletPos : nearestTree()), done: S.grill };
     case 5: return { txt: carry.meat.length ? 'Sell meat at the grill' : 'Hunt yaks beyond the wall', tgt: carry.meat.length ? grillStall.drop : (drops.find(d => d.type === 'meat') || nearestYak()), done: grillStall.sold >= 1 };
-    case 6: return { txt: 'Build a watchtower ($40)', tgt: S.wallet >= 10 ? (padTowerL.done ? padTowerR : padTowerL) : bestPallet(), done: S.towers >= 1 };
     default: {
-      const act = pads.filter(p => p.active && !p.repeat).sort((a, b) => a.remaining - b.remaining)[0];
+      const act = pads.filter(p => p.active && !p.done && !p.repeat).sort((a, b) => a.remaining - b.remaining)[0];
       if (padRepair.active && S.wallHP < S.wallMax * 0.5) return { txt: 'Repair the palisade!', tgt: padRepair, done: false };
-      if (!act) return { txt: 'Defend Frosthold and keep trading', tgt: bestPallet(), done: false };
-      const name = act.labels ? act.labels[act.level] : act.label;
+      if (!act) return { txt: `Earn $${xpFor(S.level + 1) - S.xp} in sales to reach level ${S.level + 1}`, tgt: bestPallet(), done: false };
+      const name = padName(act);
       if (S.wallet >= act.remaining) return { txt: `Buy ${name.toLowerCase()} ($${act.remaining})`, tgt: act, done: false };
       return { txt: `Earn $${act.remaining - S.wallet} more for ${name.toLowerCase()}`, tgt: bestPallet(), done: false };
     }
   }
+}
+function findWork(w) {
+  const taken = new Set(workers.filter(o => o !== w && o.tgt).map(o => o.tgt));
+  let list;
+  if (w.role === 'logger') list = trees.filter(t => t.alive && t.choppable && t.z < -6);
+  else if (w.role === 'hunter') list = yaks.filter(y => y.alive);
+  else list = S.mine ? rocks.filter(r => r.alive) : [];
+  let b = null, bd = 1e9;
+  for (const t of list) { const d = d2(t.x, t.z, w.x, w.z) + (taken.has(t) ? 400 : 0); if (d < bd) { bd = d; b = t; } }
+  return b;
 }
 function bestPallet() { let b = null; for (const s of stalls) if (s.unlocked && s.pallet > 0 && (!b || s.pallet > b.pallet)) b = s; return b ? b.palletPos : null; }
 
@@ -903,11 +985,9 @@ function update(dt) {
     // deposit
     s.dropT -= dt;
     if (s.dropT < -0.2) s.dropT = 0;
-    for (let n = 0; n < 3 && carry[s.type].length && d2(player.x, player.z, s.drop.x, s.drop.z) < 2.1 && s.dropT <= 0 && s.stock + s.incoming < 64; n++) {
-      s.dropT += 0.075;
-      const wp = takeFromStack(s.type); const m = itemMesh(s.type); m.position.copy(wp); scene.add(m);
-      const idx = s.stock + s.incoming; s.incoming++;
-      fly(m, counterSlot(s, idx), 0.28, 1.2, () => { scene.remove(m); s.incoming--; s.stock++; s.received++; const cm = itemMesh(s.type); cm.position.copy(counterSlot(s, s.counter.length)); if (s.counter.length < 32) { scene.add(cm); } s.counter.push(cm); });
+    for (let n = 0; n < 6 && carry[s.type].length && d2(player.x, player.z, s.drop.x, s.drop.z) < 2.1 && s.dropT <= 0; n++) {
+      s.dropT += 0.035;
+      stallReceive(s, takeFromStack(s.type));
       sfx(420, 0.04);
     }
     // queue movement
@@ -928,7 +1008,6 @@ function update(dt) {
         s.serveT = 0.2; s.stock--;
         const cm = s.counter.pop(); const m = itemMesh(s.type);
         if (cm) { m.position.copy(cm.position); scene.remove(cm); } else m.position.copy(counterSlot(s, 0));
-        if (s.counter.length >= 32) { const re = s.counter[31]; if (re && !re.parent) scene.add(re); }
         scene.add(m); f.pend++;
         fly(m, () => new THREE.Vector3(f.x, 1.3 + f.items.length * ITEM_H[s.type], f.z - 0.35), 0.25, 0.8, () => {
           scene.remove(m); f.pend--; f.got++;
@@ -942,7 +1021,7 @@ function update(dt) {
         for (let i = 0; i < k; i++) {
           const share = i === k - 1 ? left : Math.floor(amt / k); left -= share;
           const m = itemMesh('cash'); m.position.copy(from); scene.add(m);
-          setTimeout(() => fly(m, new THREE.Vector3(s.palletPos.x + rand(-0.5, 0.5), 0.6 + s.pallet * 0.004, s.palletPos.z + rand(-0.5, 0.5)), 0.4, 1.2, () => { scene.remove(m); s.pallet += share; syncPallet(s); }), i * 60);
+          setTimeout(() => fly(m, new THREE.Vector3(s.palletPos.x + rand(-0.5, 0.5), 0.6 + s.pallet * 0.004, s.palletPos.z + rand(-0.5, 0.5)), 0.4, 1.2, () => { scene.remove(m); s.pallet += share; S.xp += share; syncPallet(s); }), i * 60);
         }
         floatText('+$' + amt, f.x, 2.4, f.z, 'cash'); sfx(990, 0.08, 'sine', 0.04);
         s.sold++; s.queue.shift(); f.state = 'leave'; f.leaveTo = { x: s.x - 6, z: s.z + 14 }; leaving.push(f);
@@ -953,6 +1032,15 @@ function update(dt) {
       if (rem > 0) { s.bubble.hidden = false; const html = s.bubbleIcon + '<span>' + rem + '</span>'; if (s.bubble._h !== html) { s.bubble.innerHTML = html; s.bubble._h = html; } place(s.bubble, f.x, 2.55, f.z); }
       else s.bubble.hidden = true;
     } else s.bubble.hidden = true;
+    // treasury pulls pallet cash automatically
+    if (S.bank && s.pallet > 0) {
+      s.bankT = (s.bankT || 0) - dt;
+      if (s.bankT <= 0) {
+        s.bankT = 0.45; const chunk = Math.max(1, Math.ceil(s.pallet / 10)); s.pallet -= chunk; syncPallet(s);
+        const m = itemMesh('cash'); m.position.set(s.palletPos.x, 0.6, s.palletPos.z); scene.add(m);
+        fly(m, new THREE.Vector3(BANK.x, 1.5, BANK.z), 0.7, 2.5, () => { scene.remove(m); S.wallet += chunk; bump('cash'); });
+      }
+    }
     // collect pallet
     s.palT -= dt; if (s.palT < -0.2) s.palT = 0;
     for (let n = 0; n < 4 && s.pallet > 0 && d2(player.x, player.z, s.palletPos.x, s.palletPos.z) < 2.6 && s.palT <= 0; n++) {
@@ -1010,9 +1098,9 @@ function update(dt) {
     if (best) {
       t.archer.g.rotation.y = Math.atan2(best.x - t.x, best.z - t.z);
       if (t.cd <= 0) {
-        t.cd = 0.75;
+        t.cd = [0.75, 0.55, 0.42][S.towerLv];
         const a = new THREE.Mesh(arrowGeo, mat(0x4a3424)); a.position.set(t.x, 4, t.z); scene.add(a);
-        arrows.push({ m: a, w: best, t: 0 });
+        arrows.push({ m: a, w: best, t: 0, dmg: [2, 3, 5][S.towerLv] });
         sfx(1400, 0.03, 'triangle', 0.02);
       }
     }
@@ -1021,49 +1109,59 @@ function update(dt) {
     const a = arrows[i]; a.t += dt;
     const tx = a.w.x, ty = 0.9, tz = a.w.z;
     const dx = tx - a.m.position.x, dy = ty - a.m.position.y, dz = tz - a.m.position.z, L = Math.hypot(dx, dy, dz);
-    if (L < 0.4 || !a.w.alive || a.t > 2) { if (a.w.alive && L < 0.4) damageWolf(a.w, 2); scene.remove(a.m); arrows.splice(i, 1); continue; }
+    if (L < 0.4 || !a.w.alive || a.t > 2) { if (a.w.alive && L < 0.4) damageWolf(a.w, a.dmg); scene.remove(a.m); arrows.splice(i, 1); continue; }
     const st = Math.min(L, 22 * dt); a.m.position.x += dx / L * st; a.m.position.y += dy / L * st; a.m.position.z += dz / L * st;
     a.m.lookAt(tx, ty, tz);
   }
 
-  /* --- helper --- */
-  if (helper) {
-    const h = helper; let moving = false;
-    if (h.state === 'seek') {
-      if (!h.tree || !h.tree.alive) { let b = null, bd = 1e9; for (const t of trees) if (t.alive && t.choppable && t.z < -6) { const d = d2(t.x, t.z, h.x, h.z) + d2(t.x, t.z, player.x, player.z) * 0.15; if (d < bd) { bd = d; b = t; } } h.tree = b; }
-      if (h.tree) {
-        const a = Math.atan2(h.x - h.tree.x, h.z - h.tree.z);
-        const gx = h.tree.x + Math.sin(a) * 1.1, gz = h.tree.z + Math.cos(a) * 1.1;
-        if (d2(h.x, h.z, h.tree.x, h.tree.z) > 1.6 * 1.6) { walkTo(h, gx, gz, 3.4, dt); moving = true; }
-        else {
-          h.rot = turnTo(h.rot, Math.atan2(h.tree.x - h.x, h.tree.z - h.z), 0.3);
-          h.t -= dt; h.axe.rotation.x = Math.max(0, h.t) * 4;
-          if (h.t <= 0) {
-            h.t = 0.85; const n = hitTree(h.tree, 1);
-            for (let i = 0; i < n && h.logs.length < 8; i++) { const l = itemMesh('log'); l.position.set(0, h.logs.length * ITEM_H.log, 0); h.sg.add(l); h.logs.push(l); }
-            if (h.logs.length >= 8) h.state = 'deliver';
+  /* --- workers --- */
+  for (const w of workers) {
+    const R = w.R; let moving = false;
+    if (w.state === 'seek') {
+      if (!w.tgt || !w.tgt.alive) w.tgt = findWork(w);
+      const t = w.tgt;
+      if (t) {
+        const dd = Math.sqrt(d2(w.x, w.z, t.x, t.z));
+        if (dd > R.reach) {
+          const a = Math.atan2(w.x - t.x, w.z - t.z);
+          walkTo(w, t.x + Math.sin(a) * (R.reach - 0.4), t.z + Math.cos(a) * (R.reach - 0.4), R.speed, dt); moving = true;
+        } else {
+          w.rot = turnTo(w.rot, Math.atan2(t.x - w.x, t.z - w.z), 0.3);
+          w.t -= dt; w.tool.rotation.x = Math.max(0, w.t) * 3;
+          if (w.t <= 0) {
+            w.t = R.hit;
+            if (w.role === 'logger') workerTake(w, hitTree(t, 1));
+            else if (w.role === 'miner') workerTake(w, hitRock(t, 1));
+            else damageYak(t, 1, w);
+            if (w.items.length >= R.cap) w.state = 'deliver';
           }
         }
-      }
+      } else if (w.items.length) w.state = 'deliver';
     } else {
-      const s = woodStall;
-      if (d2(h.x, h.z, s.drop.x, s.drop.z - 0.4) > 0.6) { walkTo(h, s.drop.x - 0.6, s.drop.z - 0.4, 3.4, dt); moving = true; }
-      else {
-        h.t -= dt;
-        if (h.t <= 0 && h.logs.length) {
-          h.t = 0.12; const l = h.logs.pop(); const wp = new THREE.Vector3(); l.getWorldPosition(wp); h.sg.remove(l);
-          const m = itemMesh('log'); m.position.copy(wp); scene.add(m); const idx = s.stock + s.incoming; s.incoming++;
-          fly(m, counterSlot(s, idx), 0.28, 1, () => { scene.remove(m); s.incoming--; s.stock++; s.received++; const cm = itemMesh('log'); cm.position.copy(counterSlot(s, s.counter.length)); if (s.counter.length < 32) scene.add(cm); s.counter.push(cm); });
+      const s = R.item === 'log' ? woodStall : R.item === 'meat' ? grillStall : goldStall;
+      const tx = s.drop.x - 0.9 + (w.idx % 3) * 0.9, tz = s.drop.z - 0.6;
+      if (d2(w.x, w.z, tx, tz) > 0.3) { walkTo(w, tx, tz, R.speed, dt); moving = true; }
+      else if (s.unlocked) {
+        w.t -= dt;
+        if (w.t <= 0 && w.items.length) {
+          w.t = 0.1; const m = w.items.pop(); const wp = new THREE.Vector3(); m.getWorldPosition(wp); w.sg.remove(m);
+          stallReceive(s, wp);
         }
-        if (!h.logs.length) h.state = 'seek';
+        if (!w.items.length) { w.state = 'seek'; w.tgt = null; }
       }
     }
-    if (moving) h.walkT += dt;
-    h.g.position.set(h.x, 0, h.z); h.g.rotation.y = h.rot || 0; animWalk(h, h.walkT, moving);
+    if (moving) w.walkT += dt;
+    w.g.position.set(w.x, 0, w.z); w.g.rotation.y = w.rot; animWalk(w, w.walkT, moving);
+  }
+
+  /* --- carpenter --- */
+  if (S.carpenter && S.wallHP < S.wallMax) {
+    S.wallHP = Math.min(S.wallMax, S.wallHP + 2 * dt);
+    if (S.wallBroken && S.wallHP > S.wallMax * 0.3) { S.wallBroken = false; wallGroup.scale.y = 1; }
   }
 
   /* --- waves --- */
-  const defenseOn = S.step >= 6;
+  const defenseOn = S.level >= 4;
   if (defenseOn) {
     $('defense').hidden = false;
     if (!S.raidOn) {
@@ -1127,9 +1225,25 @@ function update(dt) {
     if (f.t > 1) { f.d.remove(); floats.splice(i, 1); }
   }
 
+  /* --- levels --- */
+  while (S.xp >= xpFor(S.level + 1)) {
+    S.level++;
+    const news = unlocksAt(S.level);
+    banner('Level ' + S.level + '!', true);
+    if (news.length) floatText('New: ' + news.join(', '), player.x, 3.6, player.z, 'warn');
+    sfx(660, 0.15, 'sine', 0.06); setTimeout(() => sfx(990, 0.2, 'sine', 0.06), 120);
+    burst(player.x, 1.5, player.z, 0xf2c14e, 18, 3);
+  }
+  {
+    const a = xpFor(S.level), b = xpFor(S.level + 1);
+    $('lvTxt').textContent = 'LV ' + S.level;
+    $('xpBar').style.width = (clamp((S.xp - a) / (b - a), 0, 1) * 100) + '%';
+    $('xpTxt').textContent = S.xp + ' / ' + b;
+  }
+
   /* --- goals & guide --- */
   let g = goal();
-  while (g.done && S.step < 7) { S.step++; if (S.step === 6) S.waveT = 70; g = goal(); }
+  while (g.done && S.step < 6) { S.step++; g = goal(); }
   $('questTxt').textContent = g.txt;
   const tgt = g.tgt;
   if (tgt) {
@@ -1145,7 +1259,7 @@ function update(dt) {
   const now = { cash: S.wallet, log: carry.log.length, meat: carry.meat.length, ore: carry.ore.length };
   for (const k in now) if (now[k] !== shown[k]) { vals[k].textContent = now[k]; shown[k] = now[k]; }
   fullBadge.hidden = room() > 0 || carried() === 0;
-  if (!fullBadge.hidden) place(fullBadge, player.x, 2.4 + Math.max(carry.log.length * ITEM_H.log, carry.meat.length * ITEM_H.meat, carry.ore.length * ITEM_H.ore, cashShown * ITEM_H.cash) + 1, player.z);
+  if (!fullBadge.hidden) place(fullBadge, player.x, 2.4 + Math.max(Math.min(carry.log.length, VIS.log) * ITEM_H.log, Math.min(carry.meat.length, VIS.meat) * ITEM_H.meat, Math.min(carry.ore.length, VIS.ore) * ITEM_H.ore, cashShown * ITEM_H.cash) + 1, player.z);
   if (defenseOn) {
     $('wallTxt').textContent = Math.ceil(S.wallHP) + ' / ' + S.wallMax;
     $('wallBar').style.width = (S.wallHP / S.wallMax * 100) + '%';
@@ -1179,6 +1293,6 @@ function frame(now) {
 requestAnimationFrame(t => { last = t; frame(t); });
 
 // test hook
-window.__frost = { S, player, carry, stalls, pads, trees, yaks, wolves, goal };
+window.__frost = { S, player, carry, stalls, pads, trees, yaks, wolves, workers, rocks, goal };
 })();
 </script>
