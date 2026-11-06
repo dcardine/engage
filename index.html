@@ -237,7 +237,7 @@ function skin(g, id, size, opts) { const e = Object.assign({ g, id, size }, opts
 function loadModels() {
   if (!THREE.GLTFLoader) return;
   const loader = new THREE.GLTFLoader();
-  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager'].forEach(id =>
+  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree'].forEach(id =>
     loader.load('assets/game/' + id + '.json', g => {
       g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
         const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
@@ -516,10 +516,30 @@ function showTree(t) {
 }
 function hideTree(t) { if (!t.g) return; scene.remove(t.g); t.g = t.top = t.stump = null; }
 function syncTree(t) { if (!t.top) return; t.top.visible = t.alive; t.stump.visible = !t.alive; t.top.scale.setScalar(t.grow); }
+const SCENERY = (() => {
+  const rnd = mulberryEarly(6060), out = [];
+  const kinds = [['snowdrift', 2.6, 30], ['snowy_bush', 1.4, 22], ['rock_small', 1.5, 22], ['ice_crystals', 1.3, 10], ['dead_tree', 3.4, 12], ['frozen_pond', 6, 4]];
+  const total = kinds.reduce((n, k) => n + k[2], 0);
+  for (let i = 0; i < 900; i++) {
+    const x = -208 + rnd() * 416, z = -198 + rnd() * 416; if (Math.hypot(x - C.x, z - C.z) < 36) continue;
+    let r = rnd() * total, k = kinds[0]; for (const kk of kinds) { if ((r -= kk[2]) < 0) { k = kk; break; } }
+    out.push({ x, z, id: k[0], size: k[1] * (0.8 + rnd() * 0.5), ry: rnd() * TAU, m: null });
+  }
+  for (let x = -214; x <= 214; x += 7) out.push({ x, z: -203, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null }, { x, z: 223, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null });
+  for (let z = -200; z <= 220; z += 7) out.push({ x: -213, z, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null }, { x: 213, z, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null });
+  return out;
+})();
 let streamT = 0;
 function streamTrees(dt) {
   streamT -= dt; if (streamT > 0) return; streamT = 0.4;
   for (const t of CHOP) { if (t.gone) continue; const dd = d2(t.x, t.z, player.x, player.z); if (dd < 80 * 80) showTree(t); else if (dd > 95 * 95) hideTree(t); }
+  for (const sc of SCENERY) {
+    const dd = d2(sc.x, sc.z, player.x, player.z);
+    if (!sc.m && dd < 75 * 75 && MODELS[sc.id] && !inSquare(sc.x, sc.z, outerRing().h + 2) && !LAKES.some(l => d2(l.x, l.z, sc.x, sc.z) < (l.r + 2) ** 2)) {
+      sc.m = fitModel(sc.id, sc.size, sc.id === 'dead_tree' ? 'y' : undefined); sc.m.position.set(sc.x, sc.id === 'frozen_pond' ? -0.05 : 0, sc.z); sc.m.rotation.y = sc.ry;
+      sc.m.traverse(o => { if (o.isMesh) { o.castShadow = sc.id !== 'frozen_pond'; } }); scene.add(sc.m);
+    } else if (sc.m && dd > 90 * 90) { scene.remove(sc.m); sc.m = null; }
+  }
 }
 function addTree(x, z, s, choppable, kind) {
   const T = TREE_KINDS[kind || 0];
@@ -1080,6 +1100,7 @@ function buildRuins() {
     const chest = mk(Box(0.8, 0.55, 0.55), 0x7a4a26); chest.position.set(0, 0.28, 0); if (kind === 'tower' || kind === 'cabin') chest.position.set(1.8, 0.28, 1.6); g.add(chest);
     const band = mk(Box(0.84, 0.1, 0.6), 0xc9b26a); band.position.copy(chest.position); band.position.y += 0.12; g.add(band);
     freeze(g);
+    if (kind === 'stones' || kind === 'cabin' || kind === 'tower') skin(g, 'ruin_' + kind, kind === 'stones' ? 7.5 : 4.4, { parts: g.children.filter(c => c !== chest && c !== band) });
     const ru = { x, z, kind, g, chest, band, cx: x + chest.position.x, cz: z + chest.position.z, opened: false, i: RUINS.length };
     if (kind === 'cabin' || kind === 'tower') addObs(x, z, kind === 'tower' ? 1.3 : 1.4);
     RUINS.push(ru);
@@ -2185,10 +2206,12 @@ function buildCampProps(g, kind) {
   const [main, accent] = CAMP_LOOK[kind];
   for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; if (i % 6 === 0) continue; const st = mk(Cone(0.12, 1.1, 5), 0x6b4a2d); st.position.set(Math.cos(a) * 5, 0.5, Math.sin(a) * 5); st.rotation.z = Math.cos(a) * 0.25; st.rotation.x = -Math.sin(a) * 0.25; g.add(st); }
   [[-2.6, -2.2, 0.4], [2.4, -2.6, -0.5]].forEach(([tx, tz, r]) => {
-    const tent = mk(Cone(1.05, 1.9, 9), 0xc9a27a); tent.position.set(tx, 0.95, tz); tent.rotation.y = r; g.add(tent);
-    const stripe = mk(Cyl(0.62, 0.72, 0.18, 9), main); stripe.position.set(tx, 1.15, tz); g.add(stripe);
-    for (let k = 0; k < 3; k++) { const pole = mk(Cyl(0.03, 0.03, 0.8, 5), 0x6b4a2d); pole.position.set(tx + Math.cos(k * 2.1) * 0.08, 2.05, tz + Math.sin(k * 2.1) * 0.08); pole.rotation.set(Math.sin(k * 2.1) * 0.35, 0, -Math.cos(k * 2.1) * 0.35); g.add(pole); }
-    const flap = mk(Box(0.5, 0.8, 0.06), 0x1d2128); flap.position.set(tx + Math.sin(r) * 0.85, 0.4, tz + Math.cos(r) * 0.85); flap.rotation.y = r; g.add(flap);
+    const tg = new THREE.Group(); tg.position.set(tx, 0, tz); tg.rotation.y = r; g.add(tg);
+    const tent = mk(Cone(1.05, 1.9, 9), 0xc9a27a); tent.position.y = 0.95; tg.add(tent);
+    const stripe = mk(Cyl(0.62, 0.72, 0.18, 9), main); stripe.position.y = 1.15; tg.add(stripe);
+    for (let k = 0; k < 3; k++) { const pole = mk(Cyl(0.03, 0.03, 0.8, 5), 0x6b4a2d); pole.position.set(Math.cos(k * 2.1) * 0.08, 2.05, Math.sin(k * 2.1) * 0.08); pole.rotation.set(Math.sin(k * 2.1) * 0.35, 0, -Math.cos(k * 2.1) * 0.35); tg.add(pole); }
+    const flap = mk(Box(0.5, 0.8, 0.06), 0x1d2128); flap.position.set(0, 0.4, 0.85); tg.add(flap);
+    skin(tg, 'teepee_tent', 2.3);
   });
   const pit = mk(Cyl(0.6, 0.7, 0.18, 10), 0x55606e); pit.position.set(-1.8, 0.09, 2.2); g.add(pit);
   for (let i = 0; i < 3; i++) { const l = itemMesh('log'); l.position.set(-1.8, 0.25, 2.2); l.rotation.y = i * 1.05; g.add(l); }
@@ -2206,9 +2229,10 @@ function spawnCamp() {
   const tier = campTier(x, z);
   const camp = { x, z, tier, guards: [], open: false };
   const chest = grp(x, z); camp.g = chest;
-  const box = mk(Box(1.1, 0.7, 0.75), 0x7a4a26); box.position.y = 0.35; chest.add(box);
-  const lid = mk(Cyl(0.38, 0.38, 1.1, 14, 1), 0x8d5a30); lid.rotation.z = Math.PI / 2; lid.scale.set(1, 1, 0.98); lid.position.y = 0.72; chest.add(lid);
-  const band = mk(Box(1.14, 0.12, 0.8), [0xc9b26a, 0xd9dde4, 0xf2c14e][tier]); band.position.y = 0.55; chest.add(band);
+  const cg = new THREE.Group(); chest.add(cg);
+  const box = mk(Box(1.1, 0.7, 0.75), 0x7a4a26); box.position.y = 0.35; cg.add(box);
+  const lid = mk(Cyl(0.38, 0.38, 1.1, 14, 1), 0x8d5a30); lid.rotation.z = Math.PI / 2; lid.scale.set(1, 1, 0.98); lid.position.y = 0.72; cg.add(lid);
+  const band = mk(Box(1.14, 0.12, 0.8), [0xc9b26a, 0xd9dde4, 0xf2c14e][tier]); band.position.y = 0.55; cg.add(band); skin(cg, 'treasure_chest', 1.4);
   const glow = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.2, 28), new THREE.MeshBasicMaterial({ color: [0xffe08a, 0x9fd3ff, 0xd38cff][tier], transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
   glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; chest.add(glow); camp.glow = glow;
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
@@ -2885,6 +2909,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY };
 })();
 </script>
