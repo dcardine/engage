@@ -320,6 +320,7 @@ function groundTexture() {
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(720, 720), new THREE.MeshLambertMaterial({ color: 0xf6faff, map: groundTexture() }));
 ground.receiveShadow = true; ground.position.z = 10;
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
+new THREE.TextureLoader().load('assets/textures/snow_ground.jpg', t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 36); t.anisotropy = 4; ground.material.map = t; ground.material.needsUpdate = true; });
 function flat(w, d, c, x, z, y = 0.012) { const m = mk(new THREE.PlaneGeometry(w, d), c, false, true); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); return m; }
 flat(23, 23, 0xe6dccb, 0, 10, 0.011);
 flat(5, 40, 0xe2e7f0, 0, -20, 0.01);
@@ -787,7 +788,7 @@ const leaving = [];
 function removeCiv(v) { scene.remove(v.g); }
 
 /* ================= walls: square rings ================= */
-const postGeo = Cyl(0.23, 0.25, 2.0, 7), capGeo = Cone(0.25, 0.55, 7);
+const postGeo = Cyl(0.24, 0.26, 2.0, 8), capGeo = new THREE.SphereGeometry(0.27, 10, 6, 0, TAU, 0, Math.PI / 2).scale(1, 0.75, 1);
 const WOOD = mat(0x9a5e38), STONEM = mat(0x8f99a6), SNOW = mat(0xffffff);
 const SEG_COST = [{ log: 5 }, { log: 10, stone: 6 }, { stone: 10, log: 6 }];
 const GATE_COST = [{ log: 10 }, { log: 20, stone: 12 }, { stone: 20, ore: 6 }];
@@ -806,14 +807,14 @@ function buildSegMesh(s) {
     skin(g, 'gate', GATE_HW * 2 + 1.6, { after: () => segVisual(s) });
     return;
   }
-  const L = Math.hypot(s.bx - s.ax, s.bz - s.az), n = Math.max(2, Math.round(L / 0.5));
+  const L = Math.hypot(s.bx - s.ax, s.bz - s.az), n = Math.max(2, Math.round(L / 0.46));
   s.posts = new THREE.InstancedMesh(postGeo, WOOD, n); s.caps = new THREE.InstancedMesh(capGeo, SNOW, n);
   s.posts.castShadow = s.caps.castShadow = true;
   const M = new THREE.Matrix4();
   for (let i = 0; i < n; i++) {
     const t = (i + 0.5) / n, x = s.ax + (s.bx - s.ax) * t, z = s.az + (s.bz - s.az) * t, h = 1 + Math.sin(x * 3.1 + z * 1.7) * 0.06;
     M.makeScale(1, h, 1).setPosition(x, h, z); s.posts.setMatrixAt(i, M);
-    M.makeScale(1, 1, 1).setPosition(x, 2 * h + 0.27, z); s.caps.setMatrixAt(i, M);
+    M.makeScale(1, 1, 1).setPosition(x, 2 * h - 0.02, z); s.caps.setMatrixAt(i, M);
   }
   g.add(s.posts, s.caps);
   // with the wall model loaded, the run is tiled with wall sections along its length
@@ -828,7 +829,7 @@ function buildSegMesh(s) {
     for (let i = 0; i < k; i++) { const m = fitModel('wall_section', len * 1.04); const t = (i + 0.5) / k; m.position.set(s.ax + (s.bx - s.ax) * t, 0, s.az + (s.bz - s.az) * t); m.rotation.y = -ang + along; m.scale.y = 2.4 / (sz.y * k1); g.add(m); }
     g.userData.skin = true; segVisual(s);
   };
-  e.tile = tile; tile();
+  e.tile = () => {}; // the straight procedural palisade reads better than the tiled model
 }
 function segVisual(s) {
   s.g.visible = s.ring.active;
@@ -1025,6 +1026,15 @@ function modelStorehouse(x, z) {
   const d = mk(Box(1.2, 1.3, 0.06), 0x5b3416); d.position.set(0, 0.65, 1.22); g.add(d);
   [[-1.9, 0.9], [-1.9, 0.2], [1.9, 0.9]].forEach(([a, c]) => { const k = mk(Box(0.6, 0.6, 0.6), 0xb57f4b); k.position.set(a, 0.3, c); g.add(k); });
   addObs(x, z, 1.7); popIn(g); burst(x, 1, z, 0xa8743f, 14); return g;
+}
+function modelGarden(x, z) {
+  const g = grp(x, z);
+  const soil = mk(Box(3.4, 0.16, 3), 0x6b4a2d, false, true); soil.position.y = 0.08; g.add(soil);
+  for (let r = 0; r < 4; r++) { const row = mk(Box(3, 0.14, 0.32), 0x4e3424); row.position.set(0, 0.2, -1.05 + r * 0.7); g.add(row);
+    for (let k = 0; k < 5; k++) { const c = r % 2 ? 0x7bbf4a : 0x4f9a3a, pl = mk(new THREE.SphereGeometry(0.2, 8, 6).scale(1, 0.8, 1), c); pl.position.set(-1.2 + k * 0.6, 0.38, -1.05 + r * 0.7); g.add(pl);
+      if (r % 2 === 0 && k % 2 === 0) { const v = mk(Cone(0.07, 0.22, 6), 0xe8833a); v.rotation.x = Math.PI; v.position.set(-1.2 + k * 0.6 + 0.12, 0.3, -1.05 + r * 0.7 + 0.1); g.add(v); } } }
+  [[-1.8, 0, 0.1, 3.2], [1.8, 0, 0.1, 3.2], [0, -1.6, 3.7, 0.1]].forEach(([fx, fz, w, d]) => { const f = mk(Box(w, 0.5, d), 0x9a5e38); f.position.set(fx, 0.25, fz); g.add(f); });
+  freeze(g); return g;
 }
 function modelFishery(x, z) {
   const g = grp(x, z);
@@ -1252,6 +1262,7 @@ const meatPile = makePile('meat', 16.5, 18.6, 'Meat');
 const stonePile = makePile('stone', -16.5, 23.6, 'Stone');
 const goldPile = makePile('ore', -25.5, -8.2, 'Crystal');
 const fishPile = makePile('meat', 12.8, 25.2, 'Fish');
+const gardenPile = makePile('meat', 4.6, 16.4, 'Veggies'); let garden = null, gardenT = 0;
 const ROLE_PILE = { logger: woodPile, hunter: meatPile, stonecutter: stonePile, miner: goldPile };
 
 const maxWorkers = { logger: () => [0, 2, 3, 4][S.th], hunter: () => [0, 0, 2, 3][S.th], stonecutter: () => [0, 0, 2, 3][S.th], miner: () => [0, 0, 0, 3][S.th] };
@@ -1275,6 +1286,7 @@ const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL II
     banner('Town Hall ' + ROMAN[S.th] + '!', true, S.th === 2 ? 'New buildings unlocked. Wall in the town!' : 'The citadel awaits. Wall it in!'); sfx(523, 0.3, 'sine', 0.07); }, xp: 80 });
 plot('cook', { x: cookStall.x, z: cookStall.z, label: 'COOKHOUSE', cost: { log: 30, cash: 15 },
   onBuy: () => { S.cook = true; S.food = foodCap() * 0.6; openStall(cookStall); banner('Cookhouse built!', true, 'Your people now need food. Hunt yaks!'); } });
+plot('garden', { x: 5.6, z: 13.4, label: 'GARDEN', cost: { log: 20, cash: 20 }, req: () => S.cook, onBuy: () => { garden = modelGarden(5.6, 13.4); openPile(gardenPile); banner('Garden planted!', true, 'Veggies pile up beside it; sell them at the cookhouse'); } });
 plot('houseA', { x: -9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => S.cook, onBuy: () => { modelHouse(-9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('houseB', { x: 9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => B.houseA, onBuy: () => { modelHouse(9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('towerA', { x: -9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 }, req: () => S.cook, onBuy: () => { buildTower(-9.6, 0.4); banner('Watchtower built!', true); } });
@@ -1417,7 +1429,7 @@ function guardPost(g) {
 const yaks = [];
 // Yaks graze north-east, just beyond the outermost wall, so meat is close from the start.
 // Herds graze in meadows scattered all around the valley, outside the town walls.
-const HERDS = (() => { const rnd = mulberryEarly(919), out = []; for (let i = 0; i < 12; i++) { const a = i / 12 * TAU + rnd() * 0.5, r = 40 + rnd() * 110; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
+const HERDS = (() => { const rnd = mulberryEarly(919), out = []; out.push([C.x + 30, C.z - 26], [C.x - 34, C.z + 24], [C.x + 28, C.z + 36]); for (let i = 0; i < 12; i++) { const a = i / 12 * TAU + rnd() * 0.5, r = 40 + rnd() * 110; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
 const yakZone = () => ({ x0: -80, x1: 80, z0: -70, z1: 90 });
 function makeYak() {
   const g = new THREE.Group();
@@ -1442,7 +1454,7 @@ function spawnYak(px, pz, id) {
   const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: 6, max: 6, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
   yaks.push(y); return y;
 }
-for (let i = 0; i < 36; i++) spawnYak();
+for (let i = 0; i < 48; i++) spawnYak();
 
 /* ================= enemies ================= */
 const enemies = [];
@@ -1874,6 +1886,7 @@ function update(dt) {
     if (d2(v.x, v.z, DOOR.x, DOOR.z) < 0.3) { removeCiv(v); leaving.splice(i, 1); continue; }
     v.walkT += dt; v.g.position.set(v.x, 0, v.z); v.g.rotation.y = v.rot; animWalk(v, v.walkT, true);
   }
+  if (garden && !isGuest()) { gardenT -= dt; if (gardenT <= 0) { gardenT = S.season === 3 ? 9 : S.season === 1 ? 3 : 5; if (gardenPile.n < pileCap()) { gardenPile.n++; syncPile(gardenPile); } } }
   if (fishery && !isGuest()) { fishT -= dt; if (fishT <= 0) { fishT = 3; if (fishPile.n < pileCap()) { fishPile.n++; syncPile(fishPile); } } }
 
   /* --- pallets --- */

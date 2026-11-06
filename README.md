@@ -44,12 +44,15 @@ Tap **Co-op** on the published page. The first player in hosts, so their town is
 ## Saving
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 
+## Art
+Models come from Meshy (`tools/meshy_assets.py`, cached so nothing is paid for twice) and the snow ground from OpenAI images (`tools/openai_texture.py`, also skipped once it exists).
+
 ## Village upgrades
 Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes are on sale in the plaza for $12 from the start.
 
 ## Survival
 - **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
-- **Food:** once the cookhouse is built, villagers also eat. Sell meat there. Yaks graze just north-east of the outer wall, wolves drop 2 meat and yetis 8, and the fishery adds a steady supply.
+- **Food:** once the cookhouse is built, villagers also eat. Sell meat there. Plant a **Garden** (after the cookhouse) and veggies pile up beside it: fastest in summer, slowest in winter. Herds of yaks graze just outside the fort and across the valley, wolves drop 2 meat and yetis 8, and the fishery adds a steady supply.
 - If either meter hits zero, villagers start dying. Lose them all and Frosthold falls.
 - With both meters above half and free housing, new villagers arrive. Villagers pay taxes to the Town Hall pallet.
 
