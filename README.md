@@ -13,6 +13,17 @@ Your axes swing automatically at trees, rocks, yaks and raiders in reach. With a
 ## Wild encounters
 Monster camps guard treasure chests across the wilds; the minimap marks them (orange easy, red medium, purple dangerous, gold when cleared). Near the fort you meet spiders, goblins and wolves; farther out bears and trolls; at the edges of the map wraiths and stone golems. Defeat every guard, then step on the chest. Treasures give weapons (Frostbite Axe, Ember Cleaver, Runic Greataxe), armour (Fur Jerkin, Iron Mail, Runic Plate), heart stones (+health), war runes (+damage), wind charms (+speed), storage charms (bigger piles), ember totems (repair walls, longer-lasting firewood), yak totems, plus cash and materials. New camps appear over time.
 
+## Exploring
+The valley is about four times larger than before. The farther from the fort you go, the tougher the monsters, the richer the treasure, and the further out the stone quarries (middle distance) and crystal veins (the far edges). The minimap starts dark: it reveals ground that you or a co-op teammate have walked near, and remembers it in your save.
+
+## Knockouts and revives
+- Solo: you respawn at the Town Hall a few seconds after being knocked out, and your pack spills where you fell.
+- **Med Center** (Town Hall II): revives you where you fell, once every 5 minutes. In co-op each player has their own 5-minute timer.
+- **Med kits**: buy them at the Med Center (up to 5) or find them in treasure. Stand next to a downed teammate for two seconds to revive them.
+
+## Crystal
+Crystal veins only appear far out in the wilds and need a **Crystal Pick** (Blacksmith research at Town Hall II, or a rare treasure) to mine.
+
 ## HUD
 - The minimap (right) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
 - Tap a resource counter to leave that resource on the ground: you still chop, mine and hunt, but nothing of that kind goes into your pack until you tap it again.
