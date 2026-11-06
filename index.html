@@ -531,20 +531,20 @@ function makeRing(tier) {
   const h = TIERS[tier], zN = C.z - h, zS = C.z + h;
   const r = { tier, h, zN, zS, segs: [], active: false, complete: false };
   const split = (ax, az, bx, bz) => { const L = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.round(L / 6)); for (let i = 0; i < n; i++) r.segs.push({ ax: ax + (bx - ax) * i / n, az: az + (bz - az) * i / n, bx: ax + (bx - ax) * (i + 1) / n, bz: az + (bz - az) * (i + 1) / n }); };
-  const side = tier > 0;
+  // a gate in the middle of every side
   split(-h, zN, -GATE_HW, zN); split(GATE_HW, zN, h, zN);
-  if (side) { split(h, zN, h, C.z - GATE_HW); split(h, C.z + GATE_HW, h, zS); } else split(h, zN, h, zS);
-  split(h, zS, -h, zS);
-  if (side) { split(-h, zS, -h, C.z + GATE_HW); split(-h, C.z - GATE_HW, -h, zN); } else split(-h, zS, -h, zN);
-  r.gates = [{ ax: -GATE_HW, az: zN, bx: GATE_HW, bz: zN, gx: 0, gz: zN, nx: 0, nz: -1 }];
-  if (side) r.gates.push({ ax: h, az: C.z - GATE_HW, bx: h, bz: C.z + GATE_HW, gx: h, gz: C.z, nx: 1, nz: 0 }, { ax: -h, az: C.z - GATE_HW, bx: -h, bz: C.z + GATE_HW, gx: -h, gz: C.z, nx: -1, nz: 0 });
+  split(h, zN, h, C.z - GATE_HW); split(h, C.z + GATE_HW, h, zS);
+  split(h, zS, GATE_HW, zS); split(-GATE_HW, zS, -h, zS);
+  split(-h, zS, -h, C.z + GATE_HW); split(-h, C.z - GATE_HW, -h, zN);
+  r.gates = [{ ax: -GATE_HW, az: zN, bx: GATE_HW, bz: zN, gx: 0, gz: zN, nx: 0, nz: -1 }, { ax: -GATE_HW, az: zS, bx: GATE_HW, bz: zS, gx: 0, gz: zS, nx: 0, nz: 1 }];
+  r.gates.push({ ax: h, az: C.z - GATE_HW, bx: h, bz: C.z + GATE_HW, gx: h, gz: C.z, nx: 1, nz: 0 }, { ax: -h, az: C.z - GATE_HW, bx: -h, bz: C.z + GATE_HW, gx: -h, gz: C.z, nx: -1, nz: 0 });
   r.gates.forEach(gt => { gt.isGate = true; r.segs.push(gt); });
   r.segs.forEach(s => {
     Object.assign(s, { ring: r, tier, built: false, stone: false, hp: 0, max: SEG_HP[tier] * (s.isGate ? 1.5 : 1), bar: makeBar('wall') });
     s.mx = (s.ax + s.bx) / 2; s.mz = (s.az + s.bz) / 2;
     const horiz = Math.abs(s.az - s.bz) < 0.01;
     s.px = horiz ? s.mx : s.mx + (s.mx < 0 ? 2 : -2); s.pz = horiz ? s.mz + (s.mz < C.z ? 2 : -2) : s.mz;
-    if (s.isGate) { s.px = s.gx - s.nx * 3.2; s.pz = s.gz - s.nz * 3.2; }
+    if (s.isGate) { const k = s.nz === -1 ? -3.2 : 3.2; s.px = s.gx + s.nx * k; s.pz = s.gz + s.nz * k; }
     buildSegMesh(s);
   });
   rings.push(r); return r;
@@ -554,7 +554,7 @@ const segMax = s => SEG_HP[s.tier] * (s.isGate ? 1.5 : 1) * (S.masonry ? 2 : 1);
 function setSegBuilt(s, on) { s.built = on; if (on) { s.stone = S.masonry || s.tier > 0; s.max = segMax(s); s.hp = s.max; } segVisual(s); }
 // the camp starts with the north and south walls and the gate standing; east and west are ruins
 rings[0].active = true;
-rings[0].segs.forEach(s => setSegBuilt(s, s.isGate || Math.abs(s.az - s.bz) < 0.01));
+rings[0].segs.forEach(s => setSegBuilt(s, Math.abs(s.az - s.bz) < 0.01));
 rings[1].segs.forEach(segVisual); rings[2].segs.forEach(segVisual);
 const ringSecure = r => r.segs.every(s => s.built);
 const activeRings = () => rings.filter(r => r.active);
@@ -877,8 +877,8 @@ const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL II
     banner('Town Hall ' + ROMAN[S.th] + '!', true, S.th === 2 ? 'New buildings unlocked. Wall in the town!' : 'The citadel awaits. Wall it in!'); sfx(523, 0.3, 'sine', 0.07); }, xp: 80 });
 plot('cook', { x: cookStall.x, z: cookStall.z, label: 'COOKHOUSE', cost: { log: 30, cash: 15 },
   onBuy: () => { S.cook = true; S.food = foodCap() * 0.6; openStall(cookStall); banner('Cookhouse built!', true, 'Your people now need food. Hunt yaks!'); } });
-plot('houseA', { x: -9.6, z: 11.2, label: 'HOUSE', cost: { log: 25 }, req: () => S.cook, onBuy: () => { modelHouse(-9.6, 11.2); S.houses++; banner('House built', true, '+4 housing'); } });
-plot('houseB', { x: 9.6, z: 11.2, label: 'HOUSE', cost: { log: 25 }, req: () => B.houseA, onBuy: () => { modelHouse(9.6, 11.2); S.houses++; banner('House built', true, '+4 housing'); } });
+plot('houseA', { x: -9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => S.cook, onBuy: () => { modelHouse(-9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
+plot('houseB', { x: 9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => B.houseA, onBuy: () => { modelHouse(9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('towerA', { x: -9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 }, req: () => S.cook, onBuy: () => { buildTower(-9.6, 0.4); banner('Watchtower built!', true); } });
 plot('towerB', { x: 9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 }, req: () => B.towerA, onBuy: () => { buildTower(9.6, 0.4); banner('Watchtower built!', true); } });
 plot('smith', { x: -6, z: 20.4, label: 'BLACKSMITH', cost: { log: 40, cash: 30 }, req: () => S.cook, onBuy: () => { modelBlacksmith(-6, 20.4); banner('Blacksmith built!', true, 'Research upgrades at the forge'); } });
@@ -1458,7 +1458,7 @@ function update(dt) {
   /* --- resource piles: stand on one to load your pack --- */
   for (const Pl of piles) {
     if (!Pl.on) continue;
-    Pl.tag.hidden = false; Pl.tag.textContent = Pl.label + ' ' + Pl.n + '/' + pileCap(); place(Pl.tag, Pl.x, 2.2, Pl.z);
+    Pl.tag.hidden = false; Pl.tag.textContent = Pl.label + ' ' + Pl.n + '/' + pileCap() + (Pl.n >= pileCap() ? ' · FULL' : ''); place(Pl.tag, Pl.x, 2.2, Pl.z);
     Pl.T -= dt; if (Pl.T < -0.2) Pl.T = 0;
     for (let n = 0; n < 5 && S.downT <= 0 && Pl.T <= 0 && Pl.n > 0 && d2(player.x, player.z, Pl.x, Pl.z) < 2 && room() > 0; n++) {
       Pl.T += 0.035; Pl.n--; syncPile(Pl);
