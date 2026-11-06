@@ -164,6 +164,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <script>
@@ -212,6 +213,39 @@ const SUN_OFF = new THREE.Vector3(-12, 26, 10);
 
 /* ================= materials / geometry ================= */
 const mats = {};
+/* ---- generated 3D models (assets/game/*.glb) ----
+   Objects are built from simple shapes first; when a matching model finishes loading,
+   its shapes are hidden and the model takes their place. If a model fails, the shapes stay. */
+const MODELS = {}, MODEL_BOX = {}, skins = [];
+function fitModel(id, size, by) {
+  const src = MODELS[id], bx = MODEL_BOX[id];
+  const m = src.clone(true), sz = bx.getSize(new THREE.Vector3());
+  const k = by === 'y' ? size / sz.y : size / Math.max(sz.x, sz.z);
+  const w = new THREE.Group(); m.scale.setScalar(k);
+  const c = bx.getCenter(new THREE.Vector3());
+  m.position.set(-c.x * k, -bx.min.y * k, -c.z * k); w.add(m); w.userData.baseY = 0;
+  return w;
+}
+function applySkin(e) {
+  if (e.tile) return e.tile();
+  if (e.done || !MODELS[e.id]) return; e.done = true;
+  (e.parts || e.g.children.slice()).forEach(c => { c.visible = false; });
+  const m = fitModel(e.id, e.size, e.by); if (e.ry) m.rotation.y = e.ry; if (e.y) m.position.y = e.y;
+  e.g.add(m); e.g.userData.skin = m; if (e.after) e.after(m);
+}
+function skin(g, id, size, opts) { const e = Object.assign({ g, id, size }, opts || {}); skins.push(e); applySkin(e); return e; }
+function loadModels() {
+  if (!THREE.GLTFLoader) return;
+  const loader = new THREE.GLTFLoader();
+  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager'].forEach(id =>
+    loader.load('assets/game/' + id + '.glb', g => {
+      g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
+        const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
+      MODELS[id] = g.scene; MODEL_BOX[id] = new THREE.Box3().setFromObject(g.scene);
+      skins.forEach(applySkin);
+      if (id === 'pine_tree' || id === 'snowball_tree') CHOP.forEach(t => { if (t.g) { hideTree(t); showTree(t); } });
+    }, undefined, () => {}));
+}
 // Three-band toon shading gives the clean, flat-lit look of stylised mobile games.
 function mat(c) { return mats[c] || (mats[c] = new THREE.MeshLambertMaterial({ color: c })); }
 function mk(geo, c, cast = true, recv = false) { const m = new THREE.Mesh(geo, mat(c)); m.castShadow = cast; m.receiveShadow = recv; return m; }
@@ -450,7 +484,8 @@ function freeze(o) { o.updateMatrixWorld(true); o.traverse(m => { m.matrixAutoUp
 function showTree(t) {
   if (t.g || t.gone) return;
   const g = new THREE.Group(); g.position.set(t.x, 0, t.z); g.scale.setScalar(t.sc);
-  const top = new THREE.Mesh(TREE_GEOS[t.geo], vcMat); top.castShadow = true; top.rotation.y = t.ry; g.add(top);
+  const mid = t.geo === 3 ? 'snowball_tree' : 'pine_tree';
+  const top = MODELS[mid] ? fitModel(mid, t.geo === 3 ? 3.3 : 3.6, 'y') : new THREE.Mesh(TREE_GEOS[t.geo], vcMat); top.castShadow = true; top.rotation.y = t.ry; g.add(top);
   const stump = mk(stumpGeo, 0x8a5634); stump.position.y = 0.15; g.add(stump);
   g.updateMatrix(); g.matrixAutoUpdate = false; stump.updateMatrix(); stump.matrixAutoUpdate = false;
   t.g = g; t.top = top; t.stump = stump; syncTree(t); scene.add(g);
@@ -476,6 +511,7 @@ function addRock(x, z, kind) {
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
   // a cluster of jagged, flat-faced boulders that shrinks as it is mined out
   const body = new THREE.Group(); g.add(body);
+  setTimeout(() => skin(body, kind === 'gold' ? 'crystal_vein' : 'stone_deposit', 2.9), 0);
   const col = kind === 'gold' ? 0x6f86a8 : 0x8f9fb6;
   [[0, 0.55, 0, 1.0], [0.75, 0.35, 0.35, 0.6], [-0.6, 0.3, 0.45, 0.5], [0.2, 0.25, -0.7, 0.45]].forEach(([px, py, pz, sz]) => {
     const geo = new THREE.DodecahedronGeometry(sz, 0), pa = geo.attributes.position;
@@ -548,9 +584,11 @@ function makePerson(coat, trim, hat) {
     const b = mk(new THREE.SphereGeometry(0.15, 12, 8).scale(1, 0.7, 1.35), 0x5a3a24); b.position.set(0, -0.36, 0.05); l.add(b); return l; });
   const arms = [-1, 1].map(s => { const a = mk(Cyl(0.1, 0.12, 0.42, 10), coat); a.geometry.translate(0, -0.2, 0); a.position.set(s * 0.44, 1.02, 0); a.rotation.z = s * 0.15; g.add(a);
     const mitt = mk(new THREE.SphereGeometry(0.12, 10, 8), trim); mitt.position.set(0, -0.44, 0); a.add(mitt); return a; });
+  g.userData.body = g.children.slice();
   return { g, legs, arms };
 }
-function animWalk(p, t, moving) { const a = moving ? Math.sin(t * 12) * 0.6 : 0; p.legs[0].rotation.x = a; p.legs[1].rotation.x = -a; p.arms[0].rotation.x = -a * 0.6; p.arms[1].rotation.x = a * 0.6; }
+function animWalk(p, t, moving) {
+  const sk = p.g.userData.skin; if (sk) { sk.position.y = moving ? Math.abs(Math.sin(t * 12)) * 0.08 : 0; sk.rotation.z = moving ? Math.sin(t * 12) * 0.07 : 0; } const a = moving ? Math.sin(t * 12) * 0.6 : 0; p.legs[0].rotation.x = a; p.legs[1].rotation.x = -a; p.arms[0].rotation.x = -a * 0.6; p.arms[1].rotation.x = a * 0.6; }
 function makeAxe() {
   const a = new THREE.Group();
   const h = mk(Cyl(0.04, 0.05, 0.95, 5), 0x8a5a36); h.rotation.z = Math.PI / 2; a.add(h);
@@ -561,6 +599,7 @@ function makeAxe() {
 
 /* ---- player ---- */
 const P0 = makePerson(0xc8452f, 0xf3e6cf, 0x2f4a6d);
+skin(P0.g, 'hero', 1.95, { by: 'y', parts: P0.g.userData.body });
 const player = { x: 0, z: 8, rot: Math.PI, moving: false, atkT: 0, swingT: 0, walkT: 0, ...P0 };
 scene.add(player.g);
 const ring = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 28), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
@@ -696,6 +735,7 @@ function stallReceive(s, wp) {
 }
 function spawnCustomer(s) {
   const p = makePerson(VCOLORS[(Math.random() * VCOLORS.length) | 0], 0xf3e6cf);
+  skin(p.g, 'villager', 1.8, { by: 'y', parts: p.g.userData.body });
   p.g.position.set(DOOR.x, 0, DOOR.z); scene.add(p.g);
   s.queue.push({ ...p, x: DOOR.x + rand(-0.5, 0.5), z: DOOR.z, rot: 0, want: (2 + S.bell * 2 + Math.random() * 4) | 0, got: 0, pend: 0, walkT: 0, items: [], kind: 'civ' });
 }
@@ -719,6 +759,7 @@ function buildSegMesh(s) {
       addObs(s.gx + (s.nx ? 0 : k * (GATE_HW + 0.3)), s.gz + (s.nx ? k * (GATE_HW + 0.3) : 0), 0.45, () => s.ring.active); });
     const beam = mk(Box(GATE_HW * 2 + 1.4, 0.35, 0.4), 0x7a4527); beam.position.set(0, 3.0, 0); g.add(beam);
     s.doors = [-1, 1].map(k => { const d = mk(Box(GATE_HW - 0.1, 2.1, 0.18), 0x8d5a35); d.position.set(k * (GATE_HW / 2), 1.05, 0); g.add(d); return d; });
+    skin(g, 'gate', GATE_HW * 2 + 1.6, { after: () => segVisual(s) });
     return;
   }
   const L = Math.hypot(s.bx - s.ax, s.bz - s.az), n = Math.max(2, Math.round(L / 0.5));
@@ -731,11 +772,24 @@ function buildSegMesh(s) {
     M.makeScale(1, 1, 1).setPosition(x, 2 * h + 0.27, z); s.caps.setMatrixAt(i, M);
   }
   g.add(s.posts, s.caps);
+  // with the wall model loaded, the run is tiled with wall sections along its length
+  skins.push({ g, id: 'wall_section', done: false, size: 0, parts: [s.posts, s.caps] });
+  const e = skins[skins.length - 1];
+  e.after = null; e.g = g;
+  e.custom = true;
+  const tile = () => {
+    if (e.done || !MODELS.wall_section) return; e.done = true; s.posts.visible = s.caps.visible = false;
+    const k = Math.max(1, Math.round(L / 3)), len = L / k, ang = Math.atan2(s.bz - s.az, s.bx - s.ax);
+    const sz = MODEL_BOX.wall_section.getSize(new THREE.Vector3()), along = sz.z > sz.x ? Math.PI / 2 : 0, k1 = len * 1.04 / Math.max(sz.x, sz.z);
+    for (let i = 0; i < k; i++) { const m = fitModel('wall_section', len * 1.04); const t = (i + 0.5) / k; m.position.set(s.ax + (s.bx - s.ax) * t, 0, s.az + (s.bz - s.az) * t); m.rotation.y = -ang + along; m.scale.y = 2.4 / (sz.y * k1); g.add(m); }
+    g.userData.skin = true; segVisual(s);
+  };
+  e.tile = tile; tile();
 }
 function segVisual(s) {
   s.g.visible = s.ring.active;
-  if (s.isGate) { s.doors.forEach(d => d.visible = s.built); return; }
-  s.g.scale.y = s.built ? 1 : 0.16; s.caps.visible = s.built; s.posts.material = s.stone ? STONEM : WOOD;
+  if (s.isGate) { if (s.g.userData.skin) s.g.userData.skin.visible = s.built; else s.doors.forEach(d => d.visible = s.built); return; }
+  s.g.scale.y = s.built ? 1 : 0.16; s.caps.visible = s.built && !s.g.userData.skin; s.posts.material = s.stone ? STONEM : WOOD;
 }
 function makeRing(tier) {
   const h = TIERS[tier], zN = C.z - h, zS = C.z + h;
@@ -889,6 +943,7 @@ function modelHouse(x, z) {
   windowLight(g, -0.75, 0.95, 1.02); windowLight(g, 0.75, 0.95, 1.02);
   const base = mk(Box(2.6, 0.3, 2.2), 0x8f9fb6); base.position.y = 0.15; g.add(base); lantern(g, 1.35, 1.35, 1.3);
   const smoke = mk(new THREE.SphereGeometry(0.2, 10, 8), 0xe4ecf5, false); smoke.position.set(0.7, 3.05, -0.3); g.add(smoke);
+  skin(g, 'house', 3.0);
   addObs(x, z, 1.45); popIn(g); burst(x, 1, z, 0xb07444, 12); return g;
 }
 function modelHut(x, z, roofCol, item) {
@@ -907,6 +962,7 @@ function modelBlacksmith(x, z) {
   const ab = mk(Box(0.3, 0.4, 0.25), 0x3a3f48); ab.position.set(-0.6, 0.2, 1.4); g.add(ab);
   const ch = mk(Box(0.5, 1.4, 0.5), 0x6b7380); ch.position.set(1, 2.4, -0.5); g.add(ch);
   const glow = new THREE.Mesh(Box(0.7, 0.5, 0.06), basic(0xff8a3d)); glow.position.set(0.6, 0.6, 1.12); g.add(glow);
+  skin(g, 'blacksmith', 3.4);
   addObs(x, z, 1.6); popIn(g); burst(x, 1, z, 0x8f99a6, 14); return g;
 }
 function modelBarracks(x, z) {
@@ -978,6 +1034,7 @@ function modelTownHall() {
     const tr = mk(Cone(0.85, 1.2, 8), 0x2b4a74); tr.position.set(k * 2.7, 4.8, 1); g.add(tr); });
   const pole = mk(Cyl(0.05, 0.05, 1.8, 5), 0x5b3416); pole.position.set(0, top + 2.3, 0); g.add(pole);
   const flag = mk(Box(0.8, 0.5, 0.04), 0xff8a3d); flag.position.set(0.42, top + 2.9, 0); g.add(flag);
+  skin(g, 'town_hall', [0, 5.2, 6.2, 7.2][t]);
   popIn(g);
 }
 modelTownHall(); addObs(0, 15.2, 2.6);
@@ -1029,7 +1086,8 @@ function buildTower(x, z) {
   const roof = mk(Cone(1.5, 1.1, 4), 0x2b4a74); roof.position.y = 4.9; roof.rotation.y = Math.PI / 4; g.add(roof);
   const sn = mk(Cone(0.7, 0.5, 4), 0xffffff); sn.position.y = 5.3; sn.rotation.y = Math.PI / 4; g.add(sn);
   [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(([a, b]) => { const p = mk(Box(0.12, 1.2, 0.12), 0x7a4527); p.position.set(a, 3.9, b); g.add(p); });
-  const archer = makePerson(0x2f6d5a, 0xf3e6cf); archer.g.position.y = 3.1; archer.g.scale.setScalar(0.85); g.add(archer.g);
+  const archer = makePerson(0x2f6d5a, 0xf3e6cf); archer.g.position.y = 3.1; archer.g.userData.keep = true; archer.g.scale.setScalar(0.85); g.add(archer.g);
+  skin(g, 'watchtower', 5.6, { by: 'y', parts: g.children.filter(c => c !== archer.g), after: m => { archer.g.position.y = 3.6; } });
   const t = { x, z, g, archer, roof, cd: 0, lv: 1 };
   popIn(g); towers.push(t); addObs(x, z, 0.95); burst(x, 1, z, 0xa86b3d, 12);
   // each tower has its own upgrade space; higher tiers unlock with the Town Hall
@@ -1327,6 +1385,7 @@ function makeYak() {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), basic(0x1d2128)); e.position.set(s * 0.13, 1.33, 1.22); g.add(e); });
   const legs = [[-0.3, 0.5], [0.3, 0.5], [-0.3, -0.5], [0.3, -0.5]].map(([x, z]) => { const l = mk(Cyl(0.11, 0.09, 0.85, 10), 0x3d291c); l.geometry.translate(0, -0.42, 0); l.position.set(x, 0.85, z);
     const hoof = mk(Cyl(0.11, 0.12, 0.1, 10), 0x2a1c12); hoof.position.y = -0.82; l.add(hoof); g.add(l); return l; });
+  skin(g, 'yak', 2.0);
   return { g, legs };
 }
 let yakId = 0;
@@ -1352,6 +1411,7 @@ function makeWolf() {
   const tail = mk(new THREE.SphereGeometry(0.2, 12, 8).scale(0.8, 0.8, 2.2), 0x8d97a4); tail.position.set(0, 0.95, -0.85); tail.rotation.x = -0.5; g.add(tail);
   const ruff = mk(new THREE.SphereGeometry(0.32, 14, 10).scale(1, 0.9, 0.7), 0xe4e9ef); ruff.position.set(0, 0.85, 0.5); g.add(ruff);
   const legs = [[-0.18, 0.4], [0.18, 0.4], [-0.18, -0.4], [0.18, -0.4]].map(([x, z]) => { const l = mk(Box(0.14, 0.45, 0.14), 0x5a636f); l.geometry.translate(0, -0.22, 0); l.position.set(x, 0.45, z); g.add(l); return l; });
+  skin(g, 'wolf', 1.6);
   return { g, legs };
 }
 function makeYeti() {
@@ -1587,7 +1647,7 @@ const walkers = [];
 function syncWalkers() {
   const queued = stalls.reduce((n, s) => n + s.queue.length, 0) + leaving.length;
   const want = clamp(S.civ - queued, 0, 8);
-  while (walkers.length < want) { const p = makePerson(VCOLORS[(Math.random() * VCOLORS.length) | 0], 0xf3e6cf); const v = { ...p, x: DOOR.x, z: DOOR.z, tx: null, tz: null, idle: 0, walkT: 0, rot: 0, kind: 'civ' }; p.g.position.set(v.x, 0, v.z); scene.add(p.g); walkers.push(v); }
+  while (walkers.length < want) { const p = makePerson(VCOLORS[(Math.random() * VCOLORS.length) | 0], 0xf3e6cf); skin(p.g, 'villager', 1.8, { by: 'y', parts: p.g.userData.body }); const v = { ...p, x: DOOR.x, z: DOOR.z, tx: null, tz: null, idle: 0, walkT: 0, rot: 0, kind: 'civ' }; p.g.position.set(v.x, 0, v.z); scene.add(p.g); walkers.push(v); }
   while (walkers.length > want) removeCiv(walkers.pop());
 }
 
@@ -2391,6 +2451,7 @@ function heroState() { return [R2(player.x), R2(player.z), R2(player.rot), playe
 const COOP_COATS = [0x2f7fb8, 0x8e44ad, 0xd4a017, 0x2e8b57, 0xc0392b];
 function makeRemote(peer, n) {
   const p = makePerson(COOP_COATS[n % COOP_COATS.length], 0xf3e6cf, 0x2f4a6d);
+  skin(p.g, 'hero', 1.95, { by: 'y', parts: p.g.userData.body });
   scene.add(p.g);
   const a = makeAxe(); a.position.set(0.5, 0.8, 0.15); a.rotation.z = -1.1; p.g.add(a);
   const tag = document.createElement('div'); tag.className = 'tag p2'; ov.appendChild(tag);
@@ -2779,6 +2840,7 @@ newBtn.addEventListener('click', e => {
 let coopBoot = null; try { coopBoot = sessionStorage.getItem('frost-coop'); sessionStorage.removeItem('frost-coop'); } catch (e) {}
 let bootCode = ''; try { bootCode = sessionStorage.getItem('frost-code') || ''; sessionStorage.removeItem('frost-code'); } catch (e) {}
 const hashJoin = (location.hash.match(/^#join-([A-Za-z0-9]{4,6})$/) || [])[1];
+loadModels();
 if (coopBoot === 'join') startCoop(true, bootCode, false);
 else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);
