@@ -32,7 +32,8 @@ Crystal veins only appear far out in the wilds and need a **Crystal Pick** (Blac
 
 ## HUD
 - The minimap (right) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
-- Tap a resource counter to leave that resource on the ground: you still chop, mine and hunt, but nothing of that kind goes into your pack until you tap it again.
+- Tap a resource counter to **drop** what you carry of it (all, or 10 at a time) or to **stop collecting** it: you still chop, mine and hunt, but nothing of that kind goes into your pack until you turn it back on. Dropped piles wait until you walk away and come back.
+- The **cog** (bottom left) holds Co-op, Hero, Pause, Sound and New game, and lets you hide the goal, town gauges, resources or minimap.
 - **Loggers: pile/stall** switches where loggers deliver. Hunters always deliver to the cookhouse once it is built.
 
 ## Co-op
@@ -51,7 +52,7 @@ Axe and pack upgrades, the crystal pick, and everything found in treasure chests
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 
 ## Art
-Models come from Meshy (`tools/meshy_assets.py`, cached so nothing is paid for twice) and the snow ground from OpenAI images (`tools/openai_texture.py`, also skipped once it exists).
+Models come from Meshy (`tools/meshy_assets.py`, cached so nothing is paid for twice) and the painted snow and meadow ground from OpenAI images (`tools/openai_texture.py`, also skipped once it exists).
 
 ## Village upgrades
 Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes (40 logs, 90 gold) unlock once the blacksmith is built; Axe III and IV need Town Hall II and III.

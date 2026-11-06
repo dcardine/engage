@@ -52,17 +52,28 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #banner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #banner.good{text-shadow:0 3px 0 #1d5a33,0 6px 18px rgba(0,0,0,.3);-webkit-text-stroke-color:#1d5a33}
 #banner.good small{-webkit-text-stroke-color:#1d5a33}
-#mute{pointer-events:auto;bottom:calc(14px + env(safe-area-inset-bottom,0px));right:calc(14px + env(safe-area-inset-right,0px));
-  width:44px;height:44px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:18px/1 var(--display);cursor:pointer}
 #netbar{bottom:calc(16px + env(safe-area-inset-bottom,0px));left:calc(12px + env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;gap:6px;align-items:center;max-width:70vw}
 #netTxt{background:var(--panel);color:#ffe08a;font:12px/1 var(--display);letter-spacing:.05em;padding:6px 9px;border-radius:10px}
 #mini{width:118px;height:118px;right:calc(8px + env(safe-area-inset-right,0px));top:calc(196px + env(safe-area-inset-top,0px));border-radius:14px;border:1px solid var(--panel-line);background:rgba(18,30,50,.6)}
 #res .chip:not(#cCash){pointer-events:auto;cursor:pointer}
 .chip.off{opacity:.45}.chip.off span{text-decoration:line-through}
-#logdest,#statsBtn,#inviteBtn,#coop,#newg{pointer-events:auto;
+#cog{pointer-events:auto;width:46px;height:46px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+#menu{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.6);padding:0 16px}
+#menu .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px;width:min(340px,100%);text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#menu h2{margin:0 0 12px;font:26px/1 var(--display);color:#2b4a74}
+#menu h3{margin:16px 0 8px;font:13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ember)}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mgrid button{padding:13px 10px!important;font-size:15px!important}
+.mshow{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;text-align:left;font:800 15px var(--body)}
+.mshow label{display:flex;gap:8px;align-items:center;cursor:pointer}.mshow input{width:20px;height:20px;accent-color:#2b4a74}
+#closeMenu{margin-top:16px;width:100%;padding:12px;border-radius:12px;border:2px solid #c9d6e8;background:#fff;font:15px var(--display);color:#2b4a74;cursor:pointer}
+.hud-off{display:none!important}
+#chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
+#chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
+#chipMenu button.drop{background:#b8452e}
+#logdest,#statsBtn,#inviteBtn,#coop,#newg,#pause,#mute{pointer-events:auto;
   border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:13px/1 var(--display);letter-spacing:.06em;padding:9px 12px;border-radius:12px;cursor:pointer}
 #newg.confirm{background:#b8452e}
-#pause{pointer-events:auto;bottom:calc(66px + env(safe-area-inset-bottom,0px));right:calc(14px + env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:16px/1 var(--display);cursor:pointer}
 #paused{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(16,26,44,.45);color:#fff;font:40px/1 var(--display);pointer-events:auto;z-index:15}
 #paused small{font:800 14px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
 #pause:focus-visible,#mute:focus-visible,#again:focus-visible,#newg:focus-visible,#coop:focus-visible,#logdest:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
@@ -153,10 +164,13 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="banner" class="hud"></div>
 <div id="hint" class="hud">Drag anywhere to move</div>
-<button id="mute" class="hud" type="button" aria-label="Toggle sound">♪</button>
-<button id="pause" class="hud" type="button" aria-label="Pause">II</button>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
-<div id="netbar" class="hud"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="newg" type="button">New game</button><span id="netTxt" hidden></span></div>
+<div id="netbar" class="hud"><button id="cog" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button><span id="netTxt" hidden></span></div>
+<div id="menu" hidden><div class="box"><h2>Menu</h2>
+<div class="mgrid"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
+<h3>Show on screen</h3>
+<div class="mshow"><label><input type="checkbox" data-hud="quest" checked> Goal</label><label><input type="checkbox" data-hud="town" checked> Town gauges</label><label><input type="checkbox" data-hud="res" checked> Resources</label><label><input type="checkbox" data-hud="mini" checked> Minimap</label></div>
+<button id="closeMenu" type="button" class="ghost">Close</button></div></div>
 <div id="invite" hidden><div class="box"><h2>Play together</h2><p>Scan with a phone, open Frosthold and tap <b>Co-op</b> to join your town.</p><div id="qr"></div><p class="link"><span id="inviteUrl"></span></p><div class="btns"><button id="copyLink" type="button">Copy link</button><button id="closeInvite" type="button">Done</button></div><p class="fine">Friends need access to this page: share it from the page’s Share menu first.</p></div></div>
 <div id="lobby" hidden><div class="box"><h2>Play together</h2><div class="prof"></div><p>Host a town and share the code, or join a friend’s town. No account needed.</p>
 <button id="hostBtn" type="button">Host a game</button>
@@ -322,7 +336,16 @@ function groundTexture() {
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(720, 720), new THREE.MeshLambertMaterial({ color: 0xf6faff, map: groundTexture() }));
 ground.receiveShadow = true; ground.position.z = 10;
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
-new THREE.TextureLoader().load('assets/textures/snow_ground.jpg', t => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(36, 36); t.anisotropy = 4; ground.material.map = t; ground.material.needsUpdate = true; });
+const GROUND_TEX = {};   // generated with tools/openai_texture.py; the canvas tile stays until they load
+['snow_ground', 'grass_ground'].forEach(n => new THREE.TextureLoader().load('assets/textures/' + n + '.jpg', t => {
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 8; GROUND_TEX[n] = t; groundLook();
+}));
+const GROUND_TINT = [0xb4c2a8, 0xb0b0b0, 0xc8a870, 0xb8c0cc];   // the scene light is bright, so the painted tiles are dimmed to keep their detail   // spring, summer, autumn, winter
+function groundLook() {
+  const i = appliedSeason < 0 ? S.season : appliedSeason, t = GROUND_TEX[i === 3 ? 'snow_ground' : 'grass_ground'];
+  if (!t) return; ground.material.map = t; ground.material.color.setHex(GROUND_TINT[i]); ground.material.needsUpdate = true;
+  if (typeof PATCH_MAT !== 'undefined') PATCH_MAT.visible = false;   // the painted tiles already carry their own patches
+}
 function flat(w, d, c, x, z, y = 0.012) { const m = mk(new THREE.PlaneGeometry(w, d), c, false, true); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); return m; }
 flat(23, 23, 0xe6dccb, 0, 10, 0.011);
 flat(5, 40, 0xe2e7f0, 0, -20, 0.01);
@@ -453,7 +476,7 @@ function sfx(f, d = 0.07, type = 'triangle', vol = 0.05) {
   g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.0001, now + d);
   o.connect(g); g.connect(actx.destination); o.start(now); o.stop(now + d + 0.02);
 }
-$('mute').addEventListener('click', e => { e.stopPropagation(); muted = !muted; $('mute').textContent = muted ? '×' : '♪'; });
+$('mute').addEventListener('click', e => { e.stopPropagation(); muted = !muted; $('mute').textContent = muted ? 'Sound: off' : 'Sound: on'; });
 $('again').addEventListener('click', () => { clearSave(); location.reload(); });
 
 /* ================= particles & flyers ================= */
@@ -539,10 +562,11 @@ function streamTrees(dt) {
   for (const t of CHOP) { if (t.gone) continue; const dd = d2(t.x, t.z, player.x, player.z); if (dd < 80 * 80) showTree(t); else if (dd > 95 * 95) hideTree(t); }
   for (const sc of SCENERY) {
     const dd = d2(sc.x, sc.z, player.x, player.z);
-    if (!sc.m && dd < 75 * 75 && MODELS[sc.id] && !inSquare(sc.x, sc.z, outerRing().h + 2) && !LAKES.some(l => d2(l.x, l.z, sc.x, sc.z) < (l.r + 2) ** 2)) {
+    const offSeason = sc.id === 'snowdrift' && S.season !== 3;   // drifts melt outside winter
+    if (!sc.m && !offSeason && dd < 75 * 75 && MODELS[sc.id] && !inSquare(sc.x, sc.z, outerRing().h + 2) && !LAKES.some(l => d2(l.x, l.z, sc.x, sc.z) < (l.r + 2) ** 2)) {
       sc.m = fitModel(sc.id, sc.size, sc.id === 'dead_tree' ? 'y' : undefined); sc.m.position.set(sc.x, sc.id === 'frozen_pond' ? -0.05 : 0, sc.z); sc.m.rotation.y = sc.ry;
       sc.m.traverse(o => { if (o.isMesh) { o.castShadow = sc.id !== 'frozen_pond'; } }); scene.add(sc.m);
-    } else if (sc.m && dd > 90 * 90) { scene.remove(sc.m); sc.m = null; }
+    } else if (sc.m && (dd > 90 * 90 || offSeason)) { scene.remove(sc.m); sc.m = null; }
   }
 }
 function addTree(x, z, s, choppable, kind) {
@@ -1816,7 +1840,8 @@ function update(dt) {
     const d = drops[i]; d.t += dt;
     d.m.position.x += (d.x - d.m.position.x) * Math.min(1, dt * 6); d.m.position.z += (d.z - d.m.position.z) * Math.min(1, dt * 6);
     d.m.position.y = 0.25 + Math.abs(Math.sin(d.t * 3)) * 0.25; d.m.rotation.y += dt * 2;
-    if (S.downT <= 0 && d.t > 0.4 && !S.noCollect[d.type] && d2(d.x, d.z, player.x, player.z) < 8) {
+    if (d.hold && d2(d.x, d.z, player.x, player.z) > 36) d.hold = false;   // dropped on purpose: picked up again only after you step away
+    if (S.downT <= 0 && d.t > 0.4 && !d.hold && !S.noCollect[d.type] && d2(d.x, d.z, player.x, player.z) < 8) {
       if (d.type === 'cash') { giveCash(d.value, d.m.position, 3); floatText('+' + d.value + ' gold', d.x, 2, d.z, 'cash'); d.value = 0; }
       else { const n = Math.min(d.value, room()); for (let k = 0; k < n; k++) giveItem(d.type, d.m.position); d.value -= n; }
       if (d.value <= 0) { scene.remove(d.m); drops.splice(i, 1); }
@@ -2462,9 +2487,32 @@ function drawMini(dt) {
 
 /* ---- toggles ---- */
 [['cLog', 'log'], ['cMeat', 'meat'], ['cStone', 'stone'], ['cOre', 'ore']].forEach(([id, t]) => {
-  $(id).title = 'Tap to leave ' + resName(t) + ' on the ground or pick it up again';
-  $(id).addEventListener('click', e => { e.stopPropagation(); S.noCollect[t] = !S.noCollect[t]; syncToggles(); note(S.noCollect[t] ? resName(t)[0].toUpperCase() + resName(t).slice(1) + ' stays on the ground' : 'Collecting ' + resName(t)); });
+  $(id).title = 'Tap to drop ' + resName(t) + ' or stop collecting it';
+  $(id).addEventListener('click', e => { e.stopPropagation(); openChipMenu(id, t); });
 });
+const PLURAL = { log: 'logs', meat: 'meat', stone: 'stone', ore: 'crystals' };
+const cap1 = w => w[0].toUpperCase() + w.slice(1);
+function openChipMenu(id, t) {
+  let m = $('chipMenu'); if (m && m.dataset.t === t) { m.remove(); return; } if (m) m.remove();
+  m = document.createElement('div'); m.id = 'chipMenu'; m.dataset.t = t; document.body.appendChild(m);
+  const n = carry[t].length, r = $(id).getBoundingClientRect();
+  m.innerHTML = '<button class="drop" type="button"' + (n ? '' : ' disabled style="opacity:.5"') + '>Drop ' + (n || 'all') + ' ' + PLURAL[t] + '</button>' + (n > 10 ? '<button class="half" type="button">Drop 10</button>' : '') +
+    '<button class="col" type="button">' + (S.noCollect[t] ? 'Collect ' + resName(t) + ' again' : 'Stop collecting ' + resName(t)) + '</button>';
+  m.style.top = r.top + 'px'; m.style.right = (innerWidth - r.left + 6) + 'px';
+  ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => m.addEventListener(ev, e => e.stopPropagation()));
+  m.querySelector('.drop').addEventListener('click', e => { e.stopPropagation(); m.remove(); dropCarried(t, n); });
+  const h = m.querySelector('.half'); if (h) h.addEventListener('click', e => { e.stopPropagation(); m.remove(); dropCarried(t, 10); });
+  m.querySelector('.col').addEventListener('click', e => { e.stopPropagation(); m.remove(); S.noCollect[t] = !S.noCollect[t]; syncToggles(); note(S.noCollect[t] ? cap1(resName(t)) + ' stays on the ground' : 'Collecting ' + resName(t)); });
+}
+// Drop from your pack: the pile lands behind you and waits until you walk away and come back.
+function dropCarried(t, n) {
+  n = Math.min(n, carry[t].length); if (!n) return;
+  for (let k = 0; k < n; k++) takeFromStack(t);
+  const x = player.x - Math.sin(player.rot) * 1.6, z = player.z - Math.cos(player.rot) * 1.6;
+  dropItem(t, x, z, n); const d = drops.find(q => q.type === t && d2(q.x, q.z, x, z) < 5); if (d) d.hold = true;
+  bump(t); sfx(300, 0.08, 'triangle', 0.04); note('Dropped ' + n + ' ' + PLURAL[t] + ': walk away and back to pick them up');
+}
+document.addEventListener('pointerdown', () => { const m = $('chipMenu'); if (m) m.remove(); });
 function syncToggles() {
   [['cLog', 'log'], ['cMeat', 'meat'], ['cStone', 'stone'], ['cOre', 'ore']].forEach(([id, t]) => $(id).classList.toggle('off', !!S.noCollect[t]));
 }
@@ -2489,7 +2537,7 @@ const _c1 = new THREE.Color(), _c2 = new THREE.Color();
 let appliedSeason = -1;
 function applySeason(i) {
   const SE = SEASONS[i]; appliedSeason = i;
-  ground.material.color.setHex(SE.ground); PATCH_MAT.color.setHex(SE.patch); mat(SNOWW).color.setHex(SE.snow);
+  ground.material.color.setHex(SE.ground); groundLook(); PATCH_MAT.color.setHex(SE.patch); mat(SNOWW).color.setHex(SE.snow);
   POND_OUT.color.setHex(SE.pond[0]); POND_IN.color.setHex(SE.pond[1]); LAKE_WATER.color.setHex(SE.lake); LAKE_SHORE.color.setHex(SE.shore);
   _c1.setHex(SE.leaf);
   for (const [g, flags] of SEASON_GEOS) { const c = g.attributes.color; for (let k = 0; k < flags.length; k++) if (flags[k]) c.setXYZ(k, _c1.r, _c1.g, _c1.b); c.needsUpdate = true; }
@@ -3007,8 +3055,19 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', saveGame);
 
 let last = performance.now(), paused = false;
-function setPaused(on) { paused = on; $('paused').hidden = !on; $('pause').textContent = on ? '\u25B6' : 'II'; if (on) saveGame(); }
-$('pause').addEventListener('click', e => { e.stopPropagation(); setPaused(!paused); });
+function setPaused(on) { paused = on; $('paused').hidden = !on; $('pause').textContent = on ? 'Resume' : 'Pause'; if (on) saveGame(); }
+$('pause').addEventListener('click', e => { e.stopPropagation(); closeMenu(); setPaused(!paused); });
+// ---- settings cog: every button lives in one menu; panels can be hidden ----
+function closeMenu() { $('menu').hidden = true; $('cog').setAttribute('aria-expanded', 'false'); }
+$('cog').addEventListener('click', e => { e.stopPropagation(); $('menu').hidden = false; $('cog').setAttribute('aria-expanded', 'true'); });
+$('closeMenu').addEventListener('click', e => { e.stopPropagation(); closeMenu(); });
+$('menu').addEventListener('click', e => { e.stopPropagation(); if (e.target === $('menu')) closeMenu(); });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('menu').addEventListener(ev, e => e.stopPropagation()));
+['coop', 'statsBtn', 'inviteBtn'].forEach(id => $(id).addEventListener('click', closeMenu));
+const HUD_SHOW = (() => { try { return JSON.parse(localStorage.getItem('frosthold-hud')) || {}; } catch (e) { return {}; } })();
+function applyHud() { document.querySelectorAll('.mshow input').forEach(cb => { const k = cb.dataset.hud, on = HUD_SHOW[k] !== false; cb.checked = on; $(k).classList.toggle('hud-off', !on); }); }
+document.querySelectorAll('.mshow input').forEach(cb => cb.addEventListener('change', () => { HUD_SHOW[cb.dataset.hud] = cb.checked; try { localStorage.setItem('frosthold-hud', JSON.stringify(HUD_SHOW)); } catch (e) {} applyHud(); }));
+applyHud();
 $('paused').addEventListener('click', () => setPaused(false));
 window.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'Escape') setPaused(!paused); });
 function frame(now) {
@@ -3020,6 +3079,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, applySeason, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>
