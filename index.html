@@ -169,7 +169,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 $('game').appendChild(renderer.domElement);
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xeaf2fb);
+scene.background = new THREE.Color(0xd6e9f8);
 const CAM_OFF = new THREE.Vector3(9, 24, 17);
 const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 200);
 const camTarget = new THREE.Vector3(0, 0, 8);
@@ -183,8 +183,8 @@ function resize() {
   camera.updateProjectionMatrix(); renderer.setSize(w, h);
 }
 window.addEventListener('resize', resize); resize();
-scene.add(new THREE.HemisphereLight(0xffffff, 0xc4d2ea, 0.85));
-const sun = new THREE.DirectionalLight(0xfff4e6, 0.75);
+scene.add(new THREE.HemisphereLight(0xeaf5ff, 0x7fa3d6, 0.95));   // cool blue fill: shade reads icy, not grey
+const sun = new THREE.DirectionalLight(0xfff0d8, 0.7);
 sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 24, bottom: -24, near: 1, far: 90 });
 sun.shadow.bias = -0.0015;
@@ -194,14 +194,13 @@ const SUN_OFF = new THREE.Vector3(-12, 26, 10);
 /* ================= materials / geometry ================= */
 const mats = {};
 // Three-band toon shading gives the clean, flat-lit look of stylised mobile games.
-const toonRamp = (() => { const t = new THREE.DataTexture(new Uint8Array([120, 120, 120, 190, 190, 190, 255, 255, 255]), 3, 1, THREE.RGBFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
-function mat(c) { return mats[c] || (mats[c] = new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp })); }
+function mat(c) { return mats[c] || (mats[c] = new THREE.MeshLambertMaterial({ color: c })); }
 function mk(geo, c, cast = true, recv = false) { const m = new THREE.Mesh(geo, mat(c)); m.castShadow = cast; m.receiveShadow = recv; return m; }
 // Rounded boxes with smooth normals keep shapes soft instead of blocky; cached by size.
 const boxCache = {};
 function Box(w, h, d) {
   const key = w + '|' + h + '|' + d; if (boxCache[key]) return boxCache[key];
-  const r = Math.min(w, h, d) * 0.09, seg = 3;
+  const r = Math.min(w, h, d) * 0.15, seg = 4;
   const g = new THREE.BoxGeometry(w, h, d, seg, seg, seg);
   const pos = g.attributes.position, nor = g.attributes.normal, v = new THREE.Vector3(), c = new THREE.Vector3();
   const ix = w / 2 - r, iy = h / 2 - r, iz = d / 2 - r;
@@ -240,7 +239,8 @@ const BOUNDS = { x0: -46, x1: 46, z0: -47, z1: 50 };
 const DOOR = { x: 0, z: 12.5 };           // town hall door
 const inSquare = (x, z, h, m = 0) => Math.abs(x - C.x) < h + m && Math.abs(z - C.z) < h + m;
 
-const ground = mk(new THREE.PlaneGeometry(260, 260), 0xf4f7fc, false, true);
+function mulberryEarly(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ground = mk(new THREE.PlaneGeometry(260, 260), 0xf6faff, false, true);
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
 function flat(w, d, c, x, z, y = 0.012) { const m = mk(new THREE.PlaneGeometry(w, d), c, false, true); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); return m; }
 flat(23, 23, 0xe6dccb, 0, 10, 0.011);
@@ -248,6 +248,17 @@ flat(5, 40, 0xe2e7f0, 0, -20, 0.01);
 flat(7, 6, 0xd8c3a0, 0, 9.5, 0.013);
 const lake = mk(new THREE.CircleGeometry(7, 9), 0xc6dcef, false, true); lake.rotation.x = -Math.PI / 2; lake.position.set(-24, 0.015, 45); scene.add(lake);
 
+(function icePonds() {
+  const rnd = mulberryEarly(7781), R = (a, b) => a + rnd() * (b - a);
+  for (let i = 0; i < 8; i++) {
+    let x, z; do { x = R(-44, 44); z = R(-44, 44); } while (Math.abs(x) < 34 && Math.abs(z - 10) < 34);
+    const g = new THREE.Group(); g.position.set(x, 0.014, z); g.rotation.y = R(0, 6); scene.add(g);
+    const rr = R(3, 5.5);
+    const outer = new THREE.Mesh(new THREE.CircleGeometry(rr, 10), new THREE.MeshLambertMaterial({ color: 0x8fd0f2 })); outer.rotation.x = -Math.PI / 2; outer.receiveShadow = true; g.add(outer);
+    const inner = new THREE.Mesh(new THREE.CircleGeometry(rr * 0.72, 9), new THREE.MeshLambertMaterial({ color: 0xb9e6fb })); inner.rotation.x = -Math.PI / 2; inner.position.y = 0.004; g.add(inner);
+    for (let k = 0; k < 5; k++) { const c = new THREE.Mesh(new THREE.PlaneGeometry(R(1, rr * 1.1), 0.05), basic(0x6fb8de)); c.rotation.set(-Math.PI / 2, 0, R(0, 6)); c.position.set(R(-rr / 2, rr / 2), 0.008, R(-rr / 2, rr / 2)); g.add(c); }
+  }
+})();
 const obstacles = [];
 function addObs(x, z, r, on) { const o = { x, z, r, on: on || (() => true) }; obstacles.push(o); return o; }
 
@@ -290,7 +301,7 @@ const growing = [];
 function popIn(g) { g.scale.setScalar(0.01); growing.push({ g, t: 0 }); }
 
 /* ================= trees & rocks ================= */
-const vcMat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: toonRamp });
+const vcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 function mergeParts(parts) {
   const pos = [], nor = [], col = [], c = new THREE.Color(), m = new THREE.Matrix4();
   for (const [geo, color, x, y, z, ry] of parts) {
@@ -305,10 +316,19 @@ function mergeParts(parts) {
   out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
   return out;
 }
-const TREE_GEOS = [0x2f7a69, 0x3b8c76, 0x2a6c66].map(col => mergeParts([
-  [Cyl(0.18, 0.24, 0.9, 10), 0x7b4a2b, 0, 0.45, 0], [Cone(1.25, 1.5, 18), col, 0, 1.35, 0, 0.3],
-  [Cone(1.0, 1.3, 18), col, 0, 2.05, 0, 0.9], [Cone(0.7, 1.1, 18), col, 0, 2.7, 0, 0.5],
-  [Cyl(0.9, 1.05, 0.12, 18), 0xf7fbff, 0, 1.62, 0], [Cone(0.42, 0.55, 18), 0xffffff, 0, 3.15, 0]]));
+// Snow sits on each tier in soft cushions, like the reference art.
+const puff = (r, sy) => new THREE.SphereGeometry(r, 16, 10).scale(1, sy, 1);
+const SNOWW = 0xfbfdff;
+const pine = (col, dark) => mergeParts([
+  [Cyl(0.18, 0.26, 0.9, 10), 0x7b4a2b, 0, 0.45, 0],
+  [Cone(1.25, 1.35, 18), col, 0, 1.3, 0, 0.3], [puff(1.0, 0.32), SNOWW, 0, 1.78, 0],
+  [Cone(0.98, 1.15, 18), dark, 0, 2.0, 0, 0.9], [puff(0.78, 0.34), SNOWW, 0, 2.42, 0],
+  [Cone(0.66, 0.95, 18), col, 0, 2.62, 0, 0.5], [puff(0.48, 0.55), SNOWW, 0, 3.02, 0]]);
+const snowballTree = () => mergeParts([
+  [Cyl(0.16, 0.26, 2.0, 10), 0x8a5234, 0, 1.0, 0],
+  [puff(0.62, 0.8), 0x4fae7c, 0.1, 2.05, 0.05], [puff(0.95, 0.85), SNOWW, 0, 2.45, 0],
+  [puff(0.62, 0.8), SNOWW, -0.6, 2.2, 0.35], [puff(0.55, 0.8), SNOWW, 0.62, 2.25, -0.25]]);
+const TREE_GEOS = [pine(0x2f9467, 0x267d57), pine(0x37a06f, 0x2c895e), pine(0x24704f, 0x1c5b40), snowballTree()];
 const stumpGeo = Cyl(0.24, 0.28, 0.3, 7);
 const trees = [], rocks = [];
 function clearSpot(x, z) {
@@ -323,28 +343,35 @@ function clearSpot(x, z) {
 const TREE_KINDS = [{ hp: 4, bonus: 2, scale: 0.9 }, { hp: 10, bonus: 4, scale: 1.25 }, { hp: 22, bonus: 8, scale: 1.6 }];
 function addTree(x, z, s, choppable, kind) {
   const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g);
-  const top = new THREE.Mesh(TREE_GEOS[(Math.random() * 3) | 0], vcMat); top.castShadow = choppable; top.rotation.y = Math.random() * TAU; g.add(top);
+  const top = new THREE.Mesh(TREE_GEOS[kind === 1 ? 3 : kind === 2 ? 2 : (Math.random() * 2) | 0], vcMat); top.castShadow = choppable; top.rotation.y = Math.random() * TAU; g.add(top);
   const stump = mk(stumpGeo, 0x8a5634); stump.position.y = 0.15; stump.visible = false; g.add(stump);
-  const T = TREE_KINDS[kind || 0]; g.scale.setScalar(s * T.scale); if (kind === 2) top.geometry = TREE_GEOS[2];
+  const T = TREE_KINDS[kind || 0]; g.scale.setScalar(s * T.scale); 
   const t = { x, z, g, top, stump, hp: T.hp, max: T.hp, bonus: T.bonus, tk: kind || 0, alive: true, gone: false, respawn: 0, shake: 0, grow: 1, choppable, kind: 'tree' };
   t.obs = addObs(x, z, 0.3 * s, () => t.alive);
   if (t.choppable) { t.ci = CHOP.length; CHOP.push(t); }
   trees.push(t);
 }
 const rockMats = {};
+const crystalMat = new THREE.MeshLambertMaterial({ color: 0x6fd3ff, emissive: 0x1a6c9a, transparent: true, opacity: 0.92 });
 const rockMat = c => rockMats[c] || (rockMats[c] = new THREE.MeshPhongMaterial({ color: c, flatShading: true, shininess: 4 }));
 function addRock(x, z, kind) {
   const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
   // a cluster of jagged, flat-faced boulders that shrinks as it is mined out
   const body = new THREE.Group(); g.add(body);
-  const col = kind === 'gold' ? 0x6f7a88 : 0x9aa4b1;
+  const col = kind === 'gold' ? 0x6f86a8 : 0x8f9fb6;
   [[0, 0.55, 0, 1.0], [0.75, 0.35, 0.35, 0.6], [-0.6, 0.3, 0.45, 0.5], [0.2, 0.25, -0.7, 0.45]].forEach(([px, py, pz, sz]) => {
     const geo = new THREE.DodecahedronGeometry(sz, 0), pa = geo.attributes.position;
     for (let i = 0; i < pa.count; i++) pa.setXYZ(i, pa.getX(i) * rand(0.8, 1.2), pa.getY(i) * rand(0.6, 1.0), pa.getZ(i) * rand(0.8, 1.2));
     geo.computeVertexNormals();
     const m = new THREE.Mesh(geo, rockMat(col)); m.castShadow = true; m.position.set(px, py, pz); m.rotation.set(rand(0, 1), rand(0, 6), rand(0, 1)); body.add(m);
   });
-  if (kind === 'gold') for (let k = 0; k < 5; k++) { const n = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), rockMat(0x7fd3f0)); n.scale.set(0.7, 1.6, 0.7); n.position.set(rand(-0.7, 0.7), rand(0.6, 1.2), rand(-0.6, 0.6)); n.rotation.set(rand(-0.5, 0.5), 0, rand(-0.5, 0.5)); body.add(n); }
+  const cap = mk(puff(0.85, 0.32), SNOWW, false); cap.position.set(0, 1.12, 0); body.add(cap);
+  if (kind === 'gold') for (let k = 0; k < 6; k++) {
+    const h = rand(0.9, 1.9), sp = new THREE.Group(); sp.position.set(rand(-0.8, 0.8), 0.2, rand(-0.7, 0.7)); sp.rotation.set(rand(-0.35, 0.35), rand(0, 6), rand(-0.35, 0.35));
+    const prism = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, h, 6), crystalMat); prism.position.y = h / 2; sp.add(prism);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.45, 6), crystalMat); tip.position.y = h + 0.22; sp.add(tip); body.add(sp);
+  }
+  if (false) for (let k = 0; k < 5; k++) { const n = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), rockMat(0x7fd3f0)); n.scale.set(0.7, 1.6, 0.7); n.position.set(rand(-0.7, 0.7), rand(0.6, 1.2), rand(-0.6, 0.6)); n.rotation.set(rand(-0.5, 0.5), 0, rand(-0.5, 0.5)); body.add(n); }
   const res = kind === 'gold' ? 260 : 450; g.scale.setScalar(1.45);
   const r = { x, z, g, body, hp: res, max: res, alive: true, respawn: 0, shake: 0, kind, item: kind === 'gold' ? 'ore' : 'stone', hidden: kind === 'gold' };
   if (r.hidden) g.visible = false;
@@ -1848,7 +1875,9 @@ function buildCampProps(g, kind) {
   const [main, accent] = CAMP_LOOK[kind];
   for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; if (i % 6 === 0) continue; const st = mk(Cone(0.12, 1.1, 5), 0x6b4a2d); st.position.set(Math.cos(a) * 5, 0.5, Math.sin(a) * 5); st.rotation.z = Math.cos(a) * 0.25; st.rotation.x = -Math.sin(a) * 0.25; g.add(st); }
   [[-2.6, -2.2, 0.4], [2.4, -2.6, -0.5]].forEach(([tx, tz, r]) => {
-    const tent = mk(Cone(1.1, 1.6, 5), main); tent.position.set(tx, 0.8, tz); tent.rotation.y = r; g.add(tent);
+    const tent = mk(Cone(1.05, 1.9, 9), 0xc9a27a); tent.position.set(tx, 0.95, tz); tent.rotation.y = r; g.add(tent);
+    const stripe = mk(Cyl(0.62, 0.72, 0.18, 9), main); stripe.position.set(tx, 1.15, tz); g.add(stripe);
+    for (let k = 0; k < 3; k++) { const pole = mk(Cyl(0.03, 0.03, 0.8, 5), 0x6b4a2d); pole.position.set(tx + Math.cos(k * 2.1) * 0.08, 2.05, tz + Math.sin(k * 2.1) * 0.08); pole.rotation.set(Math.sin(k * 2.1) * 0.35, 0, -Math.cos(k * 2.1) * 0.35); g.add(pole); }
     const flap = mk(Box(0.5, 0.8, 0.06), 0x1d2128); flap.position.set(tx + Math.sin(r) * 0.85, 0.4, tz + Math.cos(r) * 0.85); flap.rotation.y = r; g.add(flap);
   });
   const pit = mk(Cyl(0.6, 0.7, 0.18, 10), 0x55606e); pit.position.set(-1.8, 0.09, 2.2); g.add(pit);
