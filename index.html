@@ -294,7 +294,31 @@ const inSquare = (x, z, h, m = 0) => Math.abs(x - C.x) < h + m && Math.abs(z - C
 
 const crystalMatEarly = new THREE.MeshLambertMaterial({ color: 0x6fd3ff, emissive: 0x1a6c9a, transparent: true, opacity: 0.9 });
 function mulberryEarly(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const ground = mk(new THREE.PlaneGeometry(260, 260), 0xf6faff, false, true);
+// Painted snow ground: a seamless tile of soft blue shading, wind streaks and sparkles.
+// The material colour tints it per season, so the same tile reads as snow, meadow or autumn grass.
+function groundTexture() {
+  const N = 512, cv = document.createElement('canvas'); cv.width = cv.height = N; const c = cv.getContext('2d');
+  const rnd = mulberryEarly(2468);
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, N, N);
+  const wrap = (fn) => { for (const ox of [-N, 0, N]) for (const oy of [-N, 0, N]) fn(ox, oy); };   // draw tiled so edges match
+  for (let i = 0; i < 60; i++) {                      // soft cool shadows in the snow
+    const x = rnd() * N, y = rnd() * N, r = 40 + rnd() * 110, a = 0.12 + rnd() * 0.12;
+    wrap((ox, oy) => { const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); g.addColorStop(0, `rgba(170,198,235,${a})`); g.addColorStop(1, 'rgba(170,198,235,0)'); c.fillStyle = g; c.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); });
+  }
+  for (let i = 0; i < 140; i++) {                     // wind-carved streaks
+    const x = rnd() * N, y = rnd() * N, len = 30 + rnd() * 90, w = 2 + rnd() * 5, a = 0.12 + rnd() * 0.1;
+    wrap((ox, oy) => { c.strokeStyle = `rgba(150,182,226,${a})`; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(x + ox, y + oy); c.quadraticCurveTo(x + ox + len / 2, y + oy - 6 - rnd() * 8, x + ox + len, y + oy + rnd() * 6 - 3); c.stroke(); });
+  }
+  for (let i = 0; i < 90; i++) {                      // brighter wind-polished patches
+    const x = rnd() * N, y = rnd() * N, r = 20 + rnd() * 50;
+    wrap((ox, oy) => { const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); });
+  }
+  for (let i = 0; i < 260; i++) { const x = rnd() * N, y = rnd() * N; c.fillStyle = `rgba(255,255,255,${0.6 + rnd() * 0.4})`; c.fillRect(x, y, 1.5, 1.5); }   // sparkles
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(40, 40); t.anisotropy = 4;
+  return t;
+}
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(720, 720), new THREE.MeshLambertMaterial({ color: 0xf6faff, map: groundTexture() }));
+ground.receiveShadow = true; ground.position.z = 10;
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
 function flat(w, d, c, x, z, y = 0.012) { const m = mk(new THREE.PlaneGeometry(w, d), c, false, true); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); return m; }
 flat(23, 23, 0xe6dccb, 0, 10, 0.011);
