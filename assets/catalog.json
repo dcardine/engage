@@ -1,0 +1,22 @@
+{
+  "style": "stylized low-poly mobile game asset, cozy winter village, chunky soft shapes, thick rounded snow on top surfaces, hand-painted colors, bright icy blues and warm wood, clean silhouette, single object centered, no ground plane",
+  "negative_prompt": "photorealistic, gritty, text, logo, watermark, multiple objects, base platform",
+  "assets": [
+    { "id": "wall_section", "prompt": "wooden palisade wall section of sharpened log stakes with snow caps" },
+    { "id": "gate", "prompt": "wooden fort gate with two log towers, cross beam and double doors, snow on top" },
+    { "id": "house", "prompt": "small snowy log cabin with steep gabled roof covered in thick snow, glowing warm windows, stone chimney" },
+    { "id": "town_hall", "prompt": "two story timber town hall with stone foundation, steep snowy roof, banner flag, glowing windows and two lanterns" },
+    { "id": "watchtower", "prompt": "tall wooden watchtower on four log legs with railed platform and pointed snowy roof" },
+    { "id": "blacksmith", "prompt": "stone and timber blacksmith forge with anvil outside, glowing furnace and chimney, snowy roof" },
+    { "id": "pine_tree", "prompt": "chunky stylized pine tree with three tiers of green branches each topped with soft rounded snow cushions" },
+    { "id": "snowball_tree", "prompt": "stylized bare tree trunk with round fluffy snow clumps as its canopy" },
+    { "id": "stone_deposit", "prompt": "cluster of jagged grey-blue boulders with snow caps, mineable stone quarry" },
+    { "id": "crystal_vein", "prompt": "glowing ice blue crystal spires growing out of a snowy rock" },
+    { "id": "yak", "prompt": "cute shaggy brown yak with curved horns, four legs, standing" },
+    { "id": "wolf", "prompt": "grey winter wolf with fluffy tail and white chest ruff, standing" },
+    { "id": "hero", "prompt": "cute chibi winter adventurer in red puffy coat, blue hood with fur trim, red scarf, holding an axe, standing" },
+    { "id": "villager", "prompt": "cute chibi villager in a blue puffy winter coat with hood and mittens, standing" },
+    { "id": "teepee_tent", "prompt": "tan hide teepee tent with wooden poles poking out the top and a painted band" },
+    { "id": "treasure_chest", "prompt": "wooden treasure chest with gold metal bands, closed" }
+  ]
+}
