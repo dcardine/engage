@@ -8,13 +8,16 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 - **Touch / mouse:** drag anywhere for a floating joystick
 - **Keyboard:** WASD or arrow keys
 
-Your axes swing automatically at trees, rocks, yaks and raiders in reach. Stand on a build space to pay for it with what you carry. Stand on a stall's counter side to hand over goods, and on a cash pallet to collect.
+Your axes swing automatically at trees, rocks, yaks and raiders in reach. With a full pack, extra logs and stone drop on the ground for later. Stand on a build space to pay for it with what you carry. Stand on a stall's counter side to hand over goods, and on a cash pallet to collect.
+
+## Co-op
+Tap **Co-op** on the published page. The first player in hosts, so their town is the shared one. Anyone else who opens the page and taps Co-op joins that town with their own hero, pack and wallet, and can chop, fight, build and trade alongside the host. Guests' own saved towns stay untouched; **Leave co-op** returns them to it. If the host leaves, a guest takes over hosting. Players need Contributor (interact) access or higher to host; anyone who can open the page can join as a guest.
 
 ## Saving
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 
 ## Village upgrades
-Three cash-only upgrade spaces sit around the plaza and reveal their next upgrade as you go: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes are on sale in the plaza for $12 from the start.
+Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes are on sale in the plaza for $12 from the start.
 
 ## Survival
 - **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
