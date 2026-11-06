@@ -105,6 +105,50 @@
     {
       "id": "dead_tree",
       "prompt": "bare twisted winter tree with snow on its branches"
+    },
+    {
+      "id": "logger_lodge",
+      "prompt": "small lumberjack log cabin lodge with stacked firewood logs and an axe stuck in a stump, snow on roof"
+    },
+    {
+      "id": "hunter_lodge",
+      "prompt": "hunter's log hut with deer antlers above the door, hanging pelts and a drying rack, snow on roof"
+    },
+    {
+      "id": "quarry_lodge",
+      "prompt": "stonecutter's hut with grey stone walls, pickaxe and stacked cut stone blocks, snow on roof"
+    },
+    {
+      "id": "miner_camp",
+      "prompt": "miner's hut with a wooden mine cart, lantern and a crate of glowing blue crystals, snow on roof"
+    },
+    {
+      "id": "barracks",
+      "prompt": "timber army barracks with a weapon rack, round shields and a banner, snow on roof"
+    },
+    {
+      "id": "warehouse",
+      "prompt": "large wooden storage barn warehouse with big double doors and crates outside, snow on roof"
+    },
+    {
+      "id": "fishery",
+      "prompt": "small fishing hut with hanging fishing nets and rods, a barrel of fish, snow on roof"
+    },
+    {
+      "id": "med_center",
+      "prompt": "cozy healer's hut with a red cross banner, herb baskets and warm glowing window, snow on roof"
+    },
+    {
+      "id": "treasury",
+      "prompt": "small stone treasury vault with iron door and sacks of gold coins, snow on roof"
+    },
+    {
+      "id": "carpenter",
+      "prompt": "carpenter's workshop shed with saw horse, wooden planks and tools, snow on roof"
+    },
+    {
+      "id": "crystal_mine",
+      "prompt": "mine entrance in a snowy rock face with wooden support beams, rails and glowing blue crystals"
     }
   ]
 }

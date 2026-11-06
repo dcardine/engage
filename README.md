@@ -14,9 +14,10 @@ Your axes swing automatically at trees, rocks, yaks and raiders in reach. With a
 Monster camps guard treasure chests across the wilds; the minimap marks them (orange easy, red medium, purple dangerous, gold when cleared). Near the fort you meet spiders, goblins and wolves; farther out bears and trolls; at the edges of the map wraiths and stone golems. Defeat every guard, then step on the chest. Treasures give weapons (Frostbite Axe, Ember Cleaver, Runic Greataxe), armour (Fur Jerkin, Iron Mail, Runic Plate), heart stones (+health), war runes (+damage), wind charms (+speed), storage charms (bigger piles), ember totems (repair walls, longer-lasting firewood), yak totems, plus cash and materials. New camps appear over time.
 
 ## Exploring
-The valley spans roughly 430 m by 430 m. Monster camps start about 65 m from the fort, and crystal veins lie 170–290 m out. The farther from the fort you go, the tougher the monsters, the richer the treasure, and the further out the stone quarries (middle distance) and crystal veins (the far edges). The minimap shows a 140 m window around you, with an arrow and distance pointing home when the fort is off the map. It starts dark: it reveals ground that you or a co-op teammate have walked near, and remembers it in your save.
+The valley spans roughly 690 m by 690 m. Monster camps start about 65 m from the fort, and crystal veins lie 300–345 m out at the very edges. About 70 unguarded treasure chests are scattered across the valley (gold diamonds on the minimap): the farther out, the better the loot. The farther from the fort you go, the tougher the monsters, the richer the treasure, and the further out the stone quarries (middle distance) and crystal veins (the far edges). The minimap shows a 140 m window around you, with an arrow and distance pointing home when the fort is off the map. It starts dark: it reveals ground that you or a co-op teammate have walked near, and remembers it in your save.
 
 ## Days, nights and seasons
+Every new day is harder: raiders get more health and hit harder, raids bring more wolves and come sooner, camp monsters are tougher, and firewood and food burn faster (up to double).
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
 ## Things to find
@@ -48,6 +49,9 @@ Set your name and coat colour under **Co-op** or **Hero**. Teammates show with y
 ## Personal gear in co-op
 Axe and pack upgrades, the crystal pick, and everything found in treasure chests belong to the player who bought or found them; each player upgrades their own. Your sounds only play on your own device. If a phone sleeps or loses the connection, it rejoins the host automatically when it wakes, keeping its gear.
 
+## Sound
+The menu (cog) has a switch for each kind of sound: chopping and mining, pickups and coins, building and trade, combat, tower arrows, alerts and raids, rewards, villagers, footsteps, and wind.
+
 ## Saving
 Progress saves automatically every few seconds and when you leave the page. Saves are stored only in this browser. Use **New game** (tap twice) to start over.
 
@@ -74,6 +78,11 @@ Finishing a new wall ring tears down the old one and clears the forest inside it
 
 ## Workers and defense
 - **Loggers, hunters, stonecutters, miners** gather on their own and stack what they collect on a pile beside their lodge (the fishery makes its own fish pile). Stand on a pile to load your pack, then build with it or sell it. Piles hold 80, or 300 after the Warehouse. They use the nearest gate and walk around the walls.
+- **Haulers** (after the cookhouse and logger lodge) carry logs from the woodpile to the firewood stall and meat, fish and veggies to the cookhouse, serving whichever meter is lower first.
+- **Menders** (after the blacksmith) walk the walls and repair damaged sections.
+- Each work building shows how many of its workers you have and the limit (for example **Loggers 2/3**).
+- Workers have health. Raiders and camp monsters go after workers caught outside the walls first, and a worker who dies drops what they carried.
+- Every corner of every wall ring has a watchtower spot.
 - **Guards** hold the north gate and fight raiders nearby. **Watchtowers** shoot anything in range.
 - **Raids** grow every wave, and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
 - **Hero levels** come from gathering, building, selling and fighting, and add damage and health.

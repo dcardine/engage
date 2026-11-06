@@ -1,4 +1,9 @@
 {
+  "barracks": {
+    "hash": "23649188c4026966",
+    "preview": "01a1b2ef-8958-77ca-89a9-61e530662428",
+    "refine": "01a1b2f0-dbd1-72fd-9e55-2c0bcf7ae748"
+  },
   "blacksmith": {
     "file": "assets/models/blacksmith.glb",
     "hash": "f8a4a8a487aec881",
@@ -63,6 +68,14 @@
     "status": "done",
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b245-297f-700d-a870-d03727e199f2/output/preview.png?Expires=4947523200&Signature=mUwDv-keXRgldD~dZltdkGqQ4oMxLrydey8HoK6J1GdA~7aJtWmO-Mb8OudxcLabwYBHR5s4oLcwNdSDytsSNC3erq-8QYj5BYWVdXQjxhBa6-VkcqWv6za4fOiTNp2aX99Fbiz0KIfISEtwt7epORImqtt6i6da1QxKl1SdQtXlFKtCEYh~5AUt1Scij~uEcuN1H-nXsNirvBhLRBv0KcJbzPf4yOMmuJldhCzE3LdJ0QnomZVmsFqB-5WUWg~z2lgwClqYQHQ2YQVfVZtsTYi7yfwAvdBneSkPOKUcmYXjPyOkqWK~Vajjv15yn6FcnXhrzsvGqjQWZ456FBSGmQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
+  "hunter_lodge": {
+    "file": "assets/models/hunter_lodge.glb",
+    "hash": "e70a015f0da2603a",
+    "preview": "01a1b2ea-c556-7791-80e0-69d0d114af89",
+    "refine": "01a1b2eb-a296-74b7-be55-82b27749c1f8",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b2eb-a296-74b7-be55-82b27749c1f8/output/preview.png?Expires=4947523200&Signature=EgWI~D-KoBdLUgRA49y3zClIjBKGECuTKuheMzDnbCa-G2WiA9xaMykarb434lv44xIoNB78bhy7YeNULmx~YmDoSaZ~FwD9SbcPIRRTQzwZuKg-yQqY30vH-xLEEd1-T9-R~HUanhEa0nFdI4Vq4FzmI8wD7irQc3n9WLJrCQDwKYz1PMT0EvIrvunem9c78Zk5Qj8-A4ugVoEZ~5UaW3BwvJ-Ex7gGgudDyaC9gPloximnqbXDZnvc-wTlOP-oj4zxCiOcnz6XSXZg92OCGUnikRkWcOrMGIrBJPCnFtSGtwJNl-VwQkAJI6tCz~tab29YhERd~RW7SZ0ZwcHY4A__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  },
   "ice_crystals": {
     "file": "assets/models/ice_crystals.glb",
     "hash": "dd28a5d6061a48e9",
@@ -71,6 +84,22 @@
     "status": "done",
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b270-7833-724e-a2d4-93f8ad92cf86/output/preview.png?Expires=4947523200&Signature=A4cD~71BeISSf4PCxeqDDcKXaZpE0XfOF-sM8QdxOh67uCYtaxiHbin~irQ0x7rqEtVI-DF1osqXxazX~GD51bmGIyHhJcbGVMZPL4cEqI2uOdR0ijmrMwnOOFTgV0~gjEmNeBUPsIHOlzmyeJqOpoucKRqh6d017DeGjjM86CIa8XId6glVem4FVuUhqLiJ2GBm6EyQ9HsgD38mJfRsfSQn1hhNIYXdPk-dt5icr96fbmWiP3yw8E2iozsAERfBy-UN9t0npqIMWTVbgn-fPhtHnwh5htsuuMWnZ3Ol6mCpvxC7C5E-pYlxNUls6Z3jPiJcV8rtQwqXq1QunOGELg__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
+  "logger_lodge": {
+    "file": "assets/models/logger_lodge.glb",
+    "hash": "499ab333641f5ce9",
+    "preview": "01a1b2e9-43c3-7658-8a3d-d3d2153d0dd9",
+    "refine": "01a1b2ea-1cc3-75e4-a84a-dd90b8c283db",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b2ea-1cc3-75e4-a84a-dd90b8c283db/output/preview.png?Expires=4947523200&Signature=BwaFWzIUcUaW1AFW419Nn~Fr6kypd2EwxXtj96RmGx1oDyJkJkAKrYBJQLhdIyqXbe0j~kE2xcpBnJnTTJD4SU7dI5Ax7aONKJ7iIFlulwebcNRBA7aVzgY6ek-7QbHxwO~Fs7vA09-lw8gXDoW6UDmYoGYIsZC8rNa3~MdXMbD7mel2QI1cIKEGriPxQ3QQnhUN6mEzqRFNaH6owOF3tPSlqqJ0jCFDuhHl-5OiSTuvXBqZJ-9B3-Jfd2HFwphnJrQTbUn29R3i9bqahu3CzYW~1Vg9DBkI-BRHGmnYxlud44o5CySZVFqIUVyn2p7LKyt2JFMUwh7cfwHaXJzx1Q__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  },
+  "miner_camp": {
+    "file": "assets/models/miner_camp.glb",
+    "hash": "3ca190ebdc76f034",
+    "preview": "01a1b2ed-e293-71bc-8128-3ee416c08866",
+    "refine": "01a1b2ee-b893-739f-94b7-2a84aacee4a1",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b2ee-b893-739f-94b7-2a84aacee4a1/output/preview.png?Expires=4947523200&Signature=WG5gT4XeKT0Z2bfaHIRu8XZypESrNMTlVMy0vLAGStBvIlGmaMWixxvJ2x4T7JHnk1gZEU2h8auotwcvUjELmmjI3fckP3E2YHAM3Hf1TtxA7JJxAYU74FQhE809XZ~rmveuFpnoEc2BApK3smkxekDivdsnd5XlA67VN1vFT4EXOrPuXc3y7UNv3KHgVQkO31NWQjn1SKGxZIPCfyXv7oL5VE79rup98nA-CBgUFOg2Zz9QEc9rOhQtD-Lfqr23~X0oIprP7wl0y6Nnuah7yLuPVL5kqP3X3GmmpX8qLG8kptnKV7ybpXg2OVhckQc9u-vF4TBPoHqvxMrF0gZF3w__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  },
   "pine_tree": {
     "file": "assets/models/pine_tree.glb",
     "hash": "e39d4f688874b26a",
@@ -78,6 +107,14 @@
     "refine": "01a1b254-2e10-7610-bc61-2a4e1f9abf35",
     "status": "done",
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b254-2e10-7610-bc61-2a4e1f9abf35/output/preview.png?Expires=4947523200&Signature=i24IKm5r0N4srHo3eHA5JDOFZtj48PWmb0Wfq7UhdWFgr4gnmkhDA4uIEidaDXPxoVyD7TKDsxuIsD6WIqY96DxqCbOdV6qFJ0nVon1ci19zicIs-mRQunBeNG~XD4BtmyqMEBmB8lXaSZ6OztmDHrwzrNecQ0LnZ5FB3CTQ2TSyH5MMJN9PETLq90kvc~bjYuKclidzUGxbNV9Dx7Xg3jWNjW8IvzbiEghHqSmJ~AOmP2EA3iP2dg2HoEoVsaqA5AsnSXxWg9~IYkgCAkk6INb-b6h9yJI3I1FV7dobzR5Abl5-Zo7qvXdXqN2zeZz8O0tcGfkYlt1EyNck6TUGRg__&Key-Pair-Id=K1VGYTHIYLM9UM"
+  },
+  "quarry_lodge": {
+    "file": "assets/models/quarry_lodge.glb",
+    "hash": "2b59f7c25c899c7a",
+    "preview": "01a1b2ec-4a2f-72fb-a104-217ff30719cd",
+    "refine": "01a1b2ed-3a89-7037-a554-4d4cbfd849bb",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b2ed-3a89-7037-a554-4d4cbfd849bb/output/preview.png?Expires=4947523200&Signature=QvqEi-auR20CWnRLw5HpXftoyXmfDIT9eY4U~tOVjs0i4Sw69DgWl9I~FmIsy3XuFSH0CxgPW4NEF2uud411ZLJoZWcVmaBBw9Joy-hb6SUGvNr~CMMlUD87~EKEbyfDndWfeQeVK8N6pcFdkqGEk1aXmqjLv6eHHQEln2o~lW3FjgpoYQ~yD93rHI2p7k1-w48J6X0ULecyhjfJSZIE39RgicRZ7yEchiaYsiVMxvUuoZrRgW961rbTD2uNT6zQMw-5ifUNkyJynLLPuooLexfiIdN-o0eUYRGaCQH7iCAC7Lvb95ni2c43LVKpFzC-qi53YMiG2-Biu69luwFEgQ__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "rock_small": {
     "file": "assets/models/rock_small.glb",
