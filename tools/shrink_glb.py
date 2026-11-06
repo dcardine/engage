@@ -2,10 +2,10 @@
 """Make Meshy models phone-friendly: downsize every embedded texture and repack the GLB.
 
 Usage: python3 tools/shrink_glb.py [--size 512]
-Reads assets/models/*.glb (the originals, kept untouched) and writes assets/game/*.glb,
-which is what the game loads. Only models that are new or changed are reprocessed.
+Reads assets/models/*.glb (the originals, kept untouched) and writes assets/game/*.glb plus a
+self-contained assets/game/*.json copy, which is what the game loads. Only models that are new or changed are reprocessed.
 """
-import argparse, io, json, os, struct
+import argparse, base64, io, json, os, struct
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +58,10 @@ def shrink(src, dst, size):
     js['bufferViews'] = new_views
     js['buffers'] = [{'byteLength': len(out) + (-len(out) % 4)}]
     write_glb(dst, js, bytes(out))
+    # also a self-contained .json copy: claude.ai artifacts can serve JSON but not .glb
+    js['buffers'] = [{'byteLength': len(out), 'uri': 'data:application/octet-stream;base64,' + base64.b64encode(bytes(out)).decode()}]
+    with open(dst[:-4] + '.json', 'w') as f:
+        json.dump(js, f, separators=(',', ':'))
 
 
 def main():

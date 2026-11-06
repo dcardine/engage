@@ -23,6 +23,10 @@
     "status": "done",
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b258-d59f-72e1-b282-34c46298e833/output/preview.png?Expires=4947523200&Signature=NF5wX~JhEMR-ycMl83Sy4EaVJeXagegxTsDDKDamUoWuOEsqQ7dQiaMVgMk1ijkYi4u7TZFcGhBeWyGxVkpdMDHOywDcGkT0UfzdfbBzaRoWuO9JekifvMS6Se9oLQYhyKKagzz7E1fufFeT~zhPHubgPIuHYL0B-FUKXo7VO~DIJrmwsp5zXMfneTgm7J6mxr0NlhTmnbTCdZSbpl2xsKvcTuFLpC6j3MrfbpRXEud-pmzlpHNzCUK-T~KjYBuH8v2q28oYQlV~O27Bl9YZzHw-YxdGa5agi3ErgmOyOkkvRuHUWTIsZLNS1~HgFsByLXY~eimfnWduqTHVnoOBBg__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
+  "frozen_pond": {
+    "hash": "954ac73b381011ad",
+    "preview": "01a1b265-8128-74cc-a0ec-17bd6e827010"
+  },
   "gate": {
     "file": "assets/models/gate.glb",
     "hash": "b1dcf92ef94bf9ec",
@@ -64,8 +68,12 @@
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b255-d380-77e3-9e9b-d350e3336889/output/preview.png?Expires=4947523200&Signature=MwedXcuS~lZ8s6KfCOWIoZTcncgMkRjj4UZxIgUaiFnzaGAVzs2m2F5QSrqcAVwTyrEjlCT4ZbxlZIzgO3XsNoS1~GKVZFOuUXQLDECOkfrKLlgL~nxA53AR6MkSggwvJJkw43Rr1lyafXbF9SEWYvq70jsHXORsvJFx~Qon0SB~SnCmAhVBVwgdqWTvoqfGr230gLpcFx6P4dAO2kHYAHYOXaka5RxB8qdJ1P-1z6bh5cvfAAtF-H8dvbBLj9-fsYyTWFBubfodxsuSGTFBly6fGN51coA9xfQQoCAJ0OeHAreNSSIWIJV8cPjEITMJYzGB0Slsi5blZhzn~6~FFw__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "snowdrift": {
+    "file": "assets/models/snowdrift.glb",
     "hash": "8935a99b4b79ff32",
-    "preview": "01a1b264-035b-7206-b4f2-f47e6a2a9b76"
+    "preview": "01a1b264-035b-7206-b4f2-f47e6a2a9b76",
+    "refine": "01a1b264-b019-7418-a8d4-b1dc6d1e9f9c",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b264-b019-7418-a8d4-b1dc6d1e9f9c/output/preview.png?Expires=4947523200&Signature=RJ91zrl9z0nOYHtbv4ivTBrlP6z2Ym2UHbamc43wrUHo1zohOrDkh11OhOe4mLlaCxY2UKHgEQWfOijzeViHpJ1ecn8dyfYavcqHg6N~g8lM07iBiqy7Zonq1hBeyEqgAjx0kNBNaF69qEuHC9fgU~Ga8hZxsjkUbTPYAwnM~6CfI3pt4IpNBHq8YA-hmsQkIV5o8XTtM5sxKv5ECKXUS~dCwhUdQN200DhPoSLlxpBeEUw2JjlUlzjSRNehwRvoUvqnvwPUMEco7xkbsYNkaLE0YtLHmtSdjfcl6AOUxBpQOUKlk8FGsm8vQNNlX4cxWgU2v4yYEZ28bNY2CNmJ1Q__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "stone_deposit": {
     "file": "assets/models/stone_deposit.glb",

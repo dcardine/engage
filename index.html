@@ -238,7 +238,7 @@ function loadModels() {
   if (!THREE.GLTFLoader) return;
   const loader = new THREE.GLTFLoader();
   ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager'].forEach(id =>
-    loader.load('assets/game/' + id + '.glb', g => {
+    loader.load('assets/game/' + id + '.json', g => {
       g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
         const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
       MODELS[id] = g.scene; MODEL_BOX[id] = new THREE.Box3().setFromObject(g.scene);
