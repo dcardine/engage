@@ -21,16 +21,16 @@ Every new day is harder: raiders get more health and hit harder, raids bring mor
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
 ## Fishing
-Stand still at the edge of a lake (or out on the ice in winter, where you cut a hole) and you cast a line automatically. After a few seconds the bobber dips and you catch a fish (food, sold at the cookhouse like meat), sometimes two. Now and then you reel in a sunken treasure chest instead; lakes farther from the fort give bigger catches and better chests. Fishing stops if raiders are close.
+Stand still at the edge of a lake (or out on the ice in winter, where you cut a hole) and you cast a line automatically. After a few seconds the bobber dips and you catch 2–4 fish (food, sold at the cookhouse like meat), more at far-off lakes. Now and then you reel in a sunken treasure chest instead; lakes farther from the fort give bigger catches and better chests. Fishing stops if raiders are close.
 
 ## Beasts
-Past 250 m, beast lairs hold a single huge guardian: raptors and sabre tigers from 250 m, and mammoths, T-rexes and ice dragons past 300 m. They hit very hard, but their chests give the best loot: the Raptor Fang and Dragonbone axes, Sabre Hide and Dragonscale armour, and rare looks.
+Past 250 m there are around 36 beast lairs, and their beasts prowl around them and spot you from 17 m away (22 m at night). Lairs hold one or two huge beasts: raptors and sabre tigers from 250 m, and mammoths, T-rexes and ice dragons past 300 m. They hit very hard, but their chests give the best loot: the Raptor Fang and Dragonbone axes, Sabre Hide and Dragonscale armour, and rare looks.
 
 ## Looks
 Weapons, armour, helmets and capes all show on your hero, and teammates see them too. Helmets (fur hood, horned helm, iron helm, frost crown) and capes (red, wolf pelt, royal, dragonwing) come from treasure chests; choose what to wear in the **Wardrobe** section of the Hero panel.
 
 ## Things to find
-Meadows of yaks graze all around the valley. Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
+Game roams all around the valley: yaks (5 meat), deer (4, fast to bolt), rabbits (1, one hit) and boars (6, they charge back when hurt). Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
 
 ## Knockouts and revives
 - Solo: you respawn at the Town Hall a few seconds after being knocked out, and your pack spills where you fell.

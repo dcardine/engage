@@ -256,7 +256,7 @@ function skin(g, id, size, opts) { const e = Object.assign({ g, id, size }, opts
 function loadModels() {
   if (!THREE.GLTFLoader) return;
   const loader = new THREE.GLTFLoader();
-  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine', 'raptor', 'sabre_tiger', 'mammoth', 'trex', 'dragon'].forEach(id =>
+  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine', 'raptor', 'sabre_tiger', 'mammoth', 'trex', 'dragon', 'spider', 'goblin', 'bear', 'troll', 'wraith', 'golem', 'yeti', 'deer', 'rabbit', 'boar'].forEach(id =>
     loader.load('assets/game/' + id + '.json', g => {
       g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
         const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
@@ -1687,7 +1687,7 @@ function updateFishing(dt) {
     banner('Something heavy on the line!', true, 'You fished up a sunken chest'); openTreasure({ x: f.bx, z: f.bz, tier, g: new THREE.Group(), tag: { remove() {} }, guards: [] });
     return;
   }
-  const n = 1 + (Math.random() < 0.2 + tier * 0.08 ? 1 : 0); gainXP(2);
+  const n = 2 + (Math.random() * 3 | 0) + Math.floor(tier / 2); gainXP(3);
   if (S.noCollect.meat || room() < n) { dropItem('meat', player.x, player.z, n); note(room() < n ? 'Pack full: the fish lands at your feet' : 'Caught ' + n + ' fish'); }
   else { for (let k = 0; k < n; k++) giveItem('meat', new THREE.Vector3(f.bx, 0.5, f.bz)); floatText('+' + n + ' fish', player.x, 2.6, player.z, 'xp'); }
 }
@@ -1722,7 +1722,7 @@ const yaks = [];
 // Herds graze in meadows scattered all around the valley, outside the town walls.
 const HERDS = (() => { const rnd = mulberryEarly(919), out = []; out.push([C.x + 30, C.z - 26], [C.x - 34, C.z + 24], [C.x + 28, C.z + 36]); for (let i = 0; i < 18; i++) { const a = i / 18 * TAU + rnd() * 0.5, r = 40 + rnd() * 240; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
 const yakZone = () => ({ x0: -80, x1: 80, z0: -70, z1: 90 });
-function makeYak() {
+function makeYak(model = 'yak', size = 2.0) {
   const g = new THREE.Group();
   const body = mk(new THREE.SphereGeometry(0.52, 18, 12), 0x6b4a33); body.scale.set(1.05, 0.9, 1.55); body.position.y = 1.2; g.add(body);
   const shag = mk(new THREE.SphereGeometry(0.55, 16, 10).scale(1.1, 0.45, 1.5), 0x4e3424); shag.position.y = 0.92; g.add(shag);
@@ -1733,16 +1733,20 @@ function makeYak() {
     const e = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), basic(0x1d2128)); e.position.set(s * 0.13, 1.33, 1.22); g.add(e); });
   const legs = [[-0.3, 0.5], [0.3, 0.5], [-0.3, -0.5], [0.3, -0.5]].map(([x, z]) => { const l = mk(Cyl(0.11, 0.09, 0.85, 10), 0x3d291c); l.geometry.translate(0, -0.42, 0); l.position.set(x, 0.85, z);
     const hoof = mk(Cyl(0.11, 0.12, 0.1, 10), 0x2a1c12); hoof.position.y = -0.82; l.add(hoof); g.add(l); return l; });
-  skin(g, 'yak', 2.0);
+  skin(g, model, size);
   return { g, legs };
 }
 let yakId = 0;
-function spawnYak(px, pz, id) {
-  const m = makeYak(); let x = px, z = pz, n = 0;
+// what you can hunt: health, meat, how fast it walks and bolts, model size; boars fight back
+const GAME = { yak: { hp: 6, meat: 5, walk: 1.1, flee: 3.2, size: 2.0 }, deer: { hp: 4, meat: 4, walk: 1.4, flee: 5.4, size: 2.3 }, rabbit: { hp: 1, meat: 1, walk: 1.8, flee: 6.2, size: 0.75 }, boar: { hp: 10, meat: 6, walk: 1.2, flee: 4.2, size: 1.6 } };
+const GAME_IDS = ['yak', 'deer', 'rabbit', 'boar'];
+function spawnYak(px, pz, id, sp) {
+  sp = sp || (r => r < 0.4 ? 'yak' : r < 0.68 ? 'deer' : r < 0.9 ? 'rabbit' : 'boar')(Math.random());
+  const A = GAME[sp], m = makeYak(sp, A.size); let x = px, z = pz, n = 0;
   const home = HERDS[Math.random() * HERDS.length | 0];
   if (x === undefined) do { x = home[0] + rand(-7, 7); z = home[1] + rand(-7, 7); } while (n++ < 20 && d2(x, z, player.x, player.z) < 100);
   m.g.position.set(x, 0, z); scene.add(m.g);
-  const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: 6, max: 6, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
+  const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: A.hp, max: A.hp, sp, A, atk: 0, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
   yaks.push(y); return y;
 }
 for (let i = 0; i < 64; i++) spawnYak();
@@ -1772,6 +1776,7 @@ function makeYeti() {
     const h = mk(Cone(0.12, 0.45, 5), 0xd8c8a8); h.position.set(s * 0.4, 3.35, 0.2); h.rotation.z = -s * 0.5; g.add(h); });
   const arms = [-1, 1].map(s => { const a = mk(Box(0.45, 1.5, 0.45), 0xe5ebf2); a.geometry.translate(0, -0.6, 0); a.position.set(s * 0.98, 2.35, 0.1); g.add(a); return a; });
   const legs = [-1, 1].map(s => { const l = mk(Box(0.5, 0.9, 0.5), 0xdde4ec); l.geometry.translate(0, -0.45, 0); l.position.set(s * 0.4, 0.9, 0); g.add(l); return l; });
+  skin(g, 'yeti', 3.8, { by: 'y', parts: g.children.slice() });
   return { g, legs: [legs[0], legs[1], arms[0], arms[1]] };
 }
 let enemyId = 0;
@@ -1815,11 +1820,12 @@ function damageYak(y, dmg, by) {
   y.tx = clamp(y.x + Math.sin(a) * 6, BOUNDS.x0, BOUNDS.x1); y.tz = clamp(y.z + Math.cos(a) * 6, BOUNDS.z0, BOUNDS.z1);
   if (y.hp <= 0) {
     y.alive = false; scene.remove(y.g); y.bar.remove();
-    if (by && by.remote) netGive(by.remote, 'meat', 5);
+    const M = y.A ? y.A.meat : 5;
+    if (by && by.remote) netGive(by.remote, 'meat', M);
     else {
-      const kept = by ? Math.min(5, workerCap(by) - by.items.length) : 0;
-      if (by) workerTake(by, kept); else gainXP(5);
-      if (5 - kept > 0) dropItem('meat', y.x, y.z, 5 - kept);
+      const kept = by ? Math.min(M, workerCap(by) - by.items.length) : 0;
+      if (by) workerTake(by, kept); else gainXP(Math.max(2, M));
+      if (M - kept > 0) dropItem('meat', y.x, y.z, M - kept);
     }
     burst(y.x, 1, y.z, 0x6b4a33, 10); setTimeout(() => { if (!isGuest()) spawnYak(); }, 8000);
   }
@@ -2069,15 +2075,19 @@ function update(dt) {
     if (isGuest()) { const L = Math.hypot(y.nx - y.x, y.nz - y.z); y.x += (y.nx - y.x) * Math.min(1, dt * 8); y.z += (y.nz - y.z) * Math.min(1, dt * 8); if (L > 0.02) y.walkT += dt * 2; }
     let sp = 0;
     if (!isGuest()) {
-    if (y.flee > 0) { y.flee -= dt; sp = 3.2; }
+    if (y.flee > 0 && y.sp === 'boar' && S.downT <= 0 && d2(y.x, y.z, player.x, player.z) < 20 * 20) {   // a wounded boar charges
+      y.flee -= dt * 0.5; y.tx = player.x; y.tz = player.z; sp = y.A.flee; y.atk -= dt;
+      if (d2(y.x, y.z, player.x, player.z) < 1.7 * 1.7) { sp = 0; if (y.atk <= 0) { y.atk = 1.1; y.shake = 0.15; hurtHero(7); } }
+    }
+    else if (y.flee > 0) { y.flee -= dt; sp = y.A ? y.A.flee : 3.2; }
     else if (y.idle > 0) y.idle -= dt;
-    else { sp = 1.1; if (d2(y.x, y.z, y.tx, y.tz) < 0.3 || inSquare(y.tx, y.tz, outerRing().h + 3)) { y.idle = rand(1, 4); y.tx = y.hx + rand(-9, 9); y.tz = y.hz + rand(-9, 9); } }
+    else { sp = y.A ? y.A.walk : 1.1; if (d2(y.x, y.z, y.tx, y.tz) < 0.3 || inSquare(y.tx, y.tz, outerRing().h + 3)) { y.idle = rand(1, 4); y.tx = y.hx + rand(-9, 9); y.tz = y.hz + rand(-9, 9); } }
     if (sp > 0) { const dx = y.tx - y.x, dz = y.tz - y.z, L = Math.hypot(dx, dz); if (L > 0.1) { y.x += dx / L * sp * dt; y.z += dz / L * sp * dt; y.rot = turnTo(y.rot, Math.atan2(dx, dz), 0.12); y.walkT += dt * sp; } }
     }
     const s = y.shake > 0 ? 1 + Math.sin((y.shake -= dt) * 40) * 0.08 : 1;
     y.g.position.set(y.x, 0, y.z); y.g.rotation.y = y.rot; y.g.scale.setScalar(s);
     const a = Math.sin(y.walkT * 6) * 0.5; y.legs[0].rotation.x = y.legs[3].rotation.x = a; y.legs[1].rotation.x = y.legs[2].rotation.x = -a;
-    if (y.hp < y.max) setBar(y.bar, y.hp / y.max, y.x, 2.2, y.z); else y.bar.hidden = true;
+    if (y.hp < y.max) setBar(y.bar, y.hp / y.max, y.x, (y.A ? y.A.size : 2) + 0.4, y.z); else y.bar.hidden = true;
   }
 
   /* --- ground drops --- */
@@ -2483,12 +2493,14 @@ function makeSpider() {
   [-1, 1].forEach(sx => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), basic(0xff5a4e)); e.position.set(sx * 0.09, 0.6, 0.68); g.add(e); });
   const legs = [];
   for (let i = 0; i < 8; i++) { const side = i < 4 ? -1 : 1, k = i % 4; const l = mk(Cyl(0.035, 0.03, 0.9, 6), 0x1f1f28); l.geometry.translate(0, -0.45, 0); l.position.set(side * 0.3, 0.6, 0.3 - k * 0.2); l.rotation.z = side * 1.0; g.add(l); legs.push(l); }
+  skin(g, 'spider', 1.9, { parts: g.children.slice() });
   return { g, legs: [legs[0], legs[5], legs[2], legs[7]] };
 }
 function makeGoblin() {
   const p = makePerson(0x6b4a2d, 0x8a6a3a, 0x5f8a34); p.g.scale.setScalar(0.78);
   const ear = [-1, 1].map(k => { const e = mk(Cone(0.08, 0.3, 6), 0x7aa64a); e.position.set(k * 0.3, 1.42, 0); e.rotation.z = -k * 1.2; p.g.add(e); return e; });
   const club = mk(Cyl(0.06, 0.12, 0.8, 8), 0x5b3a1e); club.position.set(0.45, 0.85, 0.2); club.rotation.x = 0.6; p.g.add(club);
+  skin(p.g, 'goblin', 1.6, { by: 'y', parts: p.g.children.slice() });
   return { g: p.g, legs: [p.legs[0], p.legs[1], p.arms[0], p.arms[1]] };
 }
 function makeBear() {
@@ -2498,11 +2510,13 @@ function makeBear() {
   const snout = mk(new THREE.SphereGeometry(0.2, 12, 8), 0x8a6a4a); snout.position.set(0, 1.25, 1.42); g.add(snout);
   [-1, 1].forEach(k => { const e = mk(new THREE.SphereGeometry(0.12, 10, 8), 0x4d3220); e.position.set(k * 0.28, 1.7, 0.98); g.add(e); });
   const legs = [[-0.4, 0.6], [0.4, 0.6], [-0.4, -0.6], [0.4, -0.6]].map(([x, z]) => { const l = mk(Cyl(0.18, 0.16, 0.7, 10), 0x4d3220); l.geometry.translate(0, -0.35, 0); l.position.set(x, 0.7, z); g.add(l); return l; });
+  skin(g, 'bear', 2.8, { parts: g.children.slice() });
   return { g, legs };
 }
 function makeTroll() {
   const p = makePerson(0x6b7d5a, 0x4d5a3e, 0x55634a); p.g.scale.setScalar(1.7);
   const club = mk(Cyl(0.08, 0.2, 1.3, 10), 0x6b4a2d); club.position.set(0.5, 0.8, 0.25); club.rotation.x = 0.5; p.g.add(club);
+  skin(p.g, 'troll', 2.1, { by: 'y', parts: p.g.children.slice() });
   return { g: p.g, legs: [p.legs[0], p.legs[1], p.arms[0], p.arms[1]] };
 }
 function makeWraith() {
@@ -2510,6 +2524,7 @@ function makeWraith() {
   const robe = new THREE.Mesh(Cone(0.7, 2.2, 18), new THREE.MeshLambertMaterial({ color: 0xbcd7f2, transparent: true, opacity: 0.8 })); robe.position.y = 1.3; robe.rotation.x = Math.PI; g.add(robe);
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 12), new THREE.MeshLambertMaterial({ color: 0xdfeefc, transparent: true, opacity: 0.9 })); head.position.y = 2.6; g.add(head);
   [-1, 1].forEach(k => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), basic(0x6ff3ff)); e.position.set(k * 0.14, 2.65, 0.33); g.add(e); });
+  skin(g, 'wraith', 2.6, { by: 'y', parts: g.children.slice() });
   return { g, legs: [] };
 }
 function makeGolem() {
@@ -2520,6 +2535,7 @@ function makeGolem() {
   [-1, 1].forEach(k => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), basic(0x7ff0ff)); e.position.set(k * 0.18, 3.25, 0.38); g.add(e); });
   const arms = [-1, 1].map(k => { const a = mk(new THREE.IcosahedronGeometry(0.42, 1), c); a.scale.set(0.8, 1.6, 0.8); a.geometry.translate(0, -0.5, 0); a.position.set(k * 1.25, 2.5, 0); g.add(a); return a; });
   const legs = [-1, 1].map(k => { const l = mk(new THREE.IcosahedronGeometry(0.4, 1), c); l.scale.set(1, 1.6, 1); l.geometry.translate(0, -0.45, 0); l.position.set(k * 0.5, 1, 0); g.add(l); return l; });
+  skin(g, 'golem', 3.6, { by: 'y', parts: g.children.slice() });
   return { g, legs: [legs[0], legs[1], arms[0], arms[1]] };
 }
 const MAKERS = { spider: makeSpider, goblin: makeGoblin, wolf: makeWolf, bear: makeBear, troll: makeTroll, wraith: makeWraith, golem: makeGolem, raptor: makeRaptor, tiger: makeTiger, mammoth: makeMammoth, trex: makeTrex, dragon: makeDragon };
@@ -2565,7 +2581,7 @@ function spawnCamp(far) {
   glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; chest.add(glow); camp.glow = glow;
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
   const kind = POOL[tier][Math.random() * POOL[tier].length | 0];
-  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : 1).fill(kind);   // a beast guards its lair alone
+  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : tier === 3 ? 1 + (Math.random() < 0.4 ? 1 : 0) : 2).fill(kind);   // a beast guards its lair alone
   camp.kind = kind; buildCampProps(chest, kind); chest.children.forEach(c => { if (c !== camp.glow) { c.updateMatrix(); c.matrixAutoUpdate = false; } });
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
@@ -2654,7 +2670,7 @@ function openTreasure(camp) {
 let campT = 4; setTimeout(syncToggles, 0);
 function updateWilds(dt) {
   campT -= dt; if (campT <= 0) { campT = 100; while (wildCamps.length < 40) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; }
-    for (let k = 0, lairs = wildCamps.filter(c => c.tier >= 3).length; lairs < 12 && k < 20; k++) { const n = wildCamps.length; spawnCamp(true); if (wildCamps.length > n) lairs++; } }
+    for (let k = 0, lairs = wildCamps.filter(c => c.tier >= 3).length; lairs < 36 && k < 50; k++) { const n = wildCamps.length; spawnCamp(true); if (wildCamps.length > n) lairs++; } }
   for (const c of wildCamps) {
     c.glow.rotation.z += dt; const clear = c.guards.every(o => !o.alive);
     c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
@@ -2663,7 +2679,8 @@ function updateWilds(dt) {
   for (let i = wilds.length - 1; i >= 0; i--) {
     const w = wilds[i]; if (!w.alive) { wilds.splice(i, 1); continue; }
     const T = w.T, dp = Math.sqrt(d2(w.x, w.z, player.x, player.z)), dh = Math.hypot(w.x - w.hx, w.z - w.hz);
-    if (S.downT <= 0 && dp < (isNight() ? 10 : 7)) { w.aggro = true; w.prey = null; }
+    if (S.downT <= 0 && dp < (T.tier >= 3 ? (isNight() ? 22 : 17) : isNight() ? 10 : 7)) { w.aggro = true; w.prey = null; }
+    if (T.tier >= 3 && !w.aggro && Math.random() < dt * 0.12) { w.hx = w.camp.x + rand(-16, 16); w.hz = w.camp.z + rand(-16, 16); }   // beasts prowl around their lair
     if (!w.aggro && !isGuest() && (!w.prey || !workers.includes(w.prey))) w.prey = workers.find(wk => d2(wk.x, wk.z, w.x, w.z) < 8 * 8) || null;
     if (w.prey && !w.aggro) {
       const pr = w.prey, dw = Math.sqrt(d2(w.x, w.z, pr.x, pr.z));
@@ -2671,7 +2688,7 @@ function updateWilds(dt) {
       else { if (dw > 1.4) { w.x += (pr.x - w.x) / dw * T.speed * dt; w.z += (pr.z - w.z) / dw * T.speed * dt; w.walkT += dt; } else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtWorker(pr, T.dmg * w.dm); } }
         w.rot = turnTo(w.rot, Math.atan2(pr.x - w.x, pr.z - w.z), 0.2); w.g.position.set(w.x, 0, w.z); w.g.rotation.y = w.rot; continue; }
     }
-    if (S.downT > 0 || dh > 16) w.aggro = false;
+    if (S.downT > 0 || dh > (T.tier >= 3 ? 30 : 16)) w.aggro = false;
     let moving = false;
     if (w.aggro) {
       const reach = 1.1 + T.size * 0.5;
@@ -2900,7 +2917,7 @@ function liveState() {
     e: enemies.filter(e => e.alive).slice(0, 30).map(e => [e.id, e.type === 'yeti' ? 1 : 0, R2(e.x), R2(e.z), R2(e.rot), Math.ceil(e.hp), e.max]),
     w: workers.map(w => [ROLE_IDS.indexOf(w.role), R2(w.x), R2(w.z), R2(w.rot), w.items.length]),
     g: guards.map(g => [R2(g.x), R2(g.z), R2(g.rot), Math.ceil(g.hp), g.max]),
-    y: yaks.filter(y => y.alive).map(y => [y.id, R2(y.x), R2(y.z), R2(y.rot), y.hp]),
+    y: yaks.filter(y => y.alive).map(y => [y.id, R2(y.x), R2(y.z), R2(y.rot), y.hp, GAME_IDS.indexOf(y.sp)]),
   };
 }
 function sendWorld() {
@@ -2962,7 +2979,7 @@ function applyHost(pr) {
   if (pr.y) {
     const ids = new Set(pr.y.map(d => d[0]));
     for (let i = yaks.length - 1; i >= 0; i--) { const y = yaks[i]; if (!ids.has(y.id)) { if (y.alive) burst(y.x, 1, y.z, 0x6b4a33, 8); y.alive = false; scene.remove(y.g); y.bar.remove(); yaks.splice(i, 1); } }
-    for (const d of pr.y) { let y = yaks.find(x => x.id === d[0]); if (!y) y = spawnYak(d[1], d[2], d[0]); y.nx = d[1]; y.nz = d[2]; y.rot = d[3]; y.hp = d[4]; }
+    for (const d of pr.y) { let y = yaks.find(x => x.id === d[0]); if (!y) y = spawnYak(d[1], d[2], d[0], GAME_IDS[d[5]] || 'yak'); y.nx = d[1]; y.nz = d[2]; y.rot = d[3]; y.hp = d[4]; }
   }
   if (pr.w) syncList(workers, pr.w, d => { loading = true; spawnWorker(ROLE_IDS[d[0]] || 'logger', d[1], d[2]); loading = false; const w = workers.pop(); return w; },
     (w, d) => { w.nx = d[1]; w.nz = d[2]; w.nrot = d[3]; while (w.items.length > d[4]) w.sg.remove(w.items.pop()); if (w.items.length < d[4]) workerTake(w, d[4] - w.items.length); });
