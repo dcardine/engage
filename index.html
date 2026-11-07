@@ -140,6 +140,8 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 .slot svg{width:42px;height:42px}.slot.empty svg{opacity:.28}
 .slot i{position:absolute;bottom:-2px;left:0;right:0;font:800 9px/1.1 var(--body);font-style:normal;color:#e7d9b0;text-shadow:0 1px 2px #000;text-transform:uppercase;letter-spacing:.04em}
 .slot b{position:absolute;top:2px;right:4px;font:12px/1 var(--display);color:#fff;text-shadow:0 1px 2px #000}
+.slot img{width:46px;height:46px;object-fit:contain;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}.inv .slot img{width:80%;height:auto}
+#heroView{width:100%;max-width:180px;cursor:grab}#heroView canvas{display:block;width:100%}
 .portrait{display:flex;flex-direction:column;align-items:center;gap:4px}.portrait canvas{width:100%;max-width:170px;aspect-ratio:3/4}
 .portrait .nm{font:18px/1 var(--display);color:#ffd9a0}.portrait .lv{font:800 12px var(--body);color:#c9d6e8}
 .portrait .hpb{width:90%;height:8px;border-radius:5px;background:#3a2a2a;overflow:hidden}.portrait .hpb i{display:block;height:100%;background:#e2483f}
@@ -3291,26 +3293,103 @@ function icon(kind, a, b) {
   }
   return '';
 }
+/* ---- 3D hero viewer: one small renderer draws the turning hero and every item picture ---- */
+const HV = { r: null, scene: null, cam: null, hero: null, spin: 0.6, drag: null, icons: {}, raf: 0 };
+function hvInit() {
+  if (HV.r) return true;
+  try { HV.r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); } catch (e) { return false; }
+  HV.r.setPixelRatio(Math.min(2, devicePixelRatio || 1)); HV.r.setClearColor(0x000000, 0);
+  HV.scene = new THREE.Scene(); HV.cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  HV.scene.add(new THREE.HemisphereLight(0xeaf5ff, 0x4a5a7a, 1.0));
+  const sun = new THREE.DirectionalLight(0xfff1dd, 0.9); sun.position.set(3, 5, 4); HV.scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x9fd3ff, 0.5); rim.position.set(-4, 3, -3); HV.scene.add(rim);
+  const el = HV.r.domElement; el.style.touchAction = 'none';
+  el.addEventListener('pointerdown', e => { e.stopPropagation(); HV.drag = e.clientX; });
+  el.addEventListener('pointermove', e => { if (HV.drag !== null && HV.hero) { HV.hero.rotation.y += (e.clientX - HV.drag) * 0.02; HV.drag = e.clientX; HV.spin = 0; } });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, () => { HV.drag = null; }));
+  return true;
+}
+function fitCam(obj, pad, tilt) {
+  obj.updateMatrixWorld(true); const box = new THREE.Box3();   // frame only what is visible (hidden stand-in shapes would shrink the picture)
+  obj.traverse(o => { if (!o.isMesh) return; for (let q = o; q; q = q.parent) if (!q.visible) return; o.geometry.computeBoundingBox(); box.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); });
+  if (box.isEmpty()) box.setFromObject(obj);
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+  const r = Math.max(sz.x, sz.y, sz.z) * (pad || 1.2), d = r / (2 * Math.tan(HV.cam.fov * Math.PI / 360));
+  HV.cam.position.set(c.x + d * 0.55, c.y + d * (tilt || 0.35), c.z + d * 0.85); HV.cam.lookAt(c);
+}
+function heroModel() {   // the same parts as your hero in the world
+  const p = makePerson(0xc8452f, 0xf3e6cf, 0x2f4a6d); personCoat(p.g);
+  skin(p.g, 'hero', 1.95, { by: 'y', parts: p.g.userData.body, after: () => applyCoat(p.g, PROFILE.color) }); applyCoat(p.g, PROFILE.color);
+  const pv = new THREE.Group(); pv.position.y = 0.95; p.g.add(pv); const a1 = makeAxe(), a2 = makeAxe(); a2.rotation.y = Math.PI; pv.add(a1, a2); p.g.userData.axes = [a1, a2];
+  const pk = mk(Box(0.55, 0.55, 0.28), 0x6f4a2d); pk.position.set(0, 0.95, -0.36); p.g.add(pk);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.0, 0.16, 32), new THREE.MeshLambertMaterial({ color: 0x3a4866 })); base.position.y = -0.08;
+  const ringM = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.04, 8, 40), basic(0xc9a24a)); ringM.rotation.x = Math.PI / 2; ringM.position.y = 0.0;
+  const g = new THREE.Group(); g.add(p.g, base, ringM); g.userData.p = p.g; return g;
+}
+function syncHeroModel() {
+  if (!HV.hero) { HV.hero = heroModel(); HV.hero.rotation.y = -0.5; }
+  const p = HV.hero.userData.p; applyCoat(p, PROFILE.color); buildGear(p, myLook());
+  p.userData.axes.forEach(a => weaponLook(a, S.weapon)); p.userData.axes[1].visible = S.axe >= 2;
+}
+function heroLoop() {
+  const cv = HV.r && HV.r.domElement; if (!cv || !cv.isConnected || $('stats').hidden) { HV.raf = 0; return; }
+  const w = cv.parentElement.clientWidth || 150, h = Math.round(w * 1.3);
+  if (cv.width !== Math.round(w * HV.r.getPixelRatio())) { HV.r.setSize(w, h); }
+  HV.cam.aspect = w / h; HV.cam.updateProjectionMatrix();
+  HV.hero.rotation.y += HV.spin * 0.016; HV.scene.add(HV.hero);
+  HV.cam.position.set(0, 1.35, 5.4); HV.cam.lookAt(0, 0.95, 0);
+  HV.r.render(HV.scene, HV.cam); HV.scene.remove(HV.hero);
+  HV.raf = requestAnimationFrame(heroLoop);
+}
+// a 3D object for each kind of item
+function itemObj(kind, a) {
+  const g = new THREE.Group();
+  if (kind === 'axe') { const x = makeAxe(); weaponLook(x, a); x.rotation.z = Math.PI / 2.4; x.scale.setScalar(1.6); g.add(x); }
+  else if (kind === 'armor' || kind === 'helm' || kind === 'cape' || kind === 'ranged') {
+    const host = new THREE.Group(); buildGear(host, kind === 'armor' ? [-1, a, 0, 0, -1] : kind === 'helm' ? [-1, -1, a, 0, -1] : kind === 'cape' ? [-1, -1, 0, a, -1] : [-1, -1, 0, 0, a]);
+    const G = host.userData.gear; if (kind === 'armor') { const torso = mk(new THREE.SphereGeometry(0.4, 16, 12).scale(1, 1.05, 0.9), ARMOR_COL[a]); torso.position.y = 0.85; G.add(torso); }
+    if (kind === 'cape') G.rotation.y = Math.PI; if (kind === 'ranged') G.rotation.y = Math.PI / 2;
+    g.add(G);
+  }
+  else if (kind === 'pack') { const b = mk(Box(0.6, 0.65, 0.35), 0x6f4a2d); g.add(b); const f = mk(Box(0.42, 0.28, 0.06), 0x8a5a36); f.position.set(0, -0.08, 0.2); g.add(f); const st = mk(new THREE.TorusGeometry(0.2, 0.04, 6, 14, Math.PI), 0x4e3424); st.position.y = 0.32; g.add(st); }
+  else if (kind === 'boots') { const col = [0x6b4a2d, 0xd9cbb0, 0x8a6a4a, 0x7fd3f0][a] || 0x6b4a2d; [-0.22, 0.22].forEach(x => { const l = mk(Box(0.28, 0.55, 0.3), col); l.position.set(x, 0.28, 0); g.add(l); const f = mk(Box(0.28, 0.2, 0.55), col); f.position.set(x, 0.1, 0.15); g.add(f); const cuff = mk(Box(0.32, 0.1, 0.34), 0xf3efe6); cuff.position.set(x, 0.55, 0); g.add(cuff); }); }
+  else if (kind === 'pick') { const h = mk(Cyl(0.04, 0.05, 1.2, 6), 0x8a5a36); g.add(h); const head = mk(new THREE.TorusGeometry(0.45, 0.06, 6, 16, Math.PI * 0.8), 0x7fd3f0); head.rotation.z = Math.PI * 0.1; head.position.y = 0.45; g.add(head); g.rotation.z = -0.5; }
+  else if (kind === 'charm') { const am = mk(new THREE.TorusGeometry(0.32, 0.07, 10, 24), 0xc9a24a); g.add(am); const gem = mk(new THREE.IcosahedronGeometry(0.22, 0), 0x3f8a5a); g.add(gem); const ch = mk(new THREE.TorusGeometry(0.4, 0.02, 4, 20, Math.PI), 0xc9a24a); ch.position.y = 0.3; g.add(ch); }
+  else if (kind === 'pet') { if (S.pet) { const m = TAME[S.pet.type].make(); g.add(m.g); } }
+  else if (kind === 'medkit') { const b = mk(Box(0.8, 0.55, 0.4), 0xf4f1ea); g.add(b); const c1 = new THREE.Mesh(Box(0.14, 0.4, 0.02), basic(0xd9524b)); c1.position.z = 0.21; g.add(c1); const c2 = c1.clone(); c2.rotation.z = Math.PI / 2; g.add(c2); }
+  return g;
+}
+function icon3d(kind, a) {
+  const key = kind + ':' + a + ':' + (kind === 'pet' && S.pet ? S.pet.type : '') + ':' + (Object.keys(MODELS).length > 40 ? 'm' : '');
+  if (HV.icons[key]) return HV.icons[key];
+  if (!hvInit()) return null;
+  const obj = itemObj(kind, a); if (!obj.children.length) return null;
+  obj.rotation.y += kind === 'pet' ? -0.7 : 0.4; HV.scene.add(obj);
+  HV.r.setSize(128, 128); HV.cam.aspect = 1; HV.cam.updateProjectionMatrix(); fitCam(obj, kind === 'pet' ? 1.15 : 1.25);
+  HV.r.render(HV.scene, HV.cam); HV.scene.remove(obj);
+  const url = HV.r.domElement.toDataURL('image/png'); HV.icons[key] = url; HV.r.setSize(1, 1); return url;
+}
 let heroTab = 'gear', heroPick = null;
 const PET_COL = { rabbit: '#f3f1ec', eagle: '#8a5a36', wolf: '#8d97a4', bear: '#6b4a33', tiger: '#e8a85a', dragon: '#8fc3e6' };
+const pic = (kind, a, svg) => { const u = icon3d(kind, a); return u ? `<img src="${u}" alt="">` : svg; };
 function heroItems() {
   const W = S.wardrobe || { helm: [0], cape: [0] }, wear = S.wear || {}, axeName = S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe');
   const slots = {
-    head: { label: 'Head', svg: icon('helm', wear.helm || 0), empty: !wear.helm, name: LOOKS.helm[wear.helm || 0], info: 'Purely for looks. Find helmets in treasure chests.' },
-    body: { label: 'Body', svg: icon('armor', S.armorLv >= 0 ? ARMOR_COL[S.armorLv] : 0x666666, S.armorLv >= 2), empty: S.armorLv < 0, name: S.armorLv >= 0 ? ARMORS[S.armorLv].n : 'No armour', info: S.armorLv >= 0 ? 'Takes ' + Math.round(ARMORS[S.armorLv].a * 100) + '% less damage. Better armour comes from treasure.' : 'Find armour in treasure chests.' },
-    main: { label: 'Weapon', svg: icon('axe', WEAPON_COL[S.weapon + 1] || WEAPON_COL[0], S.axe >= 2), name: axeName + (S.axe > 1 ? ' (axe ' + ['', 'I', 'II', 'III', 'IV'][S.axe] + ')' : ''), info: (AXE[S.axe].dmg * heroDmg()).toFixed(1) + ' damage per hit, ' + AXE[S.axe].max + ' targets, ' + AXE[S.axe].range + ' m reach. Upgrade axes at the blacksmith; weapons drop from treasure.' },
-    ranged: { label: 'Ranged', svg: icon('ranged', Math.max(0, S.rangedOn)), empty: S.rangedOn < 0, name: S.rangedOn >= 0 ? RANGED[S.rangedOn].n : 'None', info: S.rangedOn >= 0 ? (RANGED[S.rangedOn].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[S.rangedOn].rng + ' m range. Fires on its own.' : 'Forge a bow at the blacksmith, or find a staff in treasure.' },
-    boots: { label: 'Boots', svg: icon('boots', S.runLv || 0), empty: !S.runLv, name: ['Plain boots', 'Fur Boots', 'Runner Boots', 'Windwalkers'][S.runLv || 0], info: '+' + Math.round(((S.runLv || 0) * 0.12 + S.boots * 0.15 + S.speedBonus) * 100) + '% speed. Better boots at the blacksmith.' },
-    back: { label: 'Back', svg: icon('cape', wear.cape || 0), empty: !wear.cape, name: LOOKS.cape[wear.cape || 0], info: 'Purely for looks. Find capes in treasure chests.' },
-    pack: { label: 'Pack', svg: icon('pack', S.bag), name: 'Pack (' + cap() + ' items)', info: 'Holds ' + cap() + ' resources. Bigger packs at the blacksmith.' },
-    tool: { label: 'Tool', svg: icon('pick'), empty: !S.pick, name: S.pick ? 'Crystal Pick' : 'No pick', info: S.pick ? 'Mines crystal veins in the far wilds.' : 'Forge a crystal pick at the blacksmith (Town Hall II).' },
-    charm: { label: 'Charm', svg: icon('charm'), empty: !S.tamer, name: S.tamer ? 'Beast Charm' : 'No charm', info: S.tamer ? 'Lets you tame weakened creatures.' : 'Slay a quest legend, reach level 10 or find one in treasure.' },
-    pet: { label: 'Pet', svg: icon('pet', S.pet ? PET_COL[S.pet.type] : '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : 'Tame one with a Beast Charm.' },
+    head: { label: 'Head', svg: pic('helm', wear.helm || 0, icon('helm', wear.helm || 0)), empty: !wear.helm, name: LOOKS.helm[wear.helm || 0], info: 'Purely for looks. Find helmets in treasure chests.' },
+    body: { label: 'Body', svg: S.armorLv >= 0 ? pic('armor', S.armorLv, icon('armor', ARMOR_COL[S.armorLv], S.armorLv >= 2)) : icon('armor', 0x666666), empty: S.armorLv < 0, name: S.armorLv >= 0 ? ARMORS[S.armorLv].n : 'No armour', info: S.armorLv >= 0 ? 'Takes ' + Math.round(ARMORS[S.armorLv].a * 100) + '% less damage. Better armour comes from treasure.' : 'Find armour in treasure chests.' },
+    main: { label: 'Weapon', svg: pic('axe', S.weapon, icon('axe', WEAPON_COL[S.weapon + 1] || WEAPON_COL[0], S.axe >= 2)), name: axeName + (S.axe > 1 ? ' (axe ' + ['', 'I', 'II', 'III', 'IV'][S.axe] + ')' : ''), info: (AXE[S.axe].dmg * heroDmg()).toFixed(1) + ' damage per hit, ' + AXE[S.axe].max + ' targets, ' + AXE[S.axe].range + ' m reach. Upgrade axes at the blacksmith; weapons drop from treasure.' },
+    ranged: { label: 'Ranged', svg: S.rangedOn >= 0 ? pic('ranged', S.rangedOn, icon('ranged', S.rangedOn)) : icon('ranged', 0), empty: S.rangedOn < 0, name: S.rangedOn >= 0 ? RANGED[S.rangedOn].n : 'None', info: S.rangedOn >= 0 ? (RANGED[S.rangedOn].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[S.rangedOn].rng + ' m range. Fires on its own.' : 'Forge a bow at the blacksmith, or find a staff in treasure.' },
+    boots: { label: 'Boots', svg: pic('boots', S.runLv || 0, icon('boots', S.runLv || 0)), empty: !S.runLv, name: ['Plain boots', 'Fur Boots', 'Runner Boots', 'Windwalkers'][S.runLv || 0], info: '+' + Math.round(((S.runLv || 0) * 0.12 + S.boots * 0.15 + S.speedBonus) * 100) + '% speed. Better boots at the blacksmith.' },
+    back: { label: 'Back', svg: wear.cape ? pic('cape', wear.cape, icon('cape', wear.cape)) : icon('cape', 0), empty: !wear.cape, name: LOOKS.cape[wear.cape || 0], info: 'Purely for looks. Find capes in treasure chests.' },
+    pack: { label: 'Pack', svg: pic('pack', S.bag, icon('pack', S.bag)), name: 'Pack (' + cap() + ' items)', info: 'Holds ' + cap() + ' resources. Bigger packs at the blacksmith.' },
+    tool: { label: 'Tool', svg: pic('pick', 0, icon('pick')), empty: !S.pick, name: S.pick ? 'Crystal Pick' : 'No pick', info: S.pick ? 'Mines crystal veins in the far wilds.' : 'Forge a crystal pick at the blacksmith (Town Hall II).' },
+    charm: { label: 'Charm', svg: pic('charm', 0, icon('charm')), empty: !S.tamer, name: S.tamer ? 'Beast Charm' : 'No charm', info: S.tamer ? 'Lets you tame weakened creatures.' : 'Slay a quest legend, reach level 10 or find one in treasure.' },
+    pet: { label: 'Pet', svg: S.pet ? pic('pet', 0, icon('pet', PET_COL[S.pet.type])) : icon('pet', '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : 'Tame one with a Beast Charm.' },
   };
   const inv = [];
-  (S.rangedOwn || []).forEach(i => inv.push({ svg: icon('ranged', i), name: RANGED[i].n, on: S.rangedOn === i, act: 'ranged:' + i, info: (RANGED[i].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[i].rng + ' m range. Tap to carry.' }));
-  ['helm', 'cape'].forEach(sl => (W[sl] || []).filter(i => i).forEach(i => inv.push({ svg: icon(sl, i), name: LOOKS[sl][i], on: (wear[sl] || 0) === i, act: 'wear:' + sl + ':' + i, info: 'Tap to wear (tap again to take off).' })));
-  if (S.medkits) inv.push({ svg: icon('medkit'), name: 'Med kit', count: S.medkits, info: 'Stand by a downed teammate to revive them.' });
+  (S.rangedOwn || []).forEach(i => inv.push({ svg: pic('ranged', i, icon('ranged', i)), name: RANGED[i].n, on: S.rangedOn === i, act: 'ranged:' + i, info: (RANGED[i].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[i].rng + ' m range. Tap to carry.' }));
+  ['helm', 'cape'].forEach(sl => (W[sl] || []).filter(i => i).forEach(i => inv.push({ svg: pic(sl, i, icon(sl, i)), name: LOOKS[sl][i], on: (wear[sl] || 0) === i, act: 'wear:' + sl + ':' + i, info: 'Tap to wear (tap again to take off).' })));
+  if (S.medkits) inv.push({ svg: pic('medkit', 0, icon('medkit')), name: 'Med kit', count: S.medkits, info: 'Stand by a downed teammate to revive them.' });
   return { slots, inv };
 }
 function drawPortrait() {
@@ -3329,10 +3408,12 @@ function showHero() {
   const picked = heroPick && heroPick.startsWith('slot:') ? slots[heroPick.slice(5)] : heroPick ? inv.find(x => x.act === heroPick || 'inv:' + x.name === heroPick) : null;
   const card = picked ? `<b>${picked.name}</b>${picked.info}` : '<b>' + (PROFILE.name || 'Your hero') + '</b>Tap a slot or an item to see what it does. Tap an item to equip it.';
   $('statsBody').innerHTML = tabsHtml() + `<div class="rpg"><div class="col">${sl('head')}${sl('body')}${sl('main')}${sl('ranged')}${sl('boots')}</div>
-    <div class="portrait"><canvas id="heroCv"></canvas><span class="nm">${PROFILE.name || 'Hero'}</span><span class="lv">Level ${S.lvl} · ${Math.round(S.hp)}/${Math.round(heroMax())} HP</span><span class="hpb"><i style="width:${Math.max(0, Math.min(100, S.hp / heroMax() * 100))}%"></i></span></div>
+    <div class="portrait"><div id="heroView"></div><span class="nm">${PROFILE.name || 'Hero'}</span><span class="lv">Level ${S.lvl} · ${Math.round(S.hp)}/${Math.round(heroMax())} HP</span><span class="hpb"><i style="width:${Math.max(0, Math.min(100, S.hp / heroMax() * 100))}%"></i></span></div>
     <div class="col">${sl('back')}${sl('pack')}${sl('tool')}${sl('charm')}${sl('pet')}</div></div>
     <div class="icard">${card}</div><h3>Inventory</h3>` + (inv.length ? `<div class="inv">${inv.map(it => `<button type="button" class="slot${it.on ? ' on' : ''}" data-pick="${it.act || 'inv:' + it.name}">${it.svg}${it.count ? '<b>' + it.count + '</b>' : ''}<i>${it.name}</i></button>`).join('')}</div>` : '<p class="none">Nothing yet: treasure chests, quests, dungeons and the blacksmith fill this up.</p>');
-  $('stats').hidden = false; requestAnimationFrame(drawPortrait);
+  $('stats').hidden = false;
+  if (hvInit()) { syncHeroModel(); $('heroView').appendChild(HV.r.domElement); HV.r.domElement.style.width = '100%'; HV.r.domElement.style.height = 'auto'; if (!HV.raf) HV.raf = requestAnimationFrame(heroLoop); }
+  else { $('heroView').innerHTML = '<canvas id="heroCv"></canvas>'; requestAnimationFrame(drawPortrait); }
 }
 function tabsHtml() { return '<div class="rtabs">' + [['gear', 'Gear'], ['stats', 'Stats'], ['town', 'Town'], ['relics', 'Relics']].map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${heroTab === k}">${n}</button>`).join('') + '</div>'; }
 function showStatsOld() {
