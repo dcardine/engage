@@ -115,7 +115,8 @@ Finishing a new wall ring tears down the old one and clears the forest inside it
 - **Loggers, hunters, stonecutters, miners** gather on their own and stack what they collect on a pile beside their lodge (the fishery makes its own fish pile). Stand on a pile to load your pack, then build with it or sell it. Piles hold 80, or 300 after the Warehouse. They use the nearest gate and walk around the walls.
 - **Haulers** (after the cookhouse and logger lodge) carry logs from the woodpile to the firewood stall and meat, fish and veggies to the cookhouse, serving whichever meter is lower first.
 - **Menders** (after the blacksmith) walk the walls and repair damaged sections.
-- Each work building shows how many of its workers you have and the limit (for example **Loggers 2/3**).
+- Each work building shows how many of its workers you have and the limit (for example **Loggers 2/3**). Hire spots stay in place and show the same count; once you reach the limit, upgrade the Town Hall to hire more.
+- The Miner Camp opens at Town Hall III (miners bring their own picks).
 - Workers and guards live in their lodges and barracks, so they don't count against housing.
 - **Wall reinforcement** (Blacksmith, Town Hall II/III): Iron Bands, Stone Bastions and Rune Wards make every wall and gate 75% tougher per level.
 - Workers have health. Raiders and camp monsters go after workers caught outside the walls first, and a worker who dies drops what they carried.

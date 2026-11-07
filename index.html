@@ -1777,7 +1777,9 @@ function plot(id, cfg) {
   p.onBuy = lv => { if (!cfg.repeat && !cfg.labels) B[id] = true; ob(lv); gainXP(cfg.xp || 25); };
   return p;
 }
-function hasRoom() { return true; }   // workers and guards live in their lodges and barracks: they don't take beds
+function hasRoom() { return true; }
+const hireCount = r => r === 'guard' ? [guards.length, maxGuards()] : [roleCount(r), maxWorkers[r]()];
+function hireOk(r) { const [n, mx] = hireCount(r); if (n < mx) return true; note('All ' + mx + ' ' + (r === 'guard' ? 'guards' : r + 's') + ' hired' + (S.th < 3 ? ': upgrade the Town Hall for more' : ''), 'bad'); return false; }   // workers and guards live in their lodges and barracks: they don't take beds
 // ---- Tier I: Camp
 const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL III'], costs: [{ log: 80, cash: 120 }, { log: 140, stone: 80, cash: 400 }],
   requires: () => padTH.level < 2 && (padTH.level === 0 ? ringSecure(rings[0]) && S.cook : rings[1].complete && ringSecure(rings[1])),
@@ -1796,11 +1798,11 @@ plot('towerB', { x: 9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 
 plot('smith', { x: -6, z: 20.4, label: 'BLACKSMITH', cost: { log: 40, cash: 30 }, req: () => S.cook, onBuy: () => { modelBlacksmith(-6, 20.4); banner('Blacksmith built!', true, 'Research upgrades at the forge'); } });
 plot('lodge', { x: 6, z: 20.4, label: 'LOGGER LODGE', cost: { log: 35 }, req: () => S.cook, onBuy: () => { modelHut(6, 20.4, 0x2b4a74, 'log', 'logger_lodge'); openPile(woodPile); banner('Logger lodge built!', true, 'Loggers stack wood on the woodpile for you'); } });
 plot('hireHaul', { x: 0, z: 18.4, label: 'HIRE HAULER', cost: { cash: 50 }, repeat: true, xp: 10,
-  requires: () => B.cook && B.lodge && roleCount('hauler') < maxWorkers.hauler(), canPay: () => hasRoom(), onBuy: () => spawnWorker('hauler', 0, 17) });
+  requires: () => B.cook && B.lodge, canPay: () => hireOk('hauler'), hire: 'hauler', onBuy: () => spawnWorker('hauler', 0, 17) });
 plot('hireMend', { x: 8.2, z: 10.2, label: 'HIRE MENDER', cost: { log: 20, cash: 50 }, repeat: true, xp: 10,
-  requires: () => B.smith && roleCount('mender') < maxWorkers.mender(), canPay: () => hasRoom(), onBuy: () => spawnWorker('mender', 8.2, 9) });
+  requires: () => B.smith, canPay: () => hireOk('mender'), hire: 'mender', onBuy: () => spawnWorker('mender', 8.2, 9) });
 plot('hireLog', { x: 3.2, z: 18, label: 'HIRE LOGGER', cost: { cash: 40 }, repeat: true, xp: 10,
-  requires: () => B.lodge && roleCount('logger') < maxWorkers.logger(), canPay: () => hasRoom(), onBuy: () => spawnWorker('logger', 6, 18.5) });
+  requires: () => B.lodge, canPay: () => hireOk('logger'), hire: 'logger', onBuy: () => spawnWorker('logger', 6, 18.5) });
 // research at the blacksmith
 // twin axes are on sale in the plaza from the start
 const padAxe = plot('axe', { personal: true, x: 3, z: 7.6, labels: ['TWIN AXES', 'AXE III', 'AXE IV'], costs: [{ log: 40, cash: 90 }, { log: 90, stone: 45, cash: 300 }, { ore: 45, stone: 60, cash: 900 }], tiers: [1, 2, 3],
@@ -1835,14 +1837,14 @@ plot('houseE', { x: -16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 },
 plot('houseF', { x: 16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 }, tier: 2, req: () => B.houseE, onBuy: () => { modelHouse(16.5, 6.5); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('barracks', { x: -16.5, z: 14, label: 'BARRACKS', cost: { log: 60, stone: 30, cash: 100 }, tier: 2, onBuy: () => { modelBarracks(-16.5, 14); banner('Barracks built!', true, 'Train guards to defend the town'); } });
 plot('train', { x: -16.5, z: 18.4, label: 'TRAIN GUARD', cost: { meat: 8, cash: 40 }, repeat: true, xp: 10,
-  requires: () => B.barracks && guards.length < maxGuards(), canPay: () => hasRoom(), onBuy: () => spawnGuard(-16.5, 16.2) });
+  requires: () => B.barracks, canPay: () => hireOk('guard'), hire: 'guard', onBuy: () => spawnGuard(-16.5, 16.2) });
 plot('hunt', { x: 16.5, z: 14, label: 'HUNTER LODGE', cost: { log: 40, cash: 60 }, tier: 2, onBuy: () => { modelHut(16.5, 14, 0x6b3a22, 'meat', 'hunter_lodge'); openPile(meatPile); banner('Hunter lodge built!', true, 'Hunters stack meat beside the lodge'); } });
 plot('hireHunt', { x: 13.4, z: 18.6, label: 'HIRE HUNTER', cost: { cash: 60 }, repeat: true, xp: 10,
-  requires: () => B.hunt && roleCount('hunter') < maxWorkers.hunter(), canPay: () => hasRoom(), onBuy: () => spawnWorker('hunter', 16.5, 16.3) });
+  requires: () => B.hunt, canPay: () => hireOk('hunter'), hire: 'hunter', onBuy: () => spawnWorker('hunter', 16.5, 16.3) });
 plot('store', { x: -10, z: 27.4, label: 'WAREHOUSE', cost: { log: 50, cash: 60 }, tier: 2, onBuy: () => { storehouse = modelStorehouse(-10, 27.4); piles.forEach(syncPile); banner('Warehouse built!', true, 'Every pile now holds 300'); } });
 plot('cutter', { x: -16.5, z: 27.4, label: 'QUARRY LODGE', cost: { log: 40, cash: 80 }, tier: 2, onBuy: () => { modelHut(-16.5, 27.4, 0x55606e, 'stone', 'quarry_lodge'); openPile(stonePile); banner('Quarry lodge built!', true, 'Stonecutters stack stone beside the lodge'); } });
 plot('hireCut', { x: -13.2, z: 23.8, label: 'HIRE CUTTER', cost: { cash: 70 }, repeat: true, xp: 10,
-  requires: () => B.cutter && roleCount('stonecutter') < maxWorkers.stonecutter(), canPay: () => hasRoom(), onBuy: () => spawnWorker('stonecutter', -16.5, 25.4) });
+  requires: () => B.cutter, canPay: () => hireOk('stonecutter'), hire: 'stonecutter', onBuy: () => spawnWorker('stonecutter', -16.5, 25.4) });
 plot('medc', { x: 18.6, z: 27.6, label: 'MED CENTER', cost: { log: 40, stone: 25, cash: 120 }, tier: 2,
   onBuy: () => { const g = modelHut(18.6, 28.2, 0xe8e2d6, 'meat'); const cr1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.06), basic(0xd9524b)); cr1.position.set(0, 1.25, 1.14); g.add(cr1); const cr2 = cr1.clone(); cr2.rotation.z = Math.PI / 2; g.add(cr2); skin(g, 'med_center', 3.6);
     banner('Med center built!', true, 'It revives you once every 5 minutes, and sells med kits'); } });
@@ -1854,9 +1856,9 @@ plot('towerD', { x: 18.5, z: -8.5, label: 'WATCHTOWER', cost: { log: 30, stone: 
 // ---- Tier III: Citadel (ring 3 band)
 plot('mine', { requires: () => false, x: -14, z: -29.5, label: 'CRYSTAL MINE', cost: { log: 60, stone: 60, cash: 300 }, tier: 3, onBuy: () => { modelMine(-14, -32); S.mine = true; rocks.forEach(r => { if (r.kind === 'gold') { r.hidden = false; r.g.visible = true; } }); banner('Crystal mine open!', true, 'Crystal veins can now be mined'); } });
 plot('trader', { x: goldStall.x, z: goldStall.z, label: 'CRYSTAL TRADER', cost: { log: 40, stone: 40, cash: 200 }, tier: 3, onBuy: () => { S.gold = true; openStall(goldStall); banner('Crystal trader open!', true, 'Sell crystals for gold'); } });
-plot('minerC', { x: -25.5, z: -12, label: 'MINER CAMP', cost: { log: 50, stone: 30, cash: 150 }, tier: 3, req: () => S.pick, onBuy: () => { modelHut(-25.5, -12, 0x4a5568, 'ore', 'miner_camp'); openPile(goldPile); banner('Miner camp built!', true, 'Miners stack crystals beside the camp'); } });
+plot('minerC', { x: -25.5, z: -12, label: 'MINER CAMP', cost: { log: 50, stone: 30, cash: 150 }, tier: 3, onBuy: () => { modelHut(-25.5, -12, 0x4a5568, 'ore', 'miner_camp'); openPile(goldPile); banner('Miner camp built!', true, 'Miners stack crystals beside the camp'); } });
 plot('hireMine', { x: -22, z: -8.4, label: 'HIRE MINER', cost: { cash: 120 }, repeat: true, xp: 10,
-  requires: () => B.minerC && roleCount('miner') < maxWorkers.miner(), canPay: () => hasRoom(), onBuy: () => spawnWorker('miner', -25.5, -10) });
+  requires: () => B.minerC, canPay: () => hireOk('miner'), hire: 'miner', onBuy: () => spawnWorker('miner', -25.5, -10) });
 plot('bank', { x: -25, z: 35, label: 'TREASURY', cost: { stone: 60, ore: 20, cash: 300 }, tier: 3, onBuy: () => { modelBank(-25, 35); S.bank = true; S.priceMul *= 1.25; S.taxMul *= 1.25; banner('Treasury built!', true, 'Sales and taxes earn 25% more gold'); } });
 plot('carp', { x: 25, z: 35, label: 'CARPENTER', cost: { log: 80, stone: 30, cash: 200 }, tier: 3, onBuy: () => { modelBench(25, 35); S.carpenter = true; banner('Carpenter hired!', true, 'Damaged walls repair over time'); } });
 [[-25.5, 14], [-25.5, 20], [25.5, 14], [25.5, 20], [-25.5, 26], [25.5, 26]].forEach(([x, z], i) =>
@@ -2133,6 +2135,7 @@ function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
     const show = t.on() && d2(t.x, t.z, player.x, player.z) < 34 * 34; t.el.hidden = !show; if (!show) continue;
     const n = t.role === 'guard' ? guards.length : roleCount(t.role), mx = t.role === 'guard' ? maxGuards() : maxWorkers[t.role]();
+    const hp = pads.find(q => q.hire === t.role); if (hp) { const lbl = hp.label.replace(/ \d+\/\d+$/, '') + ' ' + n + '/' + mx; if (hp.label !== lbl) { hp.label = lbl; drawPad(hp); } }
     t.el.textContent = t.name + ' ' + n + '/' + mx + (n >= mx && t.role === 'guard' && S.th < 3 ? ' · more at Town Hall III' : ''); t.el.classList.toggle('full', n >= mx); place(t.el, t.x, 4.6, t.z);
   }
   for (const w of workers) { if (w.hurtT > 0) { w.hurtT -= 1 / 60; } else if (w.hp < w.max) w.hp = Math.min(w.max, w.hp + 0.05); if (w.hp < w.max) setBar(w.bar, w.hp / w.max, w.x, 2.3, w.z); else w.bar.hidden = true; }
