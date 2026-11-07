@@ -3428,11 +3428,12 @@ function netTick(dt) {
       for (const [, v] of NET.buf) { const a = [++NET.seq, ...v]; NET.pending.push(a); if (v[0] === '$') NET.pendPay.push({ seq: a[0], i: v[1], t: RES[v[2]], n: v[3] }); }
       NET.buf.clear(); if (NET.pending.length > 60) NET.pending = NET.pending.slice(-60);
     }
-    const host = ps.find(p => !p.sameTab && p.presence && p.presence.role === 'host');
+    let host = ps.find(p => !p.sameTab && p.presence && p.presence.role === 'host');
+    if (host && NET.room.heard && Date.now() - NET.room.heard(host.peer) > 5000) host = null;   // the link went quiet without closing (common on phones)
     if (host) {
       NET.hostSeen = time; NET.host = host.peer;
       if (host.presence !== NET.lastHostPres) { NET.lastHostPres = host.presence; applyHost(host.presence); }
-    } else if (time - NET.hostSeen > 6) { if (ON_CLAUDE) promote(); else { banner('Lost the host', false, 'Trying to reconnect…'); try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {} setTimeout(() => location.reload(), 2000); NET.hostSeen = 1e9; } }
+    } else if (time - NET.hostSeen > (ON_CLAUDE ? 6 : 3)) { if (ON_CLAUDE) promote(); else { banner('Lost the host', false, 'Trying to reconnect…'); try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {} setTimeout(() => location.reload(), 2000); NET.hostSeen = 1e9; } }
     if (NET.presT <= 0) { NET.presT = 0.1; NET.room.presence({ role: 'guest', h: heroState(), a: NET.pending }).catch(() => {}); }
   }
 }
@@ -3480,7 +3481,7 @@ function peerRoom(code, asHost) {
     if (!window.Peer) return reject(new Error('peer library missing'));
     const hubId = 'frosthold-room-' + code.toLowerCase();
     const peer = asHost ? new Peer(hubId) : new Peer();
-    const handlers = {}, pres = new Map(), conns = new Map();
+    const handlers = {}, pres = new Map(), conns = new Map(), heard = new Map();
     let mine = {}, myId = null, hub = null, done = false;
     const ok = v => { if (!done) { done = true; resolve(v); } }, bad = e => { if (!done) { done = true; try { peer.destroy(); } catch (_) {} reject(e); } };
     const fire = (t, d, from) => (handlers[t] || []).forEach(h => { try { h({ topic: t, data: d, peer: from }); } catch (_) {} });
@@ -3488,6 +3489,7 @@ function peerRoom(code, asHost) {
     const toGuests = (m, except) => { for (const [pid, c] of conns) if (pid !== except) send(c, m); };
     function onMsg(from, m) {
       if (!m || typeof m !== 'object') return;
+      heard.set(m.from || from, Date.now()); heard.set(from, Date.now());
       if (m.k === 'p') { pres.set(from, m.v || {}); if (asHost) toGuests({ k: 'p', from, v: m.v }, from); }
       else if (m.k === 'e') { fire(m.t, m.d, from); if (asHost) toGuests({ k: 'e', from, t: m.t, d: m.d }, from); }
       else if (m.k === 'bye') pres.delete(from);
@@ -3496,7 +3498,9 @@ function peerRoom(code, asHost) {
       emit: async (t, d) => { if (asHost) toGuests({ k: 'e', from: myId, t, d }); else send(hub, { k: 'e', t, d }); fire(t, d, myId); },
       on: (t, h) => { (handlers[t] = handlers[t] || []).push(h); return () => {}; },
       presence: async p => { mine = Object.assign({}, mine, p); if (asHost) toGuests({ k: 'p', from: myId, v: mine }); else send(hub, { k: 'p', v: mine }); },
-      peers: () => [{ peer: myId, presence: mine, sameTab: true }, ...[...pres].map(([peer, presence]) => ({ peer, presence, sameTab: false }))],
+      peers: () => { const now = Date.now(); for (const [id] of pres) if (now - (heard.get(id) || now) > 12000) pres.delete(id);   // drop players we have not heard from in 12 s
+        return [{ peer: myId, presence: mine, sameTab: true }, ...[...pres].map(([peer, presence]) => ({ peer, presence, sameTab: false }))]; },
+      heard: id => heard.get(id) || 0,
       leave: async () => { try { peer.destroy(); } catch (_) {} },
       wake: () => { try { if (peer.disconnected && !peer.destroyed) peer.reconnect(); } catch (_) {} },
     };
@@ -3539,15 +3543,23 @@ async function startCoop(auto, code, asHost) {
     ROOM_CODE = code;
   }
   NET.room.on('w', onWorld); NET.room.on('wp', onPads); NET.room.on('give', onGive);
-  await sleep(2500);
-  const ps = NET.room.peers(); const mine = ps.find(p => p.sameTab); NET.me = mine ? mine.peer : null;
-  const host = ps.find(p => !p.sameTab && p.presence && p.presence.role === 'host');
+  let host = null;
+  for (let k = 0; k < (ON_CLAUDE || asHost ? 5 : 24); k++) {   // a guest waits up to 12 s for the host to answer
+    await sleep(500);
+    const ps = NET.room.peers(); const mine = ps.find(p => p.sameTab); NET.me = mine ? mine.peer : null;
+    host = ps.find(p => !p.sameTab && p.presence && p.presence.role === 'host'); if (host) break;
+  }
   btn.disabled = false;
   if (host) {
     if (!auto) { saveGame(); NET.room.leave().catch(() => {}); try { sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', ROOM_CODE); } catch (e) {} location.reload(); return; }
+    try { sessionStorage.removeItem('frost-tries'); } catch (e) {}
     becomeGuest(host.peer);
   } else if (!ON_CLAUDE && !asHost) {
-    NET.room.leave().catch(() => {}); NET.room = null; return fail('No game is running with code ' + code);
+    NET.room.leave().catch(() => {}); NET.room = null;
+    let tries = 0; try { tries = +sessionStorage.getItem('frost-tries') || 0; } catch (e) {}
+    if (auto && tries < 4) { try { sessionStorage.setItem('frost-tries', tries + 1); sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', code); } catch (e) {} btn.textContent = 'Reconnecting…'; setTimeout(() => location.reload(), 2500); return; }
+    try { sessionStorage.removeItem('frost-tries'); } catch (e) {}
+    return fail('No game is running with code ' + code);
   } else {
     if (auto) loadGame();
     becomeHost();

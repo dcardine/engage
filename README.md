@@ -68,7 +68,7 @@ Tap **Co-op** on the published page. The first player in hosts, so their town is
 Set your name and coat colour under **Co-op** or **Hero**. Teammates show with your name, a ring in your colour and a stack of whatever they carry (icons in the name tag too). Everyone appears on the minimap as a star in their colour, pinned to the rim when far away, and you get an alert when a teammate is under attack or knocked out.
 
 ## Personal gear in co-op
-Axe and pack upgrades, the crystal pick, and everything found in treasure chests belong to the player who bought or found them; each player upgrades their own. Your sounds only play on your own device. If a phone sleeps or loses the connection, it rejoins the host automatically when it wakes, keeping its gear.
+Axe and pack upgrades, the crystal pick, and everything found in treasure chests belong to the player who bought or found them; each player upgrades their own. Your sounds only play on your own device. If a phone sleeps or its connection drops or goes quiet (no word from the host for about 5 seconds), it rejoins the host automatically, retrying for up to about a minute, and keeps its gear. Players who vanish without saying goodbye are removed after 12 seconds.
 
 ## Sound
 The menu (cog) has a switch for each kind of sound: chopping and mining, pickups and coins, building and trade, combat, tower arrows, alerts and raids, rewards, villagers, footsteps, and wind.
