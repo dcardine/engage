@@ -3686,8 +3686,8 @@ function updateCalendar(dt) {
   if (S.lastDay && dn > S.lastDay) banner('Day ' + dn, false, 'Raiders grow stronger and the cold bites harder');
   S.lastDay = dn;
   const season = (Math.floor(S.clock / (DAY_LEN * DAYS_PER_SEASON)) + 3) % 4;   // the first season is winter
-  if (season !== S.season || appliedSeason < 0) {
-    const changed = appliedSeason >= 0 && season !== S.season; S.season = season; applySeason(season);
+  if (season !== appliedSeason) {   // compare with what is drawn: a guest's S.season is overwritten by the host every tick
+    const changed = appliedSeason >= 0; S.season = season; applySeason(season);
     if (changed) banner(SEASONS[season].n + ' arrives', true, ['Snow melts and the meadows wake', 'Warm days: firewood lasts much longer', 'Leaves turn and nights grow cold', 'Deep cold: lakes freeze over, firewood burns fast'][season]);
   }
   const d = daylight(), SE = SEASONS[S.season];
@@ -3714,7 +3714,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['lastRaidDay', 'wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner', 'hauler', 'mender'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
