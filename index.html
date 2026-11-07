@@ -1811,6 +1811,9 @@ const padAxe = plot('axe', { personal: true, x: 3, z: 7.6, labels: ['TWIN AXES',
 const padBag = plot('bag', { personal: true, x: -6, z: 17.4, labels: ['PACK 100', 'PACK 200', 'PACK 400'], costs: [{ log: 30, cash: 60 }, { stone: 30, cash: 200 }, { ore: 30, cash: 600 }], tiers: [1, 2, 3],
   requires: () => B.smith && padBag.level < 3 && S.th >= padBag.tiers[padBag.level],
   onBuy: lv => { S.bag = lv; pack.scale.setScalar(1 + lv * 0.15); banner('Carry ' + cap() + ' items', true); }, xp: 40 });
+const padRange = plot('trange', { x: 0.2, z: 21.6, labels: ['SPYGLASSES', 'HIGH PERCHES', 'EAGLE EYES'], costs: [{ log: 50, cash: 90 }, { stone: 40, log: 40, cash: 220 }, { ore: 20, stone: 50, cash: 450 }], tiers: [1, 2, 3],
+  requires: () => B.smith && towers.length > 0 && padRange.level < 3 && S.th >= padRange.tiers[padRange.level],
+  onBuy: lv => { S.rangeLv = lv; banner('Towers see farther!', true, 'Every tower shoots +' + lv * 4 + ' m'); }, xp: 40 });
 const padArrow = plot('arrow', { x: -2.9, z: 17.9, labels: ['ARROWS II', 'ARROWS III'], costs: [{ log: 60, cash: 120 }, { ore: 25, cash: 350 }], tiers: [2, 3],
   requires: () => B.smith && padArrow.level < 2 && S.th >= padArrow.tiers[padArrow.level] && towers.length > 0,
   onBuy: lv => { S.towerLv = lv; banner('Sharper arrows!', true, 'Towers hit harder and faster'); }, xp: 40 });
@@ -2917,7 +2920,7 @@ function update(dt) {
 
   /* --- towers --- */
   if (!isGuest()) for (const t of towers) {
-    t.cd -= dt; const rng = (S.horn ? 22 : 17) + (t.lv - 1) * 2.5; let best = null, bd = rng * rng;
+    t.cd -= dt; const rng = (S.horn ? 22 : 17) + (t.lv - 1) * 2.5 + (S.rangeLv || 0) * 4; let best = null, bd = rng * rng;
     for (const e of enemies) if (e.alive) { const d = d2(e.x, e.z, t.x, t.z); if (d < bd) { bd = d; best = e; } }
     if (best) {
       t.archer.g.rotation.y = Math.atan2(best.x - t.x, best.z - t.z);
@@ -3714,7 +3717,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['lastRaidDay', 'wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['rangeLv', 'lastRaidDay', 'wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner', 'hauler', 'mender'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -4162,7 +4165,7 @@ function loadGame() {
     if (d.padsById) pads.forEach(p => { const v = p.id && d.padsById[p.id]; if (!v) return; p.level = v[0]; p.done = !!v[1]; p.paid = v[2] || {}; });
     else {   // older saves stored spaces by position in a list that has since grown: repair what we can from what was built
       d.pads.forEach(([lv, done, paid], i) => { const p = pads[i]; if (p && !p.id) { p.level = lv; p.done = !!done; p.paid = paid || {}; } });
-      const lvOf = { th: S.th - 1, axe: Math.max(0, S.axe - 1), bag: S.bag, arrow: S.towerLv, homes: S.houseLv || 0, reinforce: S.wallLv || 0, drill: S.guardLv ? 1 : 0 };
+      const lvOf = { th: S.th - 1, axe: Math.max(0, S.axe - 1), bag: S.bag, arrow: S.towerLv, trange: S.rangeLv || 0, homes: S.houseLv || 0, reinforce: S.wallLv || 0, drill: S.guardLv ? 1 : 0 };
       pads.forEach(p => { if (!p.id) return; p.paid = {};
         if (p.repeat || p.hire) { p.done = false; p.level = 0; }
         else if (p.id in lvOf) { p.level = lvOf[p.id] || 0; p.done = p.labels ? p.level >= p.costs.length : !!B[p.id]; }
