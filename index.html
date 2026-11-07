@@ -71,6 +71,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 .mshow label{display:flex;gap:8px;align-items:center;cursor:pointer}.mshow input{width:20px;height:20px;accent-color:#2b4a74}
 #closeMenu{margin-top:16px;width:100%;padding:12px;border-radius:12px;border:2px solid #c9d6e8;background:#fff;font:15px var(--display);color:#2b4a74;cursor:pointer}
 .hud-off{display:none!important}
+#tameBtn{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#3f8a5a;color:#fff;font:17px/1 var(--display);letter-spacing:.04em;padding:14px 20px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
 #chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
 #chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
 #chipMenu button.drop{background:#b8452e}
@@ -167,6 +168,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 </div>
 
 <div id="banner" class="hud"></div>
+<button id="tameBtn" type="button" hidden></button>
 <div id="hint" class="hud">Drag anywhere to move</div>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="cog" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button><span id="netTxt" hidden></span></div>
@@ -839,7 +841,7 @@ const CAPS = [50, 100, 200, 400];
 const S = {
   wallet: 0, axe: 1, bag: 0, th: 1, xp: 0, lvl: 1, hp: 100, downT: 0, hurtT: 0,
   civ: 6, warm: 48, food: 40, clock: 60, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
-  rangedOwn: [], rangedOn: -1, houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
+  tamer: false, pet: null, rangedOwn: [], rangedOn: -1, houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
   wave: 0, waveT: 150, raidOn: false, blizT: 170, blizOn: 0,
   towerLv: 0, masonry: false, guardLv: 0, bank: false, carpenter: false, mine: false, gold: false,
   step: 0, over: false, declineT: 0, growT: 0, taxT: 0, won: false, time: 0,
@@ -862,6 +864,7 @@ function gainXP(n) {
   S.xp += n;
   while (S.xp >= xpNeed(S.lvl)) {
     S.xp -= xpNeed(S.lvl); S.lvl++; S.hp = heroMax();
+    if (S.lvl >= 10 && !S.tamer) setTimeout(() => grantCharm('You reached hero level 10'), 2500);
     banner('Hero level ' + S.lvl + '!', true, '+10% damage, +12 health');
     burst(player.x, 1.5, player.z, 0xf2c14e, 18, 3); play('levelup');
   }
@@ -1713,7 +1716,7 @@ function updateFishing(dt) {
 const LEGENDS = [['bear', 'Old Greymane', "Greymane's Claw", 120, 200], ['troll', 'Mossjaw', "Mossjaw's Tusk", 130, 220], ['wolf', 'Whisper, the White Wolf', 'White Wolf Pelt', 90, 160],
   ['golem', 'Cragheart', 'Cragheart Core', 170, 250], ['wraith', 'The Hollow King', 'Hollow Crown', 180, 250], ['tiger', 'Whitefang', "Whitefang's Fang", 255, 300], ['mammoth', 'Tuskmother', "Tuskmother's Tusk", 300, 340], ['dragon', 'Frostmaw the Ancient', "Frostmaw's Heartscale", 300, 340]];
 const QUEST_TROPHY = Object.fromEntries(LEGENDS.map(l => [l[1], l[2]]));
-const QUEST_NAMES = { rabbit: 'rabbits', deer: 'deer', yak: 'yaks', boar: 'boars', log: 'logs', stone: 'stone', ore: 'crystals', meat: 'meat', fish: 'fish', wolf: 'wolves', yeti: 'yetis', spider: 'spiders', goblin: 'goblins', bear: 'bears', troll: 'trolls', wraith: 'wraiths', golem: 'golems', raptor: 'raptors', tiger: 'sabre tigers', mammoth: 'mammoths', trex: 'T-rexes', dragon: 'dragons' };
+const QUEST_NAMES = { eagle: 'eagles', rabbit: 'rabbits', deer: 'deer', yak: 'yaks', boar: 'boars', log: 'logs', stone: 'stone', ore: 'crystals', meat: 'meat', fish: 'fish', wolf: 'wolves', yeti: 'yetis', spider: 'spiders', goblin: 'goblins', bear: 'bears', troll: 'trolls', wraith: 'wraiths', golem: 'golems', raptor: 'raptors', tiger: 'sabre tigers', mammoth: 'mammoths', trex: 'T-rexes', dragon: 'dragons' };
 function newQuest() {
   const th = S.th, pick = a => a[Math.random() * a.length | 0], opts = [];
   opts.push(() => { const sp = pick(th >= 2 ? ['deer', 'yak', 'boar', 'rabbit'] : ['rabbit', 'deer']); const n = { rabbit: 6, deer: 4, yak: 3, boar: 2 }[sp] + th; return { type: 'hunt', what: sp, n, text: 'Hunt ' + n + ' ' + QUEST_NAMES[sp] }; });
@@ -1736,7 +1739,7 @@ function questEvent(type, what, n = 1) {
   const q = S.quest; if (!q || q.done || q.type !== type || (q.type !== 'clear' && q.what !== what)) return;
   q.have = Math.min(q.n, q.have + n); renderQuest();
   if (q.have >= q.n) {
-    q.done = true; S.questT = 25; (S.questsDone = (S.questsDone || 0) + 1);
+    q.done = true; S.questT = 25; if (q.type === 'elite' && !S.tamer) setTimeout(() => grantCharm('The legend\'s spirit lingers in its trophy'), 3000); (S.questsDone = (S.questsDone || 0) + 1);
     banner('Quest complete!', true, q.text + ' · +' + q.gold + ' gold and a reward chest'); play('levelup');
     giveCash(q.gold, new THREE.Vector3(player.x, 2, player.z)); gainXP(20 + q.tier * 20);
     openTreasure({ x: player.x + 1.2, z: player.z + 1.2, tier: q.tier, g: new THREE.Group(), tag: { remove() {} }, guards: [], questReward: true });
@@ -1802,7 +1805,15 @@ function makeGame(model, size) {
   skin(g, model, size, { parts: g.children.slice() });
   return { g, legs };
 }
+function makeEagle(size) {
+  const g = new THREE.Group(), body = mk(new THREE.SphereGeometry(0.22, 10, 8).scale(1, 0.9, 1.8), 0x5b3f2b); body.position.y = 0.4; g.add(body);
+  const head = mk(new THREE.SphereGeometry(0.13, 10, 8), 0xf1ede4); head.position.set(0, 0.5, 0.42); g.add(head);
+  const beak = mk(Cone(0.05, 0.14, 6), 0xf2c14e); beak.rotation.x = Math.PI / 2; beak.position.set(0, 0.48, 0.58); g.add(beak);
+  const wings = [-1, 1].map(k => { const w = mk(Box(0.9, 0.04, 0.38), 0x4e3424); w.geometry.translate(k * 0.45, 0, 0); w.position.set(k * 0.12, 0.45, 0); g.add(w); return w; });
+  g.scale.setScalar(size / 1.6); return { g, legs: [wings[0], wings[1], wings[0], wings[1]], wings };
+}
 function makeYak(model = 'yak', size = 2.0) {
+  if (model === 'eagle') return makeEagle(size);
   if (model !== 'yak') return makeGame(model, size);
   const g = new THREE.Group();
   const body = mk(new THREE.SphereGeometry(0.52, 18, 12), 0x6b4a33); body.scale.set(1.05, 0.9, 1.55); body.position.y = 1.2; g.add(body);
@@ -1819,15 +1830,15 @@ function makeYak(model = 'yak', size = 2.0) {
 }
 let yakId = 0;
 // what you can hunt: health, meat, how fast it walks and bolts, model size; boars fight back
-const GAME = { yak: { hp: 6, meat: [5, 6], walk: 1.1, flee: 3.2, size: 2.0, n: 22 }, deer: { hp: 4, meat: [2, 3], walk: 1.4, flee: 5.4, size: 2.3, n: 30 }, rabbit: { hp: 1, meat: [1, 1], walk: 1.8, flee: 6.2, size: 0.75, n: 40 }, boar: { hp: 10, meat: [5, 6], walk: 1.2, flee: 4.2, size: 1.6, n: 8 } };
+const GAME = { eagle: { hp: 6, meat: [1, 2], walk: 2.6, flee: 7, size: 1.6, n: 12, fly: true }, yak: { hp: 6, meat: [5, 6], walk: 1.1, flee: 3.2, size: 2.0, n: 22 }, deer: { hp: 4, meat: [2, 3], walk: 1.4, flee: 5.4, size: 2.3, n: 30 }, rabbit: { hp: 4, meat: [1, 1], walk: 1.8, flee: 6.2, size: 0.75, n: 40 }, boar: { hp: 10, meat: [5, 6], walk: 1.2, flee: 4.2, size: 1.6, n: 8 } };
 // rabbits and deer graze close around the settlement; yaks and boars keep to the far meadows
 const NEAR_HERDS = (() => { const rnd = mulberryEarly(1212), out = []; for (let i = 0; i < 14; i++) { const a = i / 14 * TAU + rnd() * 0.4, r = 32 + rnd() * 55; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
 const FAR_HERDS = (() => { const rnd = mulberryEarly(3434), out = []; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU + rnd() * 0.4, r = 130 + rnd() * 170; out.push([clamp(C.x + Math.cos(a) * r, -320, 320), clamp(C.z + Math.sin(a) * r, -305, 335)]); } return out; })();
-const GAME_IDS = ['yak', 'deer', 'rabbit', 'boar'];
+const GAME_IDS = ['yak', 'deer', 'rabbit', 'boar', 'eagle'];
 function spawnYak(px, pz, id, sp) {
   sp = sp || (r => r < 0.22 ? 'yak' : r < 0.52 ? 'deer' : r < 0.92 ? 'rabbit' : 'boar')(Math.random());
   const A = GAME[sp], m = makeYak(sp, A.size); let x = px, z = pz, n = 0;
-  const H = sp === 'yak' || sp === 'boar' ? FAR_HERDS : NEAR_HERDS, home = H[Math.random() * H.length | 0];
+  const H = sp === 'yak' || sp === 'boar' || sp === 'eagle' ? FAR_HERDS : NEAR_HERDS, home = H[Math.random() * H.length | 0];
   if (x === undefined) do { x = home[0] + rand(-7, 7); z = home[1] + rand(-7, 7); } while (n++ < 20 && d2(x, z, player.x, player.z) < 100);
   m.g.position.set(x, 0, z); scene.add(m.g);
   const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: A.hp, max: A.hp, sp, A, atk: 0, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
@@ -1960,7 +1971,7 @@ const SHOT_LOOK = { arrow: [0x4a3424, 0.05], bullet: [0xffe08a, 0.07], frost: [0
 function updateRanged(dt) {
   rangedCd -= dt;
   const R = RANGED[S.rangedOn]; if (R && S.downT <= 0 && rangedCd <= 0) {
-    const t = threats(player.x, player.z, R.rng)[0];
+    const t = threats(player.x, player.z, R.rng).find(t => !isWeakTame(t[1]));
     if (t) {
       rangedCd = R.cd; const [k, e] = t, dmg = R.dmg * rangedMul();
       if (!player.moving) { player.rot = Math.atan2(e.x - player.x, e.z - player.z); }
@@ -1998,11 +2009,83 @@ function bolt(a, b) {
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff })); scene.add(line);
   burst(b.x, 1, b.z, 0xcfe8ff, 6, 2); setTimeout(() => scene.remove(line), 140);
 }
+/* ---- taming: with the Beast Charm, weaken a creature, then calm it ---- */
+const TAME = {
+  rabbit: { n: 'Rabbit', at: 0.6, odds: 0.85, hp: 40, dmg: 3, speed: 6, size: 0.8, make: () => makeGame('rabbit', 0.75) },
+  eagle: { n: 'Eagle', at: 0.5, odds: 0.6, hp: 90, dmg: 9, speed: 7, size: 1, fly: true, make: () => makeEagle(1.6) },
+  wolf: { n: 'Wolf', at: 0.3, odds: 0.6, hp: 120, dmg: 8, speed: 5.5, size: 1, make: () => makeWolf() },
+  bear: { n: 'Bear', at: 0.25, odds: 0.45, hp: 260, dmg: 16, speed: 4.6, size: 1.4, make: () => makeBear() },
+  tiger: { n: 'Sabre Tiger', at: 0.25, odds: 0.35, hp: 360, dmg: 26, speed: 6, size: 1.5, make: () => makeTiger() },
+  dragon: { n: 'Ice Dragon', at: 0.2, odds: 0.22, hp: 800, dmg: 45, speed: 4.6, size: 2.2, breath: true, make: () => makeDragon() },
+};
+const PET_NAMES = ['Ember', 'Frost', 'Ash', 'Pip', 'Nova', 'Bramble', 'Sleet', 'Kodi', 'Rune', 'Thistle', 'Blizz', 'Juniper'];
+function tameKind(e) { const k = e.sp || e.type; return TAME[k] ? k : null; }
+function isWeakTame(e) { const k = tameKind(e); return !!(S.tamer && k && e.alive && e.hp > 0 && e.hp / e.max <= TAME[k].at); }
+function grantCharm(why) { if (S.tamer) return; S.tamer = true; banner('Beast Charm!', true, (why ? why + ': ' : '') + 'weaken a rabbit, wolf, bear, tiger, eagle or dragon, then tap Tame'); play('treasure'); }
+let tameTgt = null, taming = 0, pet = null;
+function tameCandidate() {
+  if (!S.tamer || S.downT > 0) return null; let b = null, bd = 5 * 5;
+  for (const list of [wilds, enemies, yaks]) for (const e of list) if (isWeakTame(e)) { const d = d2(e.x, e.z, player.x, player.z); if (d < bd) { bd = d; b = e; } }
+  return b;
+}
+function updateTaming(dt) {
+  const btn = $('tameBtn'), c = taming > 0 ? tameTgt : tameCandidate();
+  if (!c || !c.alive) { btn.hidden = true; taming = 0; tameTgt = null; return; }
+  const T = TAME[tameKind(c)]; btn.hidden = false;
+  if (taming > 0) {
+    taming += dt; btn.textContent = 'Calming the ' + T.n.toLowerCase() + '… ' + Math.min(100, Math.round(taming / 2 * 100)) + '%';
+    if (player.moving || d2(c.x, c.z, player.x, player.z) > 36) { taming = 0; note('Taming interrupted: stand still beside it'); return; }
+    if (taming >= 2) { taming = 0;
+      if (Math.random() < T.odds) tameIt(c);
+      else { c.hp = Math.min(c.max, c.hp + c.max * 0.3); if (c.kind === 'wild') c.aggro = true; banner('It broke free!', false, 'Weaken it again and retry'); play('alert'); }
+    }
+  } else btn.textContent = 'Tame ' + T.n + ' (' + Math.round(T.odds * 100) + '%)' + (S.pet ? ' · replaces ' + S.pet.name : '');
+}
+function tameIt(c) {
+  const k = tameKind(c), T = TAME[k];
+  c.alive = false; scene.remove(c.g); if (c.bar) c.bar.remove();
+  if (c.kind === 'yak') setTimeout(() => { if (!isGuest()) spawnYak(undefined, undefined, undefined, c.sp); }, 20000);
+  if (pet) dropPet();
+  S.pet = { type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: T.hp * (1 + (S.lvl - 1) * 0.08), max: T.hp * (1 + (S.lvl - 1) * 0.08) };
+  spawnPet(); banner(S.pet.name + ' the ' + T.n.toLowerCase() + ' joins you!', true, 'Pets fight beside you; if they fall, they are gone for good'); play('revive'); gainXP(20);
+}
+function spawnPet() {
+  const P = S.pet, T = TAME[P.type]; const m = T.make(); m.g.scale.multiplyScalar(P.type === 'dragon' ? 0.55 : P.type === 'tiger' || P.type === 'bear' ? 0.75 : 1);
+  scene.add(m.g); const tag = document.createElement('div'); tag.className = 'tag wtag'; ov.appendChild(tag);
+  pet = { ...m, T, x: player.x - 1.5, z: player.z - 1.5, rot: 0, walkT: 0, atk: 0, tgt: null, bar: makeBar('ally'), tag, kind: 'pet', alive: true, sc: m.g.scale.x };
+}
+function dropPet() { if (!pet) return; scene.remove(pet.g); pet.bar.remove(); pet.tag.remove(); pet = null; }
+function hurtPet(dmg) {
+  if (!pet || !S.pet) return; S.pet.hp -= dmg; pet.hurtT = 3; burst(pet.x, 1, pet.z, 0xd9524b, 4, 2);
+  if (S.pet.hp <= 0) { banner(S.pet.name + ' has fallen', false, 'Tame another with your Beast Charm'); play('alert'); burst(pet.x, 1, pet.z, 0x9aa4b1, 14, 3); dropPet(); S.pet = null; }
+}
+function updatePet(dt) {
+  if (S.pet && !pet) spawnPet(); if (!pet) return;
+  const P = S.pet, T = pet.T, reach = 1.2 + T.size * 0.6;
+  if (!pet.tgt || !pet.tgt.alive || d2(pet.tgt.x, pet.tgt.z, player.x, player.z) > 22 * 22) pet.tgt = (threats(player.x, player.z, 14).find(t => !isWeakTame(t[1])) || [])[1] || null;
+  let tx, tz, moving = false; const t = pet.tgt;
+  if (t) { tx = t.x; tz = t.z; } else { tx = player.x - Math.sin(player.rot) * 2.2 + 1; tz = player.z - Math.cos(player.rot) * 2.2; }
+  const d = Math.hypot(tx - pet.x, tz - pet.z);
+  if (d2(pet.x, pet.z, player.x, player.z) > 45 * 45) { pet.x = player.x - 1; pet.z = player.z - 1; }
+  else if (d > (t ? reach : 0.6)) { const sp = T.speed * (t ? 1 : Math.min(1, d / 3)); pet.x += (tx - pet.x) / d * sp * dt; pet.z += (tz - pet.z) / d * sp * dt; moving = true; pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.25); }
+  else if (t) { pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.3); pet.atk -= dt;
+    if (pet.atk <= 0) { pet.atk = 1; const dmg = T.dmg * (1 + (S.lvl - 1) * 0.08), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
+      hitTarget(k, t, dmg); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
+  if (!t && (pet.hurtT = (pet.hurtT || 0) - dt) <= 0) P.hp = Math.min(P.max, P.hp + P.max * 0.02 * dt);
+  if (moving) pet.walkT += dt;
+  pet.g.position.set(pet.x, T.fly ? 2.2 + Math.sin(time * 2) * 0.3 : 0, pet.z); pet.g.rotation.y = pet.rot;
+  if (pet.wings) { const f = Math.sin(time * 10) * 0.6; pet.wings[0].rotation.z = f; pet.wings[1].rotation.z = -f; }
+  else if (pet.legs && pet.legs.length >= 4) { const a = Math.sin(pet.walkT * 9) * 0.5; pet.legs[0].rotation.x = pet.legs[3].rotation.x = a; pet.legs[1].rotation.x = pet.legs[2].rotation.x = -a; }
+  if (P.hp < P.max) setBar(pet.bar, P.hp / P.max, pet.x, 1.4 + T.size + (T.fly ? 2.2 : 0), pet.z); else pet.bar.hidden = true;
+  pet.tag.hidden = d2(pet.x, pet.z, player.x, player.z) > 30 * 30; if (!pet.tag.hidden) { pet.tag.textContent = P.name; place(pet.tag, pet.x, 1.9 + T.size + (T.fly ? 2.2 : 0), pet.z); }
+}
+$('tameBtn').addEventListener('click', e => { e.stopPropagation(); if (!taming) { tameTgt = tameCandidate(); if (tameTgt) { taming = 0.001; play('spell'); } } });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('tameBtn').addEventListener(ev, e => e.stopPropagation()));
 function playerAttack() {
   const A = AXE[S.axe], R2 = A.range * A.range, cands = [], dmg = A.dmg * heroDmg();
-  for (const e of enemies) if (e.alive && d2(e.x, e.z, player.x, player.z) < R2 * (e.type === 'yeti' ? 1.6 : 1.1)) cands.push([0, e]);
-  for (const m of wilds) if (m.alive && d2(m.x, m.z, player.x, player.z) < (A.range + m.T.size * 0.6) ** 2) cands.push([4, m]);
-  for (const y of yaks) if (y.alive && d2(y.x, y.z, player.x, player.z) < R2 * 1.1) cands.push([1, y]);
+  for (const e of enemies) if (e.alive && !isWeakTame(e) && d2(e.x, e.z, player.x, player.z) < R2 * (e.type === 'yeti' ? 1.6 : 1.1)) cands.push([0, e]);
+  for (const m of wilds) if (m.alive && !isWeakTame(m) && d2(m.x, m.z, player.x, player.z) < (A.range + m.T.size * 0.6) ** 2) cands.push([4, m]);
+  for (const y of yaks) if (y.alive && !isWeakTame(y) && d2(y.x, y.z, player.x, player.z) < R2 * 1.1 + (y.A && y.A.fly ? 4 : 0)) cands.push([1, y]);
   for (const t of trees) if (t.alive && t.choppable && d2(t.x, t.z, player.x, player.z) < R2) cands.push([2, t]);
   for (const r of rocks) if (r.alive && !r.hidden && d2(r.x, r.z, player.x, player.z) < (Math.sqrt(R2) + 1.2) ** 2) { if (r.kind === 'gold' && !S.pick) { note('Crystal needs a crystal pick (Blacksmith, Town Hall II)'); continue; } cands.push([3, r]); }
   if (!cands.length) return false;
@@ -2197,7 +2280,7 @@ function update(dt) {
     if (player.atkT <= 0 && playerAttack()) { player.atkT = AXE[S.axe].int; player.swingT = 0.3; }
   }
   player.g.position.set(player.x, 0, player.z); player.g.rotation.y = player.rot;
-  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt);
+  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt); updateTaming(dt); updatePet(dt);
   if (player.swingT > 0) {
     player.swingT -= dt; const k = 1 - player.swingT / 0.3;
     axePivot.rotation.y = -k * TAU; trail.material.opacity = Math.sin(k * Math.PI) * 0.55;
@@ -2236,8 +2319,9 @@ function update(dt) {
     if (sp > 0) { const dx = y.tx - y.x, dz = y.tz - y.z, L = Math.hypot(dx, dz); if (L > 0.1) { y.x += dx / L * sp * dt; y.z += dz / L * sp * dt; y.rot = turnTo(y.rot, Math.atan2(dx, dz), 0.12); y.walkT += dt * sp; } }
     }
     const s = y.shake > 0 ? 1 + Math.sin((y.shake -= dt) * 40) * 0.08 : 1;
-    y.g.position.set(y.x, 0, y.z); y.g.rotation.y = y.rot; y.g.scale.setScalar(s);
-    const a = Math.sin(y.walkT * 6) * 0.5; y.legs[0].rotation.x = y.legs[3].rotation.x = a; y.legs[1].rotation.x = y.legs[2].rotation.x = -a;
+    y.g.position.set(y.x, y.A && y.A.fly ? 2.6 + Math.sin(time * 1.3 + y.id) * 0.6 : 0, y.z); y.g.rotation.y = y.rot; y.g.scale.setScalar(s * (y.sp === 'eagle' ? 1 : 1));
+    if (y.wings) { const f = Math.sin(time * 9 + y.id) * 0.6; y.wings[0].rotation.z = f; y.wings[1].rotation.z = -f; }
+    if (!y.wings) { const a = Math.sin(y.walkT * 6) * 0.5; y.legs[0].rotation.x = y.legs[3].rotation.x = a; y.legs[1].rotation.x = y.legs[2].rotation.x = -a; }
     if (y.hp < y.max) setBar(y.bar, y.hp / y.max, y.x, (y.A ? y.A.size : 2) + 0.4, y.z); else y.bar.hidden = true;
   }
 
@@ -2502,7 +2586,7 @@ function update(dt) {
       e.think = 0.5;
       const oh = outerRing().h; let prey = null, pd = 34 * 34;
       for (const wk of workers) if (!inSquare(wk.x, wk.z, oh + 0.5)) { const d = d2(wk.x, wk.z, e.x, e.z); if (d < pd) { pd = d; prey = wk; } }
-      let hero = prey || (S.downT <= 0 && d2(e.x, e.z, player.x, player.z) < 25 ? player : null);
+      let hero = prey || (pet && pet.tgt === e && d2(pet.x, pet.z, e.x, e.z) < 36 ? pet : null) || (S.downT <= 0 && d2(e.x, e.z, player.x, player.z) < 25 ? player : null);
       if (!hero) hero = nearest(Object.values(NET.remotes), r => d2(r.x, r.z, e.x, e.z) < 25);
       const guard = nearest(guards, g => d2(g.x, g.z, e.x, e.z) < 16);
       e.tgt = hero || guard || null;
@@ -2512,7 +2596,7 @@ function update(dt) {
       }
     }
     const t = e.tgt;
-    if (isGuest()) {} else if (t && (t === player || (t.kind === 'remote' && NET.remotes[t.peer]) || (t.kind === 'guard' && t.alive) || (t.kind === 'worker' && t.hp > 0 && workers.includes(t)) || (t.kind === 'civ' && t.g.parent))) {
+    if (isGuest()) {} else if (t && (t === player || (t.kind === 'remote' && NET.remotes[t.peer]) || (t.kind === 'guard' && t.alive) || (t.kind === 'worker' && t.hp > 0 && workers.includes(t)) || (t.kind === 'pet' && t === pet) || (t.kind === 'civ' && t.g.parent))) {
       const dd = Math.sqrt(d2(e.x, e.z, t.x, t.z));
       if (dd > (e.type === 'yeti' ? 1.8 : 1.2)) {
         const nx = e.x + (t.x - e.x) / dd * e.speed * 1.15 * dt, nz = e.z + (t.z - e.z) / dd * e.speed * 1.15 * dt;
@@ -2521,7 +2605,7 @@ function update(dt) {
       } else {
         e.rot = turnTo(e.rot, Math.atan2(t.x - e.x, t.z - e.z), 0.3); e.atkT -= dt;
         if (e.atkT <= 0) { e.atkT = 1; e.shake = 0.15;
-          if (t === player) hurtHero(e.dmgUnit); else if (t.kind === 'remote') netGive(t.peer, 'hurt', e.dmgUnit); else if (t.kind === 'guard') t.hp -= e.dmgUnit; else if (t.kind === 'worker') { hurtWorker(t, e.dmgUnit); if (t.hp <= 0) e.tgt = null; } else { killCivilian(t); e.tgt = null; } }
+          if (t === player) hurtHero(e.dmgUnit); else if (t.kind === 'remote') netGive(t.peer, 'hurt', e.dmgUnit); else if (t.kind === 'guard') t.hp -= e.dmgUnit; else if (t.kind === 'worker') { hurtWorker(t, e.dmgUnit); if (t.hp <= 0) e.tgt = null; } else if (t.kind === 'pet') { hurtPet(e.dmgUnit); if (!pet) e.tgt = null; } else { killCivilian(t); e.tgt = null; } }
       }
     } else if (e.seg && e.seg.built && e.seg.ring.active) {
       const [cx, cz] = segClosest(e.x, e.z, e.seg);
@@ -2792,8 +2876,9 @@ function showStats() {
   ].join('');
   const relics = (S.relics || []).length ? '<ul>' + S.relics.slice(-12).reverse().map(r => `<li>${r}</li>`).join('') + '</ul>' : '<p class="none">Open treasure chests in monster camps to find relics.</p>';
   const W = S.wardrobe || { helm: [0], cape: [0] }, wear = S.wear || {};
+  const petRow = `<div class="ward"><b>Pet</b>${S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() + ' · ' + Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : S.tamer ? 'None yet: weaken a creature, then tap Tame' : 'Locked: needs a Beast Charm (slay a quest legend, reach hero level 10, or find one in treasure)'}</div>`;
   const ownR = S.rangedOwn || [], rangedRow = `<div class="ward"><b>Ranged</b><button type="button" data-ranged="-1" aria-pressed="${S.rangedOn < 0}">None</button>` + ownR.map(i => `<button type="button" data-ranged="${i}" aria-pressed="${S.rangedOn === i}">${RANGED[i].n}</button>`).join('') + '</div>';
-  const ward = rangedRow + ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
+  const ward = petRow + rangedRow + ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
   $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Forge bows and rifles at the blacksmith; magic staffs come from treasure. Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
   $('stats').hidden = false;
 }
@@ -2808,6 +2893,7 @@ function openTreasure(camp) {
   if (S.weapon < t + 1 && t < 2 && Math.random() < 0.3) gifts.push(() => { S.weapon = Math.min(2, Math.max(S.weapon, t) + (S.weapon >= t ? 1 : 0)); return [WEAPONS[S.weapon].n, 'A finer weapon!']; });
   if (S.armorLv < t) gifts.push(() => { S.armorLv = t; return [ARMORS[t].n, 'Armour: take ' + Math.round(ARMORS[t].a * 100) + '% less damage']; });
   if (t === 2 && !S.pick) gifts.push(() => { S.pick = true; return ['Crystal Pick', 'You can now mine crystal veins']; });
+  if (!S.tamer && t >= 2 && Math.random() < 0.12) gifts.push(() => { grantCharm(); return ['Beast Charm', 'You can now tame weakened creatures']; });
   { const own = S.rangedOwn = S.rangedOwn || [], staff = [3, 4, 5].filter(i => !own.includes(i) && (i - 3) < t);
     if (staff.length) gifts.push(() => { const i = staff[0]; own.push(i); S.rangedOn = i; applyMyLook(); return [RANGED[i].n, 'Magic: fires on its own at threats · switch under Hero']; }); }
   for (const slot of ['helm', 'cape']) {
@@ -2854,9 +2940,10 @@ function updateWilds(dt) {
     let moving = false;
     if (w.aggro) {
       const reach = 1.1 + T.size * 0.5;
-      if (dp > reach) { w.x += (player.x - w.x) / dp * T.speed * dt; w.z += (player.z - w.z) / dp * T.speed * dt; moving = true; }
-      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; hurtHero(T.dmg * 1.7 * (1 + S.th * 0.25) * w.dm * nightMean()); } }
-      w.rot = turnTo(w.rot, Math.atan2(player.x - w.x, player.z - w.z), 0.2);
+      const vsPet = pet && (pet.tgt === w || d2(pet.x, pet.z, w.x, w.z) < d2(player.x, player.z, w.x, w.z)), ax = vsPet ? pet.x : player.x, az = vsPet ? pet.z : player.z, da = Math.hypot(ax - w.x, az - w.z) || 1;
+      if (da > reach) { w.x += (ax - w.x) / da * T.speed * dt; w.z += (az - w.z) / da * T.speed * dt; moving = true; }
+      else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; const hit = T.dmg * 1.7 * (1 + S.th * 0.25) * w.dm * nightMean(); if (vsPet) hurtPet(hit); else hurtHero(hit); } }
+      w.rot = turnTo(w.rot, Math.atan2(ax - w.x, az - w.z), 0.2);
     } else if (dh > 0.4) {
       w.x += (w.hx - w.x) / dh * T.speed * 0.6 * dt; w.z += (w.hz - w.z) / dh * T.speed * 0.6 * dt; moving = true;
       w.rot = turnTo(w.rot, Math.atan2(w.hx - w.x, w.hz - w.z), 0.2); w.hp = Math.min(w.max, w.hp + w.max * 0.1 * dt);
@@ -3433,7 +3520,7 @@ $('coop').addEventListener('click', e => {
 const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { hauler: [0, 17], mender: [-3, 9.4], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
-const HERO_KEYS = ['rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
+const HERO_KEYS = ['tamer', 'pet', 'rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
 let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
 function savePersonal() {
   if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level, ranged: padRanged.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
