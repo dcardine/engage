@@ -908,7 +908,7 @@ let reserved = 0;
 const carried = () => carry.log.length + carry.meat.length + carry.ore.length + carry.stone.length;
 const room = () => cap() - carried() - reserved - NET.incoming;
 const pop = () => S.civ + workers.length + guards.length;
-const housing = () => [0, 8, 14, 24][S.th] + S.houses * (4 + (S.houseLv || 0) * 3);   // bunk beds and lofts add room to every house
+const housing = () => [0, 8, 14, 24][S.th] + (S.castle || 0) * 16 + S.houses * (4 + (S.houseLv || 0) * 3);   // bunk beds and lofts add room to every house
 const warmCap = () => 30 + pop() * 3;
 const foodCap = () => 30 + pop() * 3;
 const heroMax = () => 100 + (S.lvl - 1) * 12 + S.bonusHp;
@@ -1093,7 +1093,7 @@ function makeRing(tier) {
   rings.push(r); return r;
 }
 for (let t = 0; t < 3; t++) makeRing(t);
-const segMax = s => SEG_HP[s.tier] * (s.isGate ? 1.5 : 1) * (S.masonry ? 2 : 1) * (1 + (S.wallLv || 0) * 0.75);
+const segMax = s => SEG_HP[s.tier] * (s.isGate ? 1.5 : 1) * (S.masonry ? 2 : 1) * (1 + (S.wallLv || 0) * 0.75) * (1 + (S.castle || 0) * 0.8);   // castle stone walls
 function setSegBuilt(s, on) { s.built = on; if (on) { s.stone = S.masonry || s.tier > 0; s.max = segMax(s); s.hp = s.max; } segVisual(s); }
 // the camp starts with the north and south walls and the gate standing; east and west are ruins
 rings[0].active = true;
@@ -1314,6 +1314,12 @@ let thGroup = null;
 function modelTownHall() {
   if (thGroup) scene.remove(thGroup);
   const g = grp(0, 15.2); thGroup = g; const t = S.th;
+  if (S.castle) { const c = S.castle, h = 3 + c * 1.6;
+    [[-3.6, -2.6], [3.6, -2.6], [-3.6, 2.6], [3.6, 2.6]].forEach(([x, z]) => { const tw = mk(Cyl(0.9, 1.05, h, 12), 0x9aa3ad); tw.position.set(x, h / 2, z); g.add(tw);
+      const rf = mk(Cone(1.2, 1.8, 12), 0x2b4a74); rf.position.set(x, h + 0.9, z); g.add(rf); const sn = mk(Cone(0.7, 0.6, 12), 0xffffff); sn.position.set(x, h + 1.55, z); g.add(sn);
+      const pole = mk(Cyl(0.04, 0.04, 1.2, 5), 0x5b3416); pole.position.set(x, h + 2.3, z); g.add(pole); const fl = mk(Box(0.7, 0.42, 0.04), 0xc8452f); fl.position.set(x + 0.37, h + 2.6, z); g.add(fl); });
+    [[0, -2.6, 7.2, 0.6], [0, 2.6, 2.4, 0.6], [-3.6, 0, 0.6, 5.2], [3.6, 0, 0.6, 5.2]].forEach(([x, z, w, d]) => { const wl = mk(Box(w, 2 + c * 0.6, d), 0x8f99a6); wl.position.set(x, (2 + c * 0.6) / 2, z); g.add(wl); });
+  }
   if (t >= 2) { const f = mk(Box(5.6, 0.6, 4.2), 0x8f99a6); f.position.y = 0.3; g.add(f); }
   const y0 = t >= 2 ? 0.6 : 0;
   const b = mk(Box(4.6, 2.2, 3.4), t >= 3 ? 0xc9ced6 : 0x9b6338); b.position.y = y0 + 1.1; g.add(b);
@@ -1643,7 +1649,7 @@ function buildTower(x, z) {
   const archer = makePerson(0x2f6d5a, 0xf3e6cf); archer.g.position.y = 3.1; archer.g.userData.keep = true; archer.g.scale.setScalar(0.85); g.add(archer.g);
   skin(g, 'watchtower', 5.6, { by: 'y', parts: g.children.filter(c => c !== archer.g), after: m => { archer.g.position.y = 3.6; } });
   const t = { x, z, g, archer, roof, cd: 0, lv: 1 };
-  popIn(g); towers.push(t); addObs(x, z, 0.95); burst(x, 1, z, 0xa86b3d, 12);
+  popIn(g); towers.push(t); stoneTower(t); addObs(x, z, 0.95); burst(x, 1, z, 0xa86b3d, 12);
   // each tower has its own upgrade space; higher tiers unlock with the Town Hall
   const toC = Math.atan2(C.x - x, C.z - z);
   const spots = [toC, toC + 0.9, toC - 0.9, toC + 1.8, toC - 1.8].map(a => [x + Math.sin(a) * 2.6, z + Math.cos(a) * 2.6]);
@@ -1766,7 +1772,7 @@ const ROLE_PILE = { logger: woodPile, hunter: meatPile, stonecutter: stonePile, 
 
 const maxWorkers = { hauler: () => [0, 1, 2, 3][S.th], mender: () => [0, 1, 2, 3][S.th], logger: () => [0, 2, 3, 4][S.th], hunter: () => [0, 0, 2, 3][S.th], stonecutter: () => [0, 0, 2, 3][S.th], miner: () => [0, 0, 0, 3][S.th] };
 const roleCount = r => workers.filter(w => w.role === r).length;
-const maxGuards = () => [0, 0, 3, 6][S.th];
+const maxGuards = () => [0, 0, 3, 6][S.th] + (S.castle || 0) * 6;   // each castle level adds two battalions
 const B = {};   // which plots have been built
 
 function plot(id, cfg) {
@@ -1788,6 +1794,18 @@ const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL II
 plot('cook', { x: cookStall.x, z: cookStall.z, label: 'COOKHOUSE', cost: { log: 30, cash: 15 },
   onBuy: () => { S.cook = true; S.food = foodCap() * 0.6; openStall(cookStall); banner('Cookhouse built!', true, 'Your people now need food. Hunt yaks!'); } });
 plot('garden', { x: 5.6, z: 13.4, label: 'GARDEN', cost: { log: 20, cash: 20 }, req: () => S.cook, onBuy: () => { garden = modelGarden(5.6, 13.4); openPile(gardenPile); banner('Garden planted!', true, 'Veggies pile up beside it; sell them at the cookhouse'); } });
+// Castle upgrades: stone keep, stone walls and towers, guard battalions; Castle III draws the dragons
+const padCastle = plot('castle', { x: 0, z: 10.6, labels: ['CASTLE I', 'CASTLE II', 'CASTLE III'], costs: [{ stone: 160, log: 120, cash: 800 }, { stone: 240, ore: 40, cash: 1500 }, { stone: 320, ore: 90, cash: 3000 }], tiers: [3, 3, 3],
+  requires: () => padTH.done && rings[2].complete && padCastle.level < 3,
+  onBuy: lv => { S.castle = lv; modelTownHall(); towers.forEach(stoneTower); rings.forEach(r => r.segs.forEach(sg => { if (sg.built) { sg.stone = true; const f = sg.hp / sg.max; sg.max = segMax(sg); sg.hp = sg.max * f; segVisual(sg); } }));
+    padTrain.label = 'TRAIN BATTALION'; drawPad(padTrain); play('fanfare');
+    banner('Castle ' + ROMAN[lv] + '!', true, lv < 3 ? 'Stone walls and towers, room for more guard battalions' : 'The dragons have noticed you. Survive three dragon sieges'); }, xp: 120 });
+function stoneTower(t) {
+  if (!S.castle) return; if (t.stone) t.g.remove(t.stone);
+  const base = mk(Cyl(1.25, 1.45, 1.2 + S.castle * 0.5, 10), 0x8f99a6); base.position.y = (1.2 + S.castle * 0.5) / 2;
+  const cap = mk(Cyl(1.35, 1.35, 0.2, 10), 0xffffff); cap.position.y = 1.2 + S.castle * 0.5; base.add(cap); cap.position.y -= base.position.y;
+  t.g.add(base); t.stone = base;
+}
 const padHomes = plot('homes', { x: 0, z: 2.6, labels: ['BUNK BEDS', 'STONE LOFTS'], costs: [{ log: 60, stone: 30, cash: 150 }, { stone: 80, ore: 20, cash: 400 }], tiers: [2, 3],
   requires: () => padHomes.level < 2 && S.houses > 0 && S.th >= padHomes.tiers[padHomes.level],
   onBuy: lv => { S.houseLv = lv; banner(lv === 1 ? 'Bunk beds!' : 'Stone lofts!', true, 'Every house now holds ' + (4 + lv * 3) + ' villagers'); }, xp: 40 });
@@ -1839,8 +1857,8 @@ plot('houseD', { x: 16.5, z: 1, label: 'HOUSE', cost: { log: 30, stone: 10 }, ti
 plot('houseE', { x: -16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 }, tier: 2, req: () => B.houseD, onBuy: () => { modelHouse(-16.5, 6.5); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('houseF', { x: 16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 }, tier: 2, req: () => B.houseE, onBuy: () => { modelHouse(16.5, 6.5); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('barracks', { x: -16.5, z: 14, label: 'BARRACKS', cost: { log: 60, stone: 30, cash: 100 }, tier: 2, onBuy: () => { modelBarracks(-16.5, 14); banner('Barracks built!', true, 'Train guards to defend the town'); } });
-plot('train', { x: -16.5, z: 18.4, label: 'TRAIN GUARD', cost: { meat: 8, cash: 40 }, repeat: true, xp: 10,
-  requires: () => B.barracks, canPay: () => hireOk('guard'), hire: 'guard', onBuy: () => spawnGuard(-16.5, 16.2) });
+const padTrain = plot('train', { x: -16.5, z: 18.4, label: 'TRAIN GUARD', cost: { meat: 8, cash: 40 }, repeat: true, xp: 10,
+  requires: () => B.barracks, canPay: () => hireOk('guard'), hire: 'guard', onBuy: () => { const n = S.castle ? Math.min(3, maxGuards() - guards.length) : 1; for (let i = 0; i < n; i++) spawnGuard(-16.5 + (i - 1) * 1.2, 16.2); if (n > 1) banner('A battalion musters!', true, n + ' guards join the garrison'); } });
 plot('hunt', { x: 16.5, z: 14, label: 'HUNTER LODGE', cost: { log: 40, cash: 60 }, tier: 2, onBuy: () => { modelHut(16.5, 14, 0x6b3a22, 'meat', 'hunter_lodge'); openPile(meatPile); banner('Hunter lodge built!', true, 'Hunters stack meat beside the lodge'); } });
 plot('hireHunt', { x: 13.4, z: 18.6, label: 'HIRE HUNTER', cost: { cash: 60 }, repeat: true, xp: 10,
   requires: () => B.hunt, canPay: () => hireOk('hunter'), hire: 'hunter', onBuy: () => spawnWorker('hunter', 16.5, 16.3) });
@@ -2151,7 +2169,7 @@ function spawnGuard(x, z) {
   const tip = mk(Cone(0.08, 0.3, 4), 0xdfe5ec); tip.position.set(0.42, 2.4, 0.1); p.g.add(tip);
   const shield = mk(Box(0.1, 0.6, 0.5), 0x8f2f25); shield.position.set(-0.45, 0.95, 0.1); p.g.add(shield);
   p.g.position.set(x, 0, z); scene.add(p.g);
-  const hp = S.guardLv ? 70 : 45;
+  const hp = (S.guardLv ? 70 : 45) * (1 + (S.castle || 0) * 0.5);
   guards.push({ ...p, x, z, rot: 0, hp, max: hp, t: 0, walkT: 0, tgt: null, idx: guards.length, bar: makeBar('ally'), kind: 'guard', alive: true });
   burst(x, 1, z, 0x4a5f86, 10); floatText('Guard ready', x, 2.6, z, 'xp');
 }
@@ -2263,9 +2281,11 @@ const RAID = {
   troll: { hp: 55, hpW: 6, speed: 1.9, wall: 10, unit: 15, xp: 28, loot: 14, size: 1.6, sc: 1.7, make: () => makeTroll() },
   yeti: { hp: 70, hpW: 8, speed: 1.7, wall: 9, unit: 20, xp: 40, loot: 25, size: 1.8, make: () => makeYeti() },
   wraith: { hp: 45, hpW: 5, speed: 2.7, wall: 5, unit: 17, xp: 34, loot: 18, size: 1.4, make: () => makeWraith() },
+  dragon: { hp: 900, hpW: 30, speed: 2.2, wall: 40, unit: 45, xp: 300, loot: 250, size: 2.4, sc: 1.6, make: () => makeDragon() },
 };
 const RAID_IDS = Object.keys(RAID);
 function raidPack(w) {
+  if ((S.castle || 0) >= 3) { const n = 1 + Math.min(2, S.dragonWins || 0), out = Array(n).fill('dragon'); for (let i = 0; i < 8 + w; i++) out.push(['troll', 'yeti', 'wraith', 'bear'][i % 4]); S.siege = true; return out; }
   const pool = ['wolf', 'goblin'].concat(w >= 2 ? ['spider'] : [], w >= 3 ? ['bear'] : [], w >= 4 ? ['troll', 'yeti'] : [], w >= 6 ? ['wraith'] : []);
   const big = ['bear', 'troll', 'yeti', 'wraith'], n = 4 + Math.floor(w * 1.6) + Math.floor((dayNo() - 1) / 2), out = [];
   const lead = pool[Math.random() * pool.length | 0];   // each night has a leading kind plus a mix
@@ -2641,6 +2661,7 @@ function goal() {
     return padGoal(cand[0]);
   }
   if (S.th < 3) return { txt: 'Secure every wall to unlock the next Town Hall', tgt: null };
+  if ((S.castle || 0) >= 3 && (S.dragonWins || 0) < 3) return { txt: 'Final battle: survive dragon siege ' + ((S.dragonWins || 0) + 1) + ' of 3 at nightfall', tgt: null };
   return { txt: `Survive raid ${S.wave + 1}. Keep your people warm and fed`, tgt: null };
 }
 
@@ -2920,11 +2941,11 @@ function update(dt) {
 
   /* --- towers --- */
   if (!isGuest()) for (const t of towers) {
-    t.cd -= dt; const rng = (S.horn ? 22 : 17) + (t.lv - 1) * 2.5 + (S.rangeLv || 0) * 4; let best = null, bd = rng * rng;
+    t.cd -= dt; const rng = (S.horn ? 22 : 17) + (t.lv - 1) * 2.5 + (S.rangeLv || 0) * 4 + (S.castle || 0) * 3; let best = null, bd = rng * rng;
     for (const e of enemies) if (e.alive) { const d = d2(e.x, e.z, t.x, t.z); if (d < bd) { bd = d; best = e; } }
     if (best) {
       t.archer.g.rotation.y = Math.atan2(best.x - t.x, best.z - t.z);
-      if (t.cd <= 0) { t.cd = [0.75, 0.55, 0.42][S.towerLv] * [1, 0.75, 0.7, 0.6][t.lv - 1]; const a = new THREE.Mesh(arrowGeo, mat(0x4a3424)); a.position.set(t.x, 4, t.z); scene.add(a); arrows.push({ m: a, e: best, t: 0, dmg: [2, 3, 5][S.towerLv] * [1, 1.5, 2.4, 3][t.lv - 1], frost: t.lv >= 4 }); play('arrow', 0, t.x, t.z); }
+      if (t.cd <= 0) { t.cd = [0.75, 0.55, 0.42][S.towerLv] * [1, 0.75, 0.7, 0.6][t.lv - 1]; const a = new THREE.Mesh(arrowGeo, mat(0x4a3424)); a.position.set(t.x, 4, t.z); scene.add(a); arrows.push({ m: a, e: best, t: 0, dmg: [2, 3, 5][S.towerLv] * [1, 1.5, 2.4, 3][t.lv - 1] * (1 + (S.castle || 0) * 0.6), frost: t.lv >= 4 }); play('arrow', 0, t.x, t.z); }
     }
   }
   for (let i = arrows.length - 1; i >= 0; i--) {
@@ -2980,7 +3001,7 @@ function update(dt) {
     if (g.tgt) {
       const dd = Math.sqrt(d2(g.x, g.z, g.tgt.x, g.tgt.z));
       if (dd > 1.5) { walkTo(g, g.tgt.x, g.tgt.z, 3.6, dt); moving = true; }
-      else { g.rot = turnTo(g.rot, Math.atan2(g.tgt.x - g.x, g.tgt.z - g.z), 0.3); g.t -= dt; if (g.t <= 0) { g.t = 0.7; damageEnemy(g.tgt, S.guardLv ? 3 : 2); } }
+      else { g.rot = turnTo(g.rot, Math.atan2(g.tgt.x - g.x, g.tgt.z - g.z), 0.3); g.t -= dt; if (g.t <= 0) { g.t = 0.7; damageEnemy(g.tgt, (S.guardLv ? 3 : 2) * (1 + (S.castle || 0) * 0.6)); } }
     } else if (d2(g.x, g.z, post.x, post.z) > 0.3) { walkTo(g, post.x, post.z, 3, dt); moving = true; }
     else g.rot = turnTo(g.rot, Math.PI, 0.1);
     if (moving) g.walkT += dt;
@@ -3004,6 +3025,10 @@ function update(dt) {
   } else if (S.raidOn && (S.raidT = (S.raidT || 0) + dt) > 180 && enemies.some(e => e.alive)) {   // a raid that stalls (say, gnawing a gate out of tower range) gives up
     enemies.forEach(e => { if (e.alive) { e.alive = false; scene.remove(e.g); e.bar.remove(); burst(e.x, 1, e.z, 0x7d8794, 8); } });
     S.raidOn = false; S.raidT = 0; S.waveT = Math.max(70, 160 - S.wave * 4 - dayNo() * 3); banner('The raiders retreat', true, 'They will be back');
+  } else if (S.raidOn && !enemies.some(e => e.alive) && S.siege) { S.siege = false; S.raidT = 0; S.raidOn = false; S.dragonWins = (S.dragonWins || 0) + 1; gainXP(400);
+    if (S.dragonWins >= 3) { S.victory = true; banner('VICTORY! Frosthold stands forever', true, 'All three dragon sieges defeated. Keep playing as long as you like'); play('fanfare'); }
+    else { banner('Dragon siege ' + S.dragonWins + ' of 3 repelled!', true, 'More dragons will come next night'); play('fanfare'); }
+    payToPallet(thPal, 500 * S.dragonWins, new THREE.Vector3(DOOR.x, 2, DOOR.z));
   } else if (S.raidOn && !enemies.some(e => e.alive)) { S.raidT = 0; S.raidOn = false; S.waveT = Math.max(70, 160 - S.wave * 4 - dayNo() * 3); banner('Raid repelled!', true); gainXP(10 + S.wave * 5); }
   const core = coreRing();
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -3095,7 +3120,7 @@ function update(dt) {
   syncCash();
   const now = { cash: S.wallet, log: carry.log.length, meat: carry.meat.length, ore: carry.ore.length, stone: carry.stone.length };
   for (const k in now) if (now[k] !== shown[k]) { vals[k].textContent = now[k]; shown[k] = now[k]; }
-  $('thName').textContent = ['', 'Camp', 'Town', 'Citadel'][S.th] + ' · TH ' + ROMAN[S.th];
+  $('thName').textContent = (S.castle ? 'Castle · ' + ROMAN[S.castle] : ['', 'Camp', 'Town', 'Citadel'][S.th] + ' · TH ' + ROMAN[S.th]);
   $('popTxt').textContent = S.civ + '/' + housing() + (P > S.civ ? ' +' + (P - S.civ) : '');
   const wf = S.warm / warmCap(), ff = S.cook ? S.food / foodCap() : 0;
   $('warmBar').style.width = (wf * 100) + '%'; $('warmTxt').textContent = Math.round(wf * 100) + '%'; $('mWarm').classList.toggle('low', wf < 0.25);
@@ -3717,7 +3742,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['rangeLv', 'lastRaidDay', 'wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['castle', 'dragonWins', 'rangeLv', 'lastRaidDay', 'wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner', 'hauler', 'mender'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -4165,7 +4190,7 @@ function loadGame() {
     if (d.padsById) pads.forEach(p => { const v = p.id && d.padsById[p.id]; if (!v) return; p.level = v[0]; p.done = !!v[1]; p.paid = v[2] || {}; });
     else {   // older saves stored spaces by position in a list that has since grown: repair what we can from what was built
       d.pads.forEach(([lv, done, paid], i) => { const p = pads[i]; if (p && !p.id) { p.level = lv; p.done = !!done; p.paid = paid || {}; } });
-      const lvOf = { th: S.th - 1, axe: Math.max(0, S.axe - 1), bag: S.bag, arrow: S.towerLv, trange: S.rangeLv || 0, homes: S.houseLv || 0, reinforce: S.wallLv || 0, drill: S.guardLv ? 1 : 0 };
+      const lvOf = { th: S.th - 1, axe: Math.max(0, S.axe - 1), bag: S.bag, arrow: S.towerLv, castle: S.castle || 0, trange: S.rangeLv || 0, homes: S.houseLv || 0, reinforce: S.wallLv || 0, drill: S.guardLv ? 1 : 0 };
       pads.forEach(p => { if (!p.id) return; p.paid = {};
         if (p.repeat || p.hire) { p.done = false; p.level = 0; }
         else if (p.id in lvOf) { p.level = lvOf[p.id] || 0; p.done = p.labels ? p.level >= p.costs.length : !!B[p.id]; }
@@ -4173,6 +4198,7 @@ function loadGame() {
         else if (!p.personal) { const old = d.pads.find(() => false); p.done = false; } });
     }
     pads.forEach(p => { if (p.repeat || p.hire) p.done = false; drawPad(p); });
+    if (S.castle) { modelTownHall(); towers.forEach(stoneTower); padTrain.label = 'TRAIN BATTALION'; drawPad(padTrain); }
     d.rings.forEach(([act, comp, segs], i) => {
       const r = rings[i]; r.active = !!act; r.complete = !!comp;
       segs.forEach(([b, hp, br, st], j) => { const sg = r.segs[j]; if (!sg) return; sg.built = !!b; sg.stone = !!st; sg.max = segMax(sg); sg.hp = b ? Math.min(hp, sg.max) : 0; sg.broken = !!br; segVisual(sg); });
@@ -4257,6 +4283,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, enterDungeon, dunKeys, dun: () => DUN, dstep: dt => dungeonStep(dt), mshots: () => mshots, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, padCastle, padTH, raidPack, maxGuards, guards, enterDungeon, dunKeys, dun: () => DUN, dstep: dt => dungeonStep(dt), mshots: () => mshots, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>

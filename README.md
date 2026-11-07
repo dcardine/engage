@@ -109,6 +109,8 @@ Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp
 | Town (TH II) | Wall in the larger town square (logs + stone, three gates) | Barracks and guards, hunter lodge, storehouse and quarry lodge, fishery, more houses and towers, Masonry, Arrows II, Axe III, Pack 200 |
 | Citadel (TH III) | Raise the citadel wall (stone + gold) | Gold mine, miner camp, gold trader, treasury, carpenter, Guard drill, Arrows III, Axe IV, Pack 400 |
 
+After Town Hall III and the citadel wall, the Town Hall space offers **Castle I, II and III** (stone, crystal and gold). Each level turns the hall into a bigger stone keep with turrets and banners, makes every wall stronger (stone), gives towers stone bases with more damage and range, adds housing, makes guards tougher and allows two more guard battalions (Train Battalion raises three guards at once). At **Castle III** the final battles begin: each night brings a dragon siege (one dragon, then two, then three, with trolls, yetis, wraiths and bears). Defeat all three for victory; you can keep playing after.
+
 Finishing a new wall ring tears down the old one and clears the forest inside it, giving the town new ground. Town Hall upgrades need the current ring fully secured.
 
 ## Workers and defense
