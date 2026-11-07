@@ -1722,7 +1722,24 @@ const yaks = [];
 // Herds graze in meadows scattered all around the valley, outside the town walls.
 const HERDS = (() => { const rnd = mulberryEarly(919), out = []; out.push([C.x + 30, C.z - 26], [C.x - 34, C.z + 24], [C.x + 28, C.z + 36]); for (let i = 0; i < 18; i++) { const a = i / 18 * TAU + rnd() * 0.5, r = 40 + rnd() * 240; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
 const yakZone = () => ({ x0: -80, x1: 80, z0: -70, z1: 90 });
+// Deer, rabbits and boars: their own simple shapes until a generated model exists
+function makeGame(model, size) {
+  const g = new THREE.Group(), L = {
+    deer: { body: 0xa0703f, belly: 0xe8d8c0, len: 0.75, h: 1.0, leg: 0.07, bw: 0.32 },
+    rabbit: { body: 0xf3f1ec, belly: 0xffffff, len: 0.22, h: 0.22, leg: 0.04, bw: 0.16 },
+    boar: { body: 0x4e3424, belly: 0x6b4a33, len: 0.6, h: 0.55, leg: 0.08, bw: 0.32 } }[model];
+  const body = mk(new THREE.SphereGeometry(1, 14, 10), L.body); body.scale.set(L.bw, L.bw * 0.95, L.len); body.position.y = L.h + L.bw * 0.4; g.add(body);
+  const head = mk(new THREE.SphereGeometry(L.bw * 0.6, 12, 8), L.body); head.position.set(0, L.h + L.bw * (model === 'deer' ? 1.6 : 0.8), L.len * 0.95); g.add(head);
+  const legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => { const l = mk(Cyl(L.leg, L.leg * 0.8, L.h, 6), model === 'deer' ? 0x7a5230 : L.body); l.geometry.translate(0, -L.h / 2, 0); l.position.set(sx * L.bw * 0.55, L.h, sz * L.len * 0.6); g.add(l); return l; });
+  if (model === 'deer') [-1, 1].forEach(k => { const a = mk(Cyl(0.03, 0.04, 0.6, 5), 0xd9c7a2); a.position.set(k * 0.15, L.h + 0.85, L.len * 0.95); a.rotation.z = -k * 0.5; g.add(a); const t = mk(Cyl(0.025, 0.03, 0.3, 5), 0xd9c7a2); t.position.set(k * 0.3, L.h + 1.05, L.len * 1.0); t.rotation.set(0.6, 0, -k * 0.2); g.add(t); });
+  if (model === 'rabbit') { [-1, 1].forEach(k => { const e = mk(new THREE.SphereGeometry(0.05, 8, 6).scale(0.8, 3.2, 0.6), 0xf3f1ec); e.position.set(k * 0.05, L.h + 0.4, L.len * 0.9); e.rotation.z = -k * 0.2; g.add(e); }); const tail = mk(new THREE.SphereGeometry(0.07, 8, 6), 0xffffff); tail.position.set(0, L.h + 0.1, -L.len); g.add(tail); }
+  if (model === 'boar') { [-1, 1].forEach(k => { const t = mk(Cone(0.035, 0.22, 6), 0xf1ead8); t.position.set(k * 0.12, L.h + 0.1, L.len * 1.2); t.rotation.x = -1.0; g.add(t); }); const sn = mk(Cyl(0.09, 0.1, 0.12, 8), 0xc98a7a); sn.rotation.x = Math.PI / 2; sn.position.set(0, L.h + L.bw * 0.7, L.len * 1.25); g.add(sn);
+    const mane = mk(Box(0.08, 0.16, L.len * 1.4), 0x2e1f14); mane.position.y = L.h + L.bw * 1.35; g.add(mane); }
+  skin(g, model, size, { parts: g.children.slice() });
+  return { g, legs };
+}
 function makeYak(model = 'yak', size = 2.0) {
+  if (model !== 'yak') return makeGame(model, size);
   const g = new THREE.Group();
   const body = mk(new THREE.SphereGeometry(0.52, 18, 12), 0x6b4a33); body.scale.set(1.05, 0.9, 1.55); body.position.y = 1.2; g.add(body);
   const shag = mk(new THREE.SphereGeometry(0.55, 16, 10).scale(1.1, 0.45, 1.5), 0x4e3424); shag.position.y = 0.92; g.add(shag);
