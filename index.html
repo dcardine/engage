@@ -2181,13 +2181,13 @@ function update(dt) {
     if (f && !f.moving) {
       const need = f.want - f.got - f.pend; s.serveT -= dt;
       if (need > 0 && s.stock > 0 && s.serveT <= 0) {
-        s.serveT = 0.2; s.stock--;
+        s.serveT = [0.2, 0.2, 0.15, 0.11][S.th]; s.stock--;   // bigger towns buy faster
         const cm = s.counter.pop(), m = itemMesh(s.type);
         if (cm) { m.position.copy(cm.position); scene.remove(cm); } else m.position.copy(counterSlot(s, 0));
         scene.add(m); f.pend++;
         fly(m, () => new THREE.Vector3(f.x, 1.3 + f.items.length * ITEM_H[s.type], f.z - 0.35), 0.25, 0.8, () => {
           scene.remove(m); f.pend--; f.got++;
-          if (s.supply === 'warm') S.warm = Math.min(warmCap(), S.warm + 1);
+          if (s.supply === 'warm') S.warm = Math.min(warmCap(), S.warm + [1, 1, 2, 3][S.th]);   // logs are split and stacked better as the town grows
           if (s.supply === 'food') S.food = Math.min(foodCap(), S.food + 3);
           const im = itemMesh(s.type); im.position.set(0, 1.25 + f.items.length * ITEM_H[s.type], -0.35); f.g.add(im); f.items.push(im);
         });
@@ -2356,7 +2356,10 @@ function update(dt) {
       banner('Raid ' + S.wave + '!', false, nW + ' wolves' + (nY ? ' and ' + nY + ' yeti' : '') + ' incoming');
       play('horn');
     }
-  } else if (S.raidOn && !enemies.some(e => e.alive)) { S.raidOn = false; S.waveT = Math.max(70, 160 - S.wave * 4 - dayNo() * 3); banner('Raid repelled!', true); gainXP(10 + S.wave * 5); }
+  } else if (S.raidOn && (S.raidT = (S.raidT || 0) + dt) > 180 && enemies.some(e => e.alive)) {   // a raid that stalls (say, gnawing a gate out of tower range) gives up
+    enemies.forEach(e => { if (e.alive) { e.alive = false; scene.remove(e.g); e.bar.remove(); burst(e.x, 1, e.z, 0x7d8794, 8); } });
+    S.raidOn = false; S.raidT = 0; S.waveT = Math.max(70, 160 - S.wave * 4 - dayNo() * 3); banner('The raiders retreat', true, 'They will be back');
+  } else if (S.raidOn && !enemies.some(e => e.alive)) { S.raidT = 0; S.raidOn = false; S.waveT = Math.max(70, 160 - S.wave * 4 - dayNo() * 3); banner('Raid repelled!', true); gainXP(10 + S.wave * 5); }
   const core = coreRing();
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
@@ -3408,6 +3411,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, applySeason, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>

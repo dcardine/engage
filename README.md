@@ -71,7 +71,7 @@ Models come from Meshy (`tools/meshy_assets.py`, cached so nothing is paid for t
 Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp is secure, Trade after the first house and Folk after the blacksmith, and later upgrades wait for Town Hall II and III: Warm Cloaks, Smokehouse, Hearth Stones and Granary (supplies last longer); Market Bell, Fair Prices, Tax Office and Merchant Guild (more income); Snow Boots, Medic Tent, Work Sleds, Watch Horn and Iron Boots (hero, workers and towers). Twin axes (40 logs, 90 gold) unlock once the blacksmith is built; Axe III and IV need Town Hall II and III.
 
 ## Survival
-- **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
+- **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each log gives 1 warmth in the camp, 2 at Town Hall II and 3 at Town Hall III, and bigger towns buy faster. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
 - **Food:** once the cookhouse is built, villagers also eat. Sell meat there. Plant a **Garden** (after the cookhouse) and veggies pile up beside it: fastest in summer, slowest in winter. Herds of yaks graze just outside the fort and across the valley, wolves drop 2 meat and yetis 8, and the fishery adds a steady supply.
 - If either meter hits zero, villagers start dying. Lose them all and Frosthold falls.
 - With both meters above half and free housing, new villagers arrive. Each house holds 4; **Bunk Beds** (Town Hall II) raise that to 7 and **Stone Lofts** (Town Hall III) to 10, and each Town Hall level adds more room of its own. Villagers pay taxes to the Town Hall pallet.
@@ -93,5 +93,5 @@ Finishing a new wall ring tears down the old one and clears the forest inside it
 - Workers have health. Raiders and camp monsters go after workers caught outside the walls first, and a worker who dies drops what they carried.
 - Every corner of every wall ring has a watchtower spot.
 - **Guards** hold the north gate and fight raiders nearby. **Watchtowers** shoot anything in range.
-- **Raids** grow every wave, and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
+- **Raids** grow every wave (raiders who can't break through give up after 3 minutes), and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
 - **Hero levels** come from gathering, building, selling and fighting, and add damage and health.
