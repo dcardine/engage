@@ -525,6 +525,11 @@ const SOUNDS = {
   chime: ['fanfare', 0, () => { voice({ f: 1175, type: 'sine', vol: 0.07, dur: 0.6 }); voice({ f: 1760, type: 'sine', vol: 0.04, dur: 0.5, when: 0.08 }); }],
   villager: ['town', 0, () => { voice({ f: 784, type: 'sine', vol: 0.06, dur: 0.5 }); voice({ f: 1175, type: 'sine', vol: 0.04, dur: 0.6, when: 0.1 }); }],
   step: ['steps', 0, () => voice({ noise: true, filt: 'bandpass', ff: S.season === 3 ? jit(2600, 0.2) : jit(900, 0.2), q: 1.2, vol: S.season === 3 ? 0.05 : 0.035, at: 0.005, dur: 0.06 })],
+  bow: ['combat', 60, () => { voice({ f: 220, f2: 90, type: 'triangle', vol: 0.1, dur: 0.12 }); voice({ noise: true, filt: 'highpass', ff: 2500, vol: 0.05, at: 0.01, dur: 0.1 }); }],
+  gun: ['combat', 60, () => { voice({ noise: true, filt: 'lowpass', ff: 2200, vol: 0.32, at: 0.002, dur: 0.22 }); voice({ f: 140, f2: 50, type: 'sine', vol: 0.3, dur: 0.18 }); }],
+  spell: ['combat', 60, () => { voice({ f: 660, f2: 1320, type: 'sine', vol: 0.06, dur: 0.25 }); voice({ noise: true, filt: 'bandpass', ff: 3000, q: 4, vol: 0.05, at: 0.05, dur: 0.3 }); }],
+  boom: ['combat', 60, () => { voice({ noise: true, filt: 'lowpass', ff: 900, vol: 0.25, at: 0.005, dur: 0.4 }); voice({ f: 90, f2: 40, type: 'sine', vol: 0.25, dur: 0.3 }); }],
+  zap: ['combat', 60, () => { voice({ f: 1800, f2: 300, type: 'sawtooth', filt: 'bandpass', ff: 2000, q: 2, vol: 0.06, dur: 0.18 }); voice({ noise: true, filt: 'highpass', ff: 4000, vol: 0.08, dur: 0.12 }); }],
   cast: ['gather', 0, () => { voice({ noise: true, filt: 'highpass', ff: 1800, vol: 0.06, at: 0.02, dur: 0.18 }); voice({ f: 900, f2: 1500, type: 'sine', vol: 0.03, dur: 0.15 }); }],
   splash: ['gather', 0, () => { voice({ noise: true, filt: 'lowpass', ff: 1400, vol: 0.2, at: 0.005, dur: 0.25 }); voice({ f: 420, f2: 160, type: 'sine', vol: 0.12, dur: 0.18 }); }],
   blizzard: ['wind', 0, () => voice({ noise: true, filt: 'bandpass', ff: 500, q: 0.7, vol: 0.18, at: 0.6, dur: 2.4 })],
@@ -793,7 +798,7 @@ function weaponLook(axe, w) {
   axe.children[1] && axe.children[1].scale.set(1, 1 + Math.max(0, w) * 0.12, 1 + Math.max(0, w) * 0.12);
 }
 function buildGear(g, look) {
-  const [w, armor, helm, cape] = look || [-1, -1, 0, 0];
+  const [w, armor, helm, cape, rw] = look || [-1, -1, 0, 0, -1];
   if (g.userData.gearKey === String(look)) return; g.userData.gearKey = String(look);
   if (g.userData.gear) g.remove(g.userData.gear);
   const G = new THREE.Group(); g.add(G); g.userData.gear = G;
@@ -812,13 +817,20 @@ function buildGear(g, look) {
       if (helm === 2) [-1, 1].forEach(k => { const h = mk(Cone(0.1, 0.6, 8), 0xf1ead8); h.position.set(k * 0.46, 0.42, 0); h.rotation.z = -k * 1.0; H.add(h); });
       if (helm === 3) { const nose = mk(Box(0.06, 0.24, 0.05), cols[3]); nose.position.set(0, 0.1, 0.4); H.add(nose); } }
   }
+  if (rw >= 0) {
+    const R = new THREE.Group(); R.position.set(-0.05, 1.0, -0.5); R.rotation.z = 0.7; G.add(R);
+    if (rw <= 1) { const arc = mk(new THREE.TorusGeometry(0.5, 0.03, 6, 16, Math.PI), 0x7a4a26); arc.rotation.z = -Math.PI / 2; R.add(arc); const str = mk(Cyl(0.008, 0.008, 1.0, 3), 0xeeeeee); R.add(str);
+      if (rw === 1) { const stock = mk(Box(0.08, 0.7, 0.08), 0x5b3416); stock.position.x = 0.1; R.add(stock); } }
+    else if (rw === 2) { const stock = mk(Box(0.1, 0.5, 0.1), 0x6b4a2d); stock.position.y = -0.3; R.add(stock); const barrel = mk(Cyl(0.035, 0.035, 0.8, 6), 0x3a3f48); barrel.position.y = 0.3; R.add(barrel); }
+    else { const shaft = mk(Cyl(0.03, 0.04, 1.4, 6), 0x6b4a2d); R.add(shaft); const orb = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 0), basic([0x9fe8ff, 0xff7a3d, 0xcfe8ff][rw - 3])); orb.position.y = 0.76; R.add(orb); }
+  }
   if (cape) {
     const cols = [0, 0xc8452f, 0x8d97a4, 0x5b3fa3, 0x3fb8a8];
     const cp = mk(Box(0.62, 0.9, 0.04), cols[cape]); cp.geometry.translate(0, -0.45, 0); cp.position.set(0, 1.12, -0.5); cp.rotation.x = 0.18; G.add(cp);
     if (cape === 2) { const fur = mk(new THREE.TorusGeometry(0.28, 0.08, 8, 14), 0xd8dde4); fur.rotation.x = Math.PI / 2; fur.position.set(0, 1.1, -0.05); G.add(fur); }
   }
 }
-const myLook = () => [S.weapon, S.armorLv, (S.wear && S.wear.helm) || 0, (S.wear && S.wear.cape) || 0];
+const myLook = () => [S.weapon, S.armorLv, (S.wear && S.wear.helm) || 0, (S.wear && S.wear.cape) || 0, S.rangedOn];
 function applyMyLook() { buildGear(player.g, myLook()); weaponLook(axe1, S.weapon); weaponLook(axe2, S.weapon); }
 
 /* ================= state ================= */
@@ -827,7 +839,7 @@ const CAPS = [50, 100, 200, 400];
 const S = {
   wallet: 0, axe: 1, bag: 0, th: 1, xp: 0, lvl: 1, hp: 100, downT: 0, hurtT: 0,
   civ: 6, warm: 48, food: 40, clock: 60, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
-  houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
+  rangedOwn: [], rangedOn: -1, houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
   wave: 0, waveT: 150, raidOn: false, blizT: 170, blizOn: 0,
   towerLv: 0, masonry: false, guardLv: 0, bank: false, carpenter: false, mine: false, gold: false,
   step: 0, over: false, declineT: 0, growT: 0, taxT: 0, won: false, time: 0,
@@ -1504,6 +1516,9 @@ const padBag = plot('bag', { personal: true, x: -6, z: 17.4, labels: ['PACK 100'
 const padArrow = plot('arrow', { x: -2.9, z: 17.9, labels: ['ARROWS II', 'ARROWS III'], costs: [{ log: 60, cash: 120 }, { ore: 25, cash: 350 }], tiers: [2, 3],
   requires: () => B.smith && padArrow.level < 2 && S.th >= padArrow.tiers[padArrow.level] && towers.length > 0,
   onBuy: lv => { S.towerLv = lv; banner('Sharper arrows!', true, 'Towers hit harder and faster'); }, xp: 40 });
+const padRanged = plot('ranged', { personal: true, x: -6.4, z: 11.4, labels: ['HUNTING BOW', 'CROSSBOW', 'RIFLE'], costs: [{ log: 30, cash: 60 }, { log: 60, stone: 30, cash: 180 }, { ore: 30, stone: 40, cash: 500 }], tiers: [1, 2, 3],
+  requires: () => B.smith && padRanged.level < 3 && S.th >= padRanged.tiers[padRanged.level],
+  onBuy: lv => { const id = lv - 1; S.rangedOwn = S.rangedOwn || []; if (!S.rangedOwn.includes(id)) S.rangedOwn.push(id); S.rangedOn = id; applyMyLook(); banner(RANGED[id].n + '!', true, 'Fires on its own at threats within ' + RANGED[id].rng + ' m · switch weapons under Hero'); }, xp: 40 });
 plot('pick', { personal: true, x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.pick = true; banner('Crystal pick forged!', true, 'You can now mine crystal veins in the far wilds'); } });
 plot('mason', { x: -9.2, z: 14.3, label: 'MASONRY', cost: { stone: 60, cash: 150 }, tier: 2, req: () => B.smith,
@@ -1917,6 +1932,72 @@ function reviveHere(f, msg) {
   S.downT = 0; S.medRevive = 0; S.hp = heroMax() * f; player.g.rotation.z = 0; player.g.visible = true;
   burst(player.x, 1, player.z, 0x7cf0a0, 16); banner('Back on your feet!', true, msg); play('revive');
 }
+/* ---- ranged weapons: fire on their own at the nearest threat in range ---- */
+const RANGED = [
+  { n: 'Hunting Bow', dmg: 3, rng: 12, cd: 0.85, kind: 'arrow', speed: 28 },
+  { n: 'Crossbow', dmg: 7, rng: 15, cd: 1.1, kind: 'arrow', speed: 34 },
+  { n: 'Rifle', dmg: 18, rng: 22, cd: 1.5, kind: 'bullet', speed: 70 },
+  { n: 'Frost Staff', dmg: 6, rng: 14, cd: 1.0, kind: 'frost', speed: 18 },
+  { n: 'Fire Staff', dmg: 11, rng: 15, cd: 1.3, kind: 'fire', speed: 16 },
+  { n: 'Storm Staff', dmg: 10, rng: 17, cd: 1.2, kind: 'storm' },
+];
+const rangedMul = () => 1 + (S.lvl - 1) * 0.1 + S.bonusDmg;
+const shots = []; let rangedCd = 0;
+function hitTarget(k, e, dmg, frost) {
+  if (!e.alive) return;
+  if (k === 4) { damageWild(e, dmg); if (frost) e.slowT = 2.5; }
+  else if (k === 0) { if (frost) e.slowT = 2.5; if (isGuest()) { e.shake = 0.25; burst(e.x, 1, e.z, 0x9aa4b1, 3, 2); netAct('e', e.id, dmg); } else damageEnemy(e, dmg); }
+  else if (k === 1) { if (isGuest()) { e.shake = 0.25; netAct('y', e.id, dmg); } else damageYak(e, dmg); }
+}
+function threats(x, z, r) {   // raiders, monsters that have spotted someone, and charging boars
+  const out = [];
+  for (const e of enemies) if (e.alive && d2(e.x, e.z, x, z) < r * r) out.push([0, e]);
+  for (const m of wilds) if (m.alive && (m.aggro || m.prey) && d2(m.x, m.z, x, z) < r * r) out.push([4, m]);
+  for (const y of yaks) if (y.alive && y.sp === 'boar' && y.flee > 0 && d2(y.x, y.z, x, z) < r * r) out.push([1, y]);
+  return out.sort((a, b) => d2(a[1].x, a[1].z, x, z) - d2(b[1].x, b[1].z, x, z));
+}
+const SHOT_LOOK = { arrow: [0x4a3424, 0.05], bullet: [0xffe08a, 0.07], frost: [0x9fe8ff, 0.22], fire: [0xff7a3d, 0.26] };
+function updateRanged(dt) {
+  rangedCd -= dt;
+  const R = RANGED[S.rangedOn]; if (R && S.downT <= 0 && rangedCd <= 0) {
+    const t = threats(player.x, player.z, R.rng)[0];
+    if (t) {
+      rangedCd = R.cd; const [k, e] = t, dmg = R.dmg * rangedMul();
+      if (!player.moving) { player.rot = Math.atan2(e.x - player.x, e.z - player.z); }
+      if (R.kind === 'storm') {   // lightning jumps to two more foes
+        let from = new THREE.Vector3(player.x, 1.6, player.z), hit = [t];
+        for (const n of threats(e.x, e.z, 7)) if (hit.length < 3 && !hit.some(h => h[1] === n[1])) hit.push(n);
+        hit.forEach(([kk, ee], i) => { const to = new THREE.Vector3(ee.x, 1, ee.z); bolt(from, to); from = to; hitTarget(kk, ee, dmg * (i ? 0.6 : 1)); });
+        play('zap');
+      } else {
+        const [col, sz] = SHOT_LOOK[R.kind];
+        const m = R.kind === 'arrow' ? new THREE.Mesh(arrowGeo, mat(col)) : new THREE.Mesh(R.kind === 'bullet' ? new THREE.SphereGeometry(sz, 6, 4) : new THREE.IcosahedronGeometry(sz, 0), basic(col));
+        m.position.set(player.x, 1.4, player.z); scene.add(m);
+        shots.push({ m, k, e, dmg, R, t: 0 }); play(R.kind === 'bullet' ? 'gun' : R.kind === 'arrow' ? 'bow' : 'spell');
+        if (R.kind === 'bullet') burst(player.x + Math.sin(player.rot) * 0.8, 1.4, player.z + Math.cos(player.rot) * 0.8, 0xffe08a, 4, 1.5);
+      }
+    }
+  }
+  for (let i = shots.length - 1; i >= 0; i--) {
+    const sh = shots[i]; sh.t += dt; const e = sh.e, tx = e.x, ty = 1, tz = e.z;
+    const dx = tx - sh.m.position.x, dy = ty - sh.m.position.y, dz = tz - sh.m.position.z, L = Math.hypot(dx, dy, dz);
+    if (!e.alive || sh.t > 2.5) { scene.remove(sh.m); shots.splice(i, 1); continue; }
+    if (L < 0.5) {
+      scene.remove(sh.m); shots.splice(i, 1);
+      hitTarget(sh.k, e, sh.dmg, sh.R.kind === 'frost');
+      if (sh.R.kind === 'frost') burst(tx, 1, tz, 0x9fe8ff, 8, 2);
+      if (sh.R.kind === 'fire') { burst(tx, 1, tz, 0xff7a3d, 14, 3); play('boom'); for (const n of threats(tx, tz, 3.2)) if (n[1] !== e) hitTarget(n[0], n[1], sh.dmg * 0.6); }
+      continue;
+    }
+    const st = Math.min(L, sh.R.speed * dt); sh.m.position.x += dx / L * st; sh.m.position.y += dy / L * st; sh.m.position.z += dz / L * st; sh.m.lookAt(tx, ty, tz);
+    if (sh.R.kind !== 'arrow') sh.m.rotation.z += dt * 10;
+  }
+}
+function bolt(a, b) {
+  const pts = [a.clone()]; for (let i = 1; i < 6; i++) { const p = a.clone().lerp(b, i / 6); p.x += rand(-0.4, 0.4); p.y += rand(-0.3, 0.3); p.z += rand(-0.4, 0.4); pts.push(p); } pts.push(b.clone());
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff })); scene.add(line);
+  burst(b.x, 1, b.z, 0xcfe8ff, 6, 2); setTimeout(() => scene.remove(line), 140);
+}
 function playerAttack() {
   const A = AXE[S.axe], R2 = A.range * A.range, cands = [], dmg = A.dmg * heroDmg();
   for (const e of enemies) if (e.alive && d2(e.x, e.z, player.x, player.z) < R2 * (e.type === 'yeti' ? 1.6 : 1.1)) cands.push([0, e]);
@@ -2116,7 +2197,7 @@ function update(dt) {
     if (player.atkT <= 0 && playerAttack()) { player.atkT = AXE[S.axe].int; player.swingT = 0.3; }
   }
   player.g.position.set(player.x, 0, player.z); player.g.rotation.y = player.rot;
-  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt);
+  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt);
   if (player.swingT > 0) {
     player.swingT -= dt; const k = 1 - player.swingT / 0.3;
     axePivot.rotation.y = -k * TAU; trail.material.opacity = Math.sin(k * Math.PI) * 0.55;
@@ -2711,13 +2792,14 @@ function showStats() {
   ].join('');
   const relics = (S.relics || []).length ? '<ul>' + S.relics.slice(-12).reverse().map(r => `<li>${r}</li>`).join('') + '</ul>' : '<p class="none">Open treasure chests in monster camps to find relics.</p>';
   const W = S.wardrobe || { helm: [0], cape: [0] }, wear = S.wear || {};
-  const ward = ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
-  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
+  const ownR = S.rangedOwn || [], rangedRow = `<div class="ward"><b>Ranged</b><button type="button" data-ranged="-1" aria-pressed="${S.rangedOn < 0}">None</button>` + ownR.map(i => `<button type="button" data-ranged="${i}" aria-pressed="${S.rangedOn === i}">${RANGED[i].n}</button>`).join('') + '</div>';
+  const ward = rangedRow + ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
+  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Forge bows and rifles at the blacksmith; magic staffs come from treasure. Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
   $('stats').hidden = false;
 }
 $('statsBtn').addEventListener('click', e => { e.stopPropagation(); showStats(); });
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
-$('statsBody').addEventListener('click', e => { const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
+$('statsBody').addEventListener('click', e => { const r = e.target.closest('[data-ranged]'); if (r) { e.stopPropagation(); S.rangedOn = +r.dataset.ranged; applyMyLook(); showStats(); return; } const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
 function openTreasure(camp) {
   if (camp.guards && camp.guards.length && !camp.questReward) questEvent('clear', 1);
   camp.open = true; scene.remove(camp.g); camp.tag.remove();
@@ -2726,6 +2808,8 @@ function openTreasure(camp) {
   if (S.weapon < t + 1 && t < 2 && Math.random() < 0.3) gifts.push(() => { S.weapon = Math.min(2, Math.max(S.weapon, t) + (S.weapon >= t ? 1 : 0)); return [WEAPONS[S.weapon].n, 'A finer weapon!']; });
   if (S.armorLv < t) gifts.push(() => { S.armorLv = t; return [ARMORS[t].n, 'Armour: take ' + Math.round(ARMORS[t].a * 100) + '% less damage']; });
   if (t === 2 && !S.pick) gifts.push(() => { S.pick = true; return ['Crystal Pick', 'You can now mine crystal veins']; });
+  { const own = S.rangedOwn = S.rangedOwn || [], staff = [3, 4, 5].filter(i => !own.includes(i) && (i - 3) < t);
+    if (staff.length) gifts.push(() => { const i = staff[0]; own.push(i); S.rangedOn = i; applyMyLook(); return [RANGED[i].n, 'Magic: fires on its own at threats · switch under Hero']; }); }
   for (const slot of ['helm', 'cape']) {
     const W = S.wardrobe = S.wardrobe || { helm: [0], cape: [0] }; W[slot] = W[slot] || [0];
     const missing = LOOKS[slot].map((_, i) => i).filter(i => i && !W[slot].includes(i) && i <= t + 2);
@@ -3349,16 +3433,16 @@ $('coop').addEventListener('click', e => {
 const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { hauler: [0, 17], mender: [-3, 9.4], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
-const HERO_KEYS = ['wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
+const HERO_KEYS = ['rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
 let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
 function savePersonal() {
-  if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
+  if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level, ranged: padRanged.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
   try { localStorage.setItem('frosthold-hero', JSON.stringify(h)); } catch (e) {}
 }
 function loadPersonal() {
   heroReady = true; let h = null; try { h = JSON.parse(localStorage.getItem('frosthold-hero')); } catch (e) {} if (!h) return;
   HERO_KEYS.forEach(k => { if (h[k] !== undefined) S[k] = h[k]; });
-  if (h.lv) { padAxe.level = h.lv.axe || 0; padBag.level = h.lv.bag || 0; padAxe.paid = {}; padBag.paid = {}; }
+  if (h.lv) { padAxe.level = h.lv.axe || 0; padBag.level = h.lv.bag || 0; padRanged.level = h.lv.ranged || 0; padAxe.paid = {}; padBag.paid = {}; padRanged.paid = {}; }
   if (h.pickB || S.pick) { B.pick = true; const pp = pads.find(q => q.id === 'pick'); if (pp) { pp.done = true; pp.g.visible = false; } }
   applyAxeLook();
 }
