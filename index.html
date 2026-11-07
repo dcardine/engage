@@ -71,11 +71,22 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 .mshow label{display:flex;gap:8px;align-items:center;cursor:pointer}.mshow input{width:20px;height:20px;accent-color:#2b4a74}
 #closeMenu{margin-top:16px;width:100%;padding:12px;border-radius:12px;border:2px solid #c9d6e8;background:#fff;font:15px var(--display);color:#2b4a74;cursor:pointer}
 .hud-off{display:none!important}
+#tut{position:fixed;z-index:12;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));width:min(380px,calc(100vw - 32px))}
+#tut .tbox{background:#f4f7fc;color:var(--ink);border-radius:16px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.35);border:2px solid #ffd166}
+#tut .thead{display:flex;justify-content:space-between;align-items:center;font:800 12px var(--body);color:#6b7a90;margin-bottom:4px}
+#tutSkip{border:0;background:none;color:#6b7a90;font:800 12px var(--body);text-decoration:underline;cursor:pointer;padding:4px}
+#tut b{display:block;font:20px/1.1 var(--display);color:#2b4a74;margin-bottom:4px}
+#tut p{margin:0;font:700 14px/1.35 var(--body)}
+#tut .tfoot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
+#tutTask{font:800 13px var(--body);color:#b8452e}
+#tutNext{border:0;background:#2b4a74;color:#fff;font:15px/1 var(--display);letter-spacing:.04em;padding:10px 16px;border-radius:10px;cursor:pointer}
+.tut-hi{outline:3px solid #ffd166!important;outline-offset:3px;border-radius:12px;animation:tutpulse 1s ease-in-out infinite alternate}
+@keyframes tutpulse{to{outline-color:#ff8a3d}}
 #tameBtn{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#3f8a5a;color:#fff;font:17px/1 var(--display);letter-spacing:.04em;padding:14px 20px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
 #chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
 #chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
 #chipMenu button.drop{background:#b8452e}
-#logdest,#statsBtn,#inviteBtn,#coop,#newg,#pause,#mute{pointer-events:auto;
+#logdest,#statsBtn,#inviteBtn,#coop,#newg,#pause,#mute,#tutBtn{pointer-events:auto;
   border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:13px/1 var(--display);letter-spacing:.06em;padding:9px 12px;border-radius:12px;cursor:pointer}
 #newg.confirm{background:#b8452e}
 #paused{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(16,26,44,.45);color:#fff;font:40px/1 var(--display);pointer-events:auto;z-index:15}
@@ -169,11 +180,12 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="banner" class="hud"></div>
 <button id="tameBtn" type="button" hidden></button>
+<div id="tut" hidden><div class="tbox"><div class="thead"><span id="tutStep"></span><button id="tutSkip" type="button">Skip tutorial</button></div><b id="tutTitle"></b><p id="tutText"></p><div class="tfoot"><span id="tutTask"></span><button id="tutNext" type="button">Next</button></div></div></div>
 <div id="hint" class="hud">Drag anywhere to move</div>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="cog" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button><span id="netTxt" hidden></span></div>
 <div id="menu" hidden><div class="box"><h2>Menu</h2>
-<div class="mgrid"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
+<div class="mgrid"><button id="tutBtn" type="button">Tutorial</button><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
 <h3>Show on screen</h3>
 <div class="mshow"><label><input type="checkbox" data-hud="quest" checked> Goal</label><label><input type="checkbox" data-hud="qcard" checked> Quest</label><label><input type="checkbox" data-hud="town" checked> Town gauges</label><label><input type="checkbox" data-hud="res" checked> Resources</label><label><input type="checkbox" data-hud="mini" checked> Minimap</label></div>
 <h3>Sounds</h3><div class="mshow" id="sndList"></div>
@@ -1758,6 +1770,46 @@ function updateQuests(dt) {
   if (!updateQuests.shown) { updateQuests.shown = true; renderQuest(); }
   if (S.quest.type === 'elite' && !wildCamps.some(c => c.elite === S.quest.what)) spawnLegend(S.quest);   // after a reload
 }
+/* ---- tutorial: a short walkthrough for new players; skippable at any time ---- */
+const TUT = [
+  { t: 'Welcome to Frosthold!', p: 'You lead a small settlement through a frozen wilderness. Keep your people warm and fed, build walls against raiders, and grow your camp into a citadel.' },
+  { t: 'Move around', p: 'Drag anywhere on the screen to move (a joystick appears under your finger). On a keyboard use WASD or the arrow keys.', task: 'Walk a few steps', start: () => ({ x: player.x, z: player.z }), done: b => Math.hypot(player.x - b.x, player.z - b.z) > 4 },
+  { t: 'Chop wood', p: 'Walk up to a tree: your axe swings on its own. Logs stack on your back. Trees grow back over time.', task: 'Collect 8 logs', done: () => carry.log.length >= 8 || fireStall.received > 0 },
+  { t: 'Keep your people warm', p: 'Villagers burn firewood. Walk to the firewood stall (blue roof) and stand on its counter: you hand over your logs, and villagers buy them for gold.', hi: 'town', task: 'Hand logs to the firewood stall', start: () => fireStall.received, done: b => fireStall.received > b },
+  { t: 'Gold and resources', p: 'Your gold, logs, meat, stone and crystal are shown top right. Tap a counter to drop that resource or stop collecting it.', hi: 'res' },
+  { t: 'Your goal', p: 'The GOAL card always tells you what to do next, and the orange arrow on the ground points the way. Follow it whenever you are unsure.', hi: 'quest' },
+  { t: 'Build the walls', p: 'Raiders will come. Glowing build spaces show what they cost. Stand on one and you pay with what you carry: fix the broken palisade first.', task: 'Build a wall section', start: () => rings[0].segs.filter(sg => sg.built).length, done: b => rings[0].segs.filter(sg => sg.built).length > b || rings[0].complete },
+  { t: 'Warmth and food', p: 'These gauges show warmth and, once you build the cookhouse, food. If either reaches zero, villagers die. Hunt rabbits and deer near the camp for meat and sell it at the cookhouse.', hi: 'town' },
+  { t: 'Grow your town', p: 'Build houses, a blacksmith for better gear, and lodges to hire workers who gather on their own. Upgrade the Town Hall to unlock a bigger ring of walls.' },
+  { t: 'Raids and danger', p: 'Raids grow every day. Watchtowers and guards help, and the minimap (right) shows raiders in red. The farther you explore, the tougher the monsters and the better the treasure.', hi: 'mini' },
+  { t: 'Menu and more', p: 'The cog holds Co-op, your Hero (gear, pets, wardrobe), pause, sound options and this tutorial. Quests, fishing at lakes, legendary beasts and taming await. Good luck!', hi: 'cog' },
+];
+let tut = null;
+function tutorialDone() { try { return localStorage.getItem('frosthold-tutorial') === 'done'; } catch (e) { return false; } }
+function startTutorial() { tut = { i: 0, base: null }; showTut(); }
+function endTutorial(skipped) {
+  try { localStorage.setItem('frosthold-tutorial', 'done'); } catch (e) {}
+  document.querySelectorAll('.tut-hi').forEach(el => el.classList.remove('tut-hi')); $('tut').hidden = true; tut = null;
+  if (!skipped) { banner('Tutorial complete', true, 'Replay it any time from the menu'); play('levelup'); }
+}
+function showTut() {
+  const st = TUT[tut.i]; tut.base = st.start ? st.start() : null;
+  document.querySelectorAll('.tut-hi').forEach(el => el.classList.remove('tut-hi'));
+  if (st.hi && $(st.hi)) $(st.hi).classList.add('tut-hi');
+  $('tut').hidden = false; $('tutStep').textContent = 'Tutorial ' + (tut.i + 1) + ' / ' + TUT.length;
+  $('tutTitle').textContent = st.t; $('tutText').textContent = st.p;
+  $('tutTask').textContent = st.task ? '▶ ' + st.task : ''; $('tutNext').hidden = !!st.task;
+  $('tutNext').textContent = tut.i === TUT.length - 1 ? 'Finish' : 'Next';
+}
+function nextTut() { if (!tut) return; play('pay'); if (++tut.i >= TUT.length) endTutorial(false); else showTut(); }
+function updateTutorial() {
+  if (!tut) return; const st = TUT[tut.i];
+  if (st.task && (tut.wait || st.done(tut.base))) { if (!tut.wait) { $('tutTask').textContent = '✔ Done!'; play('chime'); } tut.wait = (tut.wait || 0) + 1; if (tut.wait > 40) { tut.wait = 0; nextTut(); } }
+}
+$('tutNext').addEventListener('click', e => { e.stopPropagation(); nextTut(); });
+$('tutSkip').addEventListener('click', e => { e.stopPropagation(); endTutorial(true); note('Tutorial skipped: replay it from the menu'); });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('tut').addEventListener(ev, e => e.stopPropagation()));
+$('tutBtn').addEventListener('click', e => { e.stopPropagation(); closeMenu(); startTutorial(); });
 function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
     const show = t.on() && d2(t.x, t.z, player.x, player.z) < 34 * 34; t.el.hidden = !show; if (!show) continue;
@@ -2628,7 +2680,7 @@ function update(dt) {
   }
 
   netTick(dt);
-  streamTrees(dt); updateQuests(dt); updateCalendar(dt); updateWind(); if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) applyMyLook(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
+  streamTrees(dt); updateTutorial(); updateQuests(dt); updateCalendar(dt); updateWind(); if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) applyMyLook(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
   $('gearTxt').textContent = (S.medkits ? S.medkits + ' med kit' + (S.medkits > 1 ? 's' : '') + ' \u00b7 ' : '') + (S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')) + (S.armorLv >= 0 ? ' \u00b7 ' + ARMORS[S.armorLv].n : '');
 
   /* --- flyers / particles / floats / growth --- */
@@ -3595,7 +3647,9 @@ newBtn.addEventListener('click', e => {
 let coopBoot = null; try { coopBoot = sessionStorage.getItem('frost-coop'); sessionStorage.removeItem('frost-coop'); } catch (e) {}
 let bootCode = ''; try { bootCode = sessionStorage.getItem('frost-code') || ''; sessionStorage.removeItem('frost-code'); } catch (e) {}
 const hashJoin = (location.hash.match(/^#join-([A-Za-z0-9]{4,6})$/) || [])[1];
+let firstGame = true; try { firstGame = !localStorage.getItem(SAVE_KEY); } catch (e) {}
 loadModels();
+if (!tutorialDone() && firstGame && coopBoot !== 'join' && !hashJoin) setTimeout(startTutorial, 1500);
 if (coopBoot === 'join') startCoop(true, bootCode, false);
 else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);

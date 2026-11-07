@@ -4,6 +4,9 @@ An original survival and town-building game for phones and desktop browsers. Lea
 
 Open `index.html` in a browser. There is no build step; three.js r128 loads from cdnjs.
 
+## Tutorial
+A new player gets a short walkthrough (11 steps): moving, chopping, selling firewood, gold and resources, the goal card, building walls, warmth and food, growing the town, raids, and the menu. Steps that need an action move on by themselves once you do it; the rest have a Next button. **Skip tutorial** closes it at any time, and **Tutorial** in the cog menu replays it.
+
 ## Controls
 - **Touch / mouse:** drag anywhere for a floating joystick
 - **Keyboard:** WASD or arrow keys
