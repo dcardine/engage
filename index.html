@@ -82,6 +82,22 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #tutNext{border:0;background:#2b4a74;color:#fff;font:15px/1 var(--display);letter-spacing:.04em;padding:10px 16px;border-radius:10px;cursor:pointer}
 .tut-hi{outline:3px solid #ffd166!important;outline-offset:3px;border-radius:12px;animation:tutpulse 1s ease-in-out infinite alternate}
 @keyframes tutpulse{to{outline-color:#ff8a3d}}
+#giveBtn{position:fixed;z-index:8;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(150px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#2b4a74;color:#fff;font:15px/1 var(--display);padding:12px 14px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer}
+#givePanel{position:fixed;inset:0;z-index:22;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.6);padding:0 16px}
+#givePanel .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px;width:min(340px,100%);max-height:85vh;overflow-y:auto;text-align:center}
+#givePanel h2{margin:0 0 10px;font:24px/1 var(--display);color:#2b4a74}
+#giveList{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#giveList h3{grid-column:1/-1;margin:8px 0 0;font:13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ember)}
+#giveList button,#giveClose{border:2px solid #c9d6e8;background:#fff;border-radius:10px;padding:10px 8px;font:800 14px var(--body);color:var(--ink);cursor:pointer}
+#giveClose{margin-top:14px;width:100%;background:#2b4a74;color:#fff;border-color:#2b4a74}
+#dunBtn{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#6a3fa3;color:#fff;font:17px/1 var(--display);padding:14px 20px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
+#dun{position:fixed;inset:0;z-index:30;background:#1b1530;touch-action:none;user-select:none;-webkit-user-select:none}
+#dunCv{width:100%;height:100%;display:block}
+#dunLeave{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.4);color:#fff;font:13px/1 var(--display);padding:10px 12px;border-radius:10px}
+#dun .dpad,#dun .dact{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom,0px));display:flex;gap:14px}
+#dun .dpad{left:16px}#dun .dact{right:16px}
+#dun .dpad button,#dun .dact button{width:72px;height:72px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);color:#fff;font:28px/1 sans-serif;touch-action:none}
+#dun #dunJ{background:rgba(120,200,255,.3)}#dun #dunA{background:rgba(255,120,80,.3)}
 #tameBtn{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#3f8a5a;color:#fff;font:17px/1 var(--display);letter-spacing:.04em;padding:14px 20px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
 #chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
 #chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
@@ -180,6 +196,12 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="banner" class="hud"></div>
 <button id="tameBtn" type="button" hidden></button>
+<button id="giveBtn" type="button" hidden></button>
+<button id="dunBtn" type="button" hidden></button>
+<div id="dun" hidden><canvas id="dunCv"></canvas><button id="dunLeave" type="button">Leave dungeon</button>
+<div class="dpad"><button id="dunL" type="button" aria-label="Left">&#9664;</button><button id="dunR" type="button" aria-label="Right">&#9654;</button></div>
+<div class="dact"><button id="dunA" type="button" aria-label="Attack">&#9876;</button><button id="dunJ" type="button" aria-label="Jump">&#10514;</button></div></div>
+<div id="givePanel" hidden><div class="box"><h2 id="giveHead">Give</h2><div id="giveList"></div><button id="giveClose" type="button">Done</button></div></div>
 <div id="tut" hidden><div class="tbox"><div class="thead"><span id="tutStep"></span><button id="tutSkip" type="button">Skip tutorial</button></div><b id="tutTitle"></b><p id="tutText"></p><div class="tfoot"><span id="tutTask"></span><button id="tutNext" type="button">Next</button></div></div></div>
 <div id="hint" class="hud">Drag anywhere to move</div>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
@@ -650,10 +672,16 @@ const SCENERY = (() => {
     let r = rnd() * total, k = kinds[0]; for (const kk of kinds) { if ((r -= kk[2]) < 0) { k = kk; break; } }
     out.push({ x, z, id: k[0], size: k[1] * (0.8 + rnd() * 0.5), ry: rnd() * TAU, m: null });
   }
+  for (let i = 0, n = 0; i < 9000 && n < 520; i++) {   // past 300 m: boulder fields and ice spires you have to weave between
+    const x = -336 + rnd() * 672, z = -320 + rnd() * 672, d = Math.hypot(x - C.x, z - C.z); if (d < 300) continue;
+    const id = rnd() < 0.6 ? 'cliff_boulder' : rnd() < 0.5 ? 'ice_crystals' : 'snowdrift', size = id === 'cliff_boulder' ? 4 + rnd() * 4 : id === 'ice_crystals' ? 2.5 + rnd() * 2 : 4 + rnd() * 2;
+    out.push({ x, z, id, size, ry: rnd() * TAU, m: null, block: id !== 'snowdrift' ? size * 0.42 : 0 }); n++;
+  }
   for (let x = -343; x <= 343; x += 7) out.push({ x, z: -326, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null }, { x, z: 358, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null });
   for (let z = -323; z <= 355; z += 7) out.push({ x: -342, z, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null }, { x: 342, z, id: 'cliff_boulder', size: 7, ry: rnd() * TAU, m: null });
   return out;
 })();
+SCENERY.forEach(sc => { if (sc.block) addObs(sc.x, sc.z, sc.block); });
 let streamT = 0;
 function streamTrees(dt) {
   streamT -= dt; if (streamT > 0) return; streamT = 0.4;
@@ -712,7 +740,7 @@ const CHOP = [];
   // stone quarries ring the middle distance; crystal veins only in the dangerous far reaches
   const polar = (r0, r1) => { const a = rand(0, TAU), r = rand(r0, r1); return [C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]; };
   for (let i = 0, n = 0; i < 9000 && n < 120; i++) { const [x, z] = polar(36, 220); if (x < -336 || x > 336 || z < -320 || z > 352) continue; if (far(x, z, 6)) { pts.push([x, z]); addRock(x, z, 'stone'); n++; } }
-  for (let i = 0, n = 0; i < 20000 && n < 40; i++) { const [x, z] = polar(300, 345); if (x < -334 || x > 334 || z < -318 || z > 350) continue; if (far(x, z, 7)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
+  for (let i = 0, n = 0; i < 30000 && n < 90; i++) { const [x, z] = polar(i % 3 ? 300 : 255, 345); if (x < -334 || x > 334 || z < -318 || z > 350) continue; if (far(x, z, 7)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
   for (let i = 0, n = 0; i < 90000 && n < 2600; i++) {
     const x = rand(-338, 338), z = rand(-322, 354);
     if (Math.hypot(x - C.x, z - C.z) > 90 && rnd() < 0.45) continue;   // forest thins out far from the fort
@@ -1050,7 +1078,7 @@ function makeRing(tier) {
   rings.push(r); return r;
 }
 for (let t = 0; t < 3; t++) makeRing(t);
-const segMax = s => SEG_HP[s.tier] * (s.isGate ? 1.5 : 1) * (S.masonry ? 2 : 1);
+const segMax = s => SEG_HP[s.tier] * (s.isGate ? 1.5 : 1) * (S.masonry ? 2 : 1) * (1 + (S.wallLv || 0) * 0.75);
 function setSegBuilt(s, on) { s.built = on; if (on) { s.stone = S.masonry || s.tier > 0; s.max = segMax(s); s.hp = s.max; } segVisual(s); }
 // the camp starts with the north and south walls and the gate standing; east and west are ruins
 rings[0].active = true;
@@ -1330,6 +1358,229 @@ const LOOT = [];
     LOOT.push({ x, z, tier, g, i: LOOT.length, opened: false });
   }
 })();
+/* ================= dungeons: 2D side-scrolling levels behind cave mouths 200+ m out =================
+   Step into an entrance and the world turns into a platformer: run, jump, stomp and swing your way to the
+   chest at the far end. Your health, axe, ranged weapon and looks come with you. Fall or fall in battle and
+   you are back at the entrance; reach the chest and it pays out like a treasure chest. */
+const DUNGEONS = (() => {
+  const rnd = mulberryEarly(9191), out = []; let tries = 0;
+  while (out.length < 12 && tries++ < 4000) {
+    const a = rnd() * TAU, r = 205 + rnd() * 110, x = C.x + Math.cos(a) * r, z = C.z + Math.sin(a) * r;
+    if (x < -326 || x > 326 || z < -310 || z > 342 || LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + 6) || out.some(d => Math.hypot(d.x - x, d.z - z) < 50)) continue;
+    out.push({ x, z, i: out.length, tier: r < 250 ? 2 : r < 290 ? 3 : 4 });
+  }
+  return out;
+})();
+DUNGEONS.forEach(d => {
+  const g = grp(d.x, d.z);
+  const rock = mk(new THREE.IcosahedronGeometry(2.6, 1), 0x5d6878); rock.scale.set(1.3, 0.8, 1); rock.position.y = 1; g.add(rock);
+  const mouth = new THREE.Mesh(Box(1.6, 1.8, 0.4), basic(0x120a24)); mouth.position.set(0, 0.9, 2.3); g.add(mouth);
+  skin(g, 'crystal_mine', 5, { parts: [rock, mouth] });
+  const glow = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.9, 28), new THREE.MeshBasicMaterial({ color: 0xb36bff, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+  glow.rotation.x = -Math.PI / 2; glow.position.set(0, 0.05, 3.2); g.add(glow); d.glow = glow; d.g = g;
+  d.ex = d.x; d.ez = d.z + 3.2; addObs(d.x, d.z, 2.6);
+  d.tag = document.createElement('div'); d.tag.className = 'tag'; d.tag.hidden = true; ov.appendChild(d.tag);
+});
+const dungeonReady = d => !(S.dungeons && S.dungeons[d.i] && dayNo() - S.dungeons[d.i] < 2);   // a cleared dungeon refills after two days
+function updateDungeonDoors() {
+  let near = null;
+  for (const d of DUNGEONS) {
+    const dd = d2(d.ex, d.ez, player.x, player.z), ready = dungeonReady(d);
+    d.glow.material.opacity = ready ? 0.45 + Math.sin(time * 3) * 0.2 : 0.12; d.glow.rotation.z += 0.01;
+    d.tag.hidden = dd > 30 * 30; if (!d.tag.hidden) { d.tag.textContent = ready ? 'Dungeon ' + '★'.repeat(d.tier) : 'Dungeon (cleared)'; place(d.tag, d.x, 4.2, d.z); }
+    if (ready && dd < 3 * 3 && S.downT <= 0) near = d;
+  }
+  const btn = $('dunBtn'); btn.hidden = !near || !!DUN; if (near) { btn.textContent = '⚔ Enter dungeon ' + '★'.repeat(near.tier); btn.dataset.i = near.i; }
+}
+
+/* ---- the platformer ---- */
+let DUN = null;
+const dunKeys = { l: false, r: false, jump: false, atk: false };
+function genLevel(d) {
+  const rnd = mulberryEarly(d.i * 7919 + dayNo() * 31), H = 13, W = 80 + d.tier * 18, t = new Uint8Array(W * H);   // 1 solid, 2 spikes
+  const set = (x, y, v) => { if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = v; };
+  for (let x = 0; x < W; x++) { set(x, 0, 1); }
+  let x = 0, ground = 10; const enemies = [], coins = [];
+  while (x < W) {
+    const seg = 4 + (rnd() * 7 | 0);
+    if (x > 10 && x < W - 12 && rnd() < 0.3) { x += 2 + (rnd() * (d.tier >= 3 ? 3 : 2) | 0); continue; }   // a pit to jump
+    if (x > 8 && rnd() < 0.35) ground = Math.max(7, Math.min(11, ground + (rnd() < 0.5 ? -1 : 1)));
+    for (let k = 0; k < seg && x < W; k++, x++) {
+      for (let y = ground; y < H; y++) set(x, y, 1);
+      if (x > 12 && x < W - 8) {
+        if (rnd() < 0.05 * (d.tier - 1)) set(x, ground - 1, 2);
+        else if (rnd() < 0.07 + d.tier * 0.015) enemies.push({ type: rnd() < 0.5 ? 'slime' : rnd() < 0.6 ? 'skeleton' : 'bat', x: x + 0.5, y: ground - (rnd() < 0.3 ? 4 : 1) });
+        if (rnd() < 0.12) coins.push({ x: x + 0.5, y: ground - 2.5 });
+      }
+    }
+    if (x > 10 && x < W - 10 && rnd() < 0.55) {   // a floating ledge with coins
+      const px = x - 3 - (rnd() * 3 | 0), py = ground - 3 - (rnd() * 2 | 0), len = 3 + (rnd() * 3 | 0);
+      for (let k = 0; k < len; k++) { set(px + k, py, 1); if (rnd() < 0.6) coins.push({ x: px + k + 0.5, y: py - 1 }); }
+    }
+  }
+  for (let y = 0; y < H; y++) { set(0, y, 1); set(W - 1, y, 1); }
+  let gy = 10; for (let y = 1; y < H; y++) if (t[y * W + W - 5]) { gy = y; break; }
+  for (let xx = W - 9; xx < W - 1; xx++) for (let y = gy; y < H; y++) set(xx, y, 1);
+  const hpM = (1 + (d.tier - 2) * 0.6) * (1 + (dayNo() - 1) * 0.05);
+  enemies.forEach(e => { const B = { slime: [4, 1.6, 0.9, 0.7], skeleton: [8, 2.2, 0.8, 1.4], bat: [3, 3.0, 0.8, 0.6] }[e.type]; e.hp = e.max = Math.round(B[0] * hpM * 3); e.sp = B[1] * (Math.random() < 0.5 ? -1 : 1); e.w = B[2]; e.h = B[3]; e.vy = 0; e.y0 = e.y; e.alive = true; e.hurt = 0; });
+  return { t, W, H, enemies, coins, chest: { x: W - 4, y: gy - 1 }, dmg: (6 + d.tier * 4) * (1 + (dayNo() - 1) * 0.04) };
+}
+function enterDungeon(i) {
+  const d = DUNGEONS[i]; if (!d || DUN) return;
+  const L = genLevel(d);
+  DUN = { d, L, x: 2, y: 4, vx: 0, vy: 0, w: 0.8, h: 1.4, face: 1, ground: false, inv: 1, atk: 0, swing: 0, rcd: 0, shots: [], gold: 0, safeX: 2, t: 0 };
+  $('dun').hidden = false; resizeDun(); play('horn');
+  banner('Dungeon ' + '★'.repeat(d.tier), true, 'Reach the chest at the far end');
+}
+function leaveDungeon(won) {
+  const D = DUN; if (!D) return; DUN = null; $('dun').hidden = true; for (const k in dunKeys) dunKeys[k] = false;
+  player.x = D.d.ex; player.z = D.d.ez + 1;
+  if (won) {
+    (S.dungeons = S.dungeons || {})[D.d.i] = dayNo(); gainXP(40 * D.d.tier); questEvent('clear', 1);
+    banner('Dungeon cleared!', true, (D.gold ? '+' + D.gold + ' gold collected · ' : '') + 'the treasure is yours'); play('treasure');
+    openTreasure({ x: D.d.ex + 1.5, z: D.d.ez + 1.5, tier: Math.min(4, D.d.tier), g: new THREE.Group(), tag: { remove() {} }, guards: [], questReward: true });
+  } else if (won === false) { S.hp = Math.max(S.hp, heroMax() * 0.5); banner('Defeated in the dungeon', false, 'You stagger back out of the entrance'); play('alert'); }
+}
+const solidAt = (L, x, y) => { const ix = Math.floor(x), iy = Math.floor(y); if (ix < 0 || ix >= L.W || iy < 0) return 1; if (iy >= L.H) return 0; return L.t[iy * L.W + ix]; };
+function hurtDun(dmg) {
+  const D = DUN; if (D.inv > 0) return; D.inv = 1.1; S.hp -= dmg * (1 - (S.armorLv >= 0 ? ARMORS[S.armorLv].a : 0)); play('hurt'); D.vy = -9; D.vx = -D.face * 6;
+  if (S.hp <= 0) leaveDungeon(false);
+}
+function dunHit(e, dmg) {
+  e.hp -= dmg; e.hurt = 0.2; play('hit');
+  if (e.hp <= 0 && e.alive) { e.alive = false; D_gold(2 + DUN.d.tier); gainXP(3 + DUN.d.tier); }
+}
+function D_gold(n) { DUN.gold += n; S.wallet += n; bump('cash'); }
+function dungeonStep(dt) {
+  const D = DUN; if (!D) return; dt = Math.min(dt, 0.05); D.t += dt; const L = D.L;
+  // run and jump
+  const want = (dunKeys.r || keys['d'] || keys['arrowright'] ? 1 : 0) - (dunKeys.l || keys['a'] || keys['arrowleft'] ? 1 : 0);
+  const speed = 7 * (1 + S.speedBonus * 0.5);
+  D.vx += (want * speed - D.vx) * Math.min(1, dt * (D.ground ? 14 : 6)); if (want) D.face = want;
+  if ((dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.ground) { D.vy = -15.5; D.ground = false; play('cast'); }
+  if (!(dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.vy < -6) D.vy = -6;   // short hop on a tap
+  D.vy = Math.min(22, D.vy + 42 * dt);
+  // move with tile collision, one axis at a time
+  let nx = D.x + D.vx * dt;
+  const hw = D.w / 2;
+  if (solidAt(L, nx + (D.vx > 0 ? hw : -hw), D.y - 0.1) === 1 || solidAt(L, nx + (D.vx > 0 ? hw : -hw), D.y - D.h + 0.1) === 1) { nx = D.x; D.vx = 0; }
+  D.x = nx;
+  let ny = D.y + D.vy * dt; D.ground = false;
+  if (D.vy > 0 && (solidAt(L, D.x - hw + 0.05, ny) === 1 || solidAt(L, D.x + hw - 0.05, ny) === 1)) { ny = Math.floor(ny); D.vy = 0; D.ground = true; D.safeX = D.x; }
+  if (D.vy < 0 && (solidAt(L, D.x - hw + 0.05, ny - D.h) === 1 || solidAt(L, D.x + hw - 0.05, ny - D.h) === 1)) { ny = Math.floor(ny - D.h) + 1 + D.h; D.vy = 0; }
+  D.y = ny;
+  if (solidAt(L, D.x, D.y - 0.2) === 2) hurtDun(L.dmg);
+  if (!DUN) return;
+  if (D.y > L.H + 2) { hurtDun(L.dmg * 1.5); if (!DUN) return; D.x = D.safeX - D.face * 1.5; D.y = 2; D.vy = 0; D.inv = 1.5; }   // fell into a pit
+  D.inv -= dt; D.atk -= dt; D.swing -= dt; D.rcd -= dt;
+  // axe swing
+  if ((dunKeys.atk || keys['j'] || keys['k'] || keys['x']) && D.atk <= 0) {
+    D.atk = AXE[S.axe].int; D.swing = 0.22; play('chop');
+    const reach = 1.3 + AXE[S.axe].range * 0.15;
+    for (const e of L.enemies) if (e.alive && Math.abs(e.y - e.h / 2 - (D.y - D.h / 2)) < 1.4 && (e.x - D.x) * D.face > -0.3 && Math.abs(e.x - D.x) < reach) dunHit(e, AXE[S.axe].dmg * heroDmg());
+  }
+  // ranged weapon fires on its own at foes ahead
+  const R = RANGED[S.rangedOn];
+  if (R && D.rcd <= 0) {
+    const rng = R.rng * 0.6; const tgt = L.enemies.find(e => e.alive && (e.x - D.x) * D.face > 0 && Math.abs(e.x - D.x) < rng && Math.abs(e.y - D.y) < 2.5);
+    if (tgt) { D.rcd = R.cd; D.shots.push({ x: D.x + D.face * 0.5, y: D.y - D.h * 0.6, vx: D.face * (R.speed ? R.speed * 0.6 : 30), kind: R.kind, dmg: R.dmg * rangedMul(), t: 0 }); play(R.kind === 'bullet' ? 'gun' : R.kind === 'arrow' ? 'bow' : R.kind === 'storm' ? 'zap' : 'spell'); }
+  }
+  for (let i = D.shots.length - 1; i >= 0; i--) {
+    const s = D.shots[i]; s.x += s.vx * dt; s.t += dt;
+    const hit = L.enemies.find(e => e.alive && Math.abs(e.x - s.x) < e.w / 2 + 0.2 && s.y > e.y - e.h - 0.2 && s.y < e.y + 0.2);
+    if (hit) { dunHit(hit, s.dmg); if (s.kind === 'fire') for (const e of L.enemies) if (e.alive && e !== hit && Math.abs(e.x - hit.x) < 2) dunHit(e, s.dmg * 0.6); if (s.kind === 'frost') hit.frozen = 2; D.shots.splice(i, 1); continue; }
+    if (s.t > 1.5 || solidAt(L, s.x, s.y) === 1) D.shots.splice(i, 1);
+  }
+  // foes: slimes and skeletons patrol, bats swoop
+  for (const e of L.enemies) {
+    if (!e.alive) continue; e.hurt -= dt; if (e.frozen > 0) { e.frozen -= dt; continue; }
+    if (Math.abs(e.x - D.x) > 18) continue;
+    if (e.type === 'bat') { e.x += e.sp * dt * 0.7; e.y = e.y0 + Math.sin(D.t * 2.5 + e.x) * 1.2; if (Math.abs(e.x - D.x) < 6) e.x += Math.sign(D.x - e.x) * dt * 1.5; if (solidAt(L, e.x + Math.sign(e.sp) * 0.5, e.y - 0.3) === 1) e.sp *= -1; }
+    else {
+      e.vy = Math.min(20, e.vy + 40 * dt); let ey = e.y + e.vy * dt;
+      if (solidAt(L, e.x, ey) === 1) { ey = Math.floor(ey); e.vy = 0; }
+      e.y = ey;
+      const ahead = e.x + Math.sign(e.sp) * (e.w / 2 + 0.1);
+      if (solidAt(L, ahead, e.y - 0.5) === 1 || solidAt(L, ahead, e.y + 0.5) !== 1) e.sp *= -1;   // turn at walls and ledges
+      else e.x += e.sp * dt;
+    }
+    // touching: stomp from above, otherwise it hurts you
+    if (Math.abs(e.x - D.x) < (e.w + D.w) / 2 && D.y > e.y - e.h - 0.1 && D.y - D.h < e.y) {
+      if (D.vy > 2 && D.y < e.y - e.h + 0.6) { dunHit(e, AXE[S.axe].dmg * heroDmg() * 2 + 4); D.vy = -11; }
+      else hurtDun(L.dmg * (e.type === 'skeleton' ? 1.3 : 1));
+      if (!DUN) return;
+    }
+  }
+  for (const c of L.coins) if (!c.got && Math.abs(c.x - D.x) < 0.7 && Math.abs(c.y - (D.y - D.h / 2)) < 1) { c.got = true; D_gold(1); play('coin'); }
+  if (Math.abs(L.chest.x + 0.5 - D.x) < 1 && Math.abs(L.chest.y - D.y) < 1.5) { leaveDungeon(true); return; }
+  if (S.hp < heroMax() && D.inv < -3) S.hp = Math.min(heroMax(), S.hp + 2 * dt);
+  drawDungeon();
+}
+/* ---- drawing ---- */
+const dunCv = () => $('dunCv');
+function resizeDun() { const cv = dunCv(), r = devicePixelRatio || 1; cv.width = innerWidth * r; cv.height = innerHeight * r; }
+const css = c => '#' + (c >>> 0).toString(16).padStart(6, '0').slice(-6);
+function drawHero(c, x, y, T, face, swing) {
+  const look = myLook(), coat = css(PROFILE.color), w = T * 0.8, h = T * 1.4;
+  c.save(); c.translate(x, y); c.scale(face, 1);
+  if (look[3]) { c.fillStyle = css([0, 0xc8452f, 0x8d97a4, 0x5b3fa3, 0x3fb8a8][look[3]]); c.beginPath(); c.moveTo(-w * 0.3, -h * 0.75); c.lineTo(-w * 0.75, -h * 0.05); c.lineTo(-w * 0.05, -h * 0.1); c.fill(); }
+  if (look[4] >= 0) { c.strokeStyle = look[4] === 2 ? '#3a3f48' : look[4] >= 3 ? '#6b4a2d' : '#7a4a26'; c.lineWidth = T * 0.08; c.beginPath(); c.moveTo(-w * 0.5, -h * 0.9); c.lineTo(w * 0.1, -h * 0.25); c.stroke();
+    if (look[4] >= 3) { c.fillStyle = css([0x9fe8ff, 0xff7a3d, 0xcfe8ff][look[4] - 3]); c.beginPath(); c.arc(-w * 0.5, -h * 0.92, T * 0.1, 0, TAU); c.fill(); } }
+  c.fillStyle = '#3a2a1e'; c.fillRect(-w * 0.32, -h * 0.18, w * 0.24, h * 0.18); c.fillRect(w * 0.08, -h * 0.18, w * 0.24, h * 0.18);   // boots
+  c.fillStyle = coat; c.beginPath(); c.ellipse(0, -h * 0.4, w * 0.48, h * 0.3, 0, 0, TAU); c.fill();   // puffy coat
+  if (look[1] >= 0) { c.fillStyle = css(ARMOR_COL[look[1]]); c.beginPath(); c.arc(-w * 0.3, -h * 0.6, T * 0.16, Math.PI, 0); c.arc(w * 0.3, -h * 0.6, T * 0.16, Math.PI, 0); c.fill(); }
+  c.fillStyle = '#4fa8d8'; c.beginPath(); c.arc(0, -h * 0.78, w * 0.46, 0, TAU); c.fill();   // blue hood
+  c.fillStyle = '#f3e6cf'; c.beginPath(); c.arc(w * 0.12, -h * 0.76, w * 0.28, 0, TAU); c.fill();   // face
+  c.fillStyle = '#1d2128'; c.fillRect(w * 0.18, -h * 0.8, T * 0.06, T * 0.1);
+  if (look[2]) { const hc = [0, '#d9cbb0', '#8f99a6', '#aab4c0', '#f2c14e'][look[2]]; c.fillStyle = hc; c.beginPath(); c.arc(0, -h * 0.86, w * 0.5, Math.PI, 0); c.fill();
+    if (look[2] === 2) { c.fillStyle = '#f1ead8'; c.beginPath(); c.moveTo(-w * 0.45, -h * 0.9); c.lineTo(-w * 0.7, -h * 1.15); c.lineTo(-w * 0.3, -h * 0.95); c.fill(); c.beginPath(); c.moveTo(w * 0.45, -h * 0.9); c.lineTo(w * 0.7, -h * 1.15); c.lineTo(w * 0.3, -h * 0.95); c.fill(); } }
+  // axe
+  c.save(); c.translate(w * 0.35, -h * 0.5); c.rotate(swing > 0 ? 1.6 - swing * 8 : -0.5);
+  c.fillStyle = '#8a5a36'; c.fillRect(-T * 0.04, -T * 0.55, T * 0.08, T * 0.6); c.fillStyle = css(WEAPON_COL[S.weapon + 1] || WEAPON_COL[0]); c.fillRect(-T * 0.02, -T * 0.6, T * 0.3, T * 0.24); c.restore();
+  c.restore();
+}
+function drawDungeon() {
+  const D = DUN, L = D.L, cv = dunCv(), c = cv.getContext('2d'), W = cv.width, H = cv.height, T = Math.min(H / 11, W / 9);
+  const camX = Math.max(0, Math.min(L.W * T - W, D.x * T - W * 0.4)), camY = Math.max(0, Math.min(L.H * T - H, (D.y - 4) * T - H * 0.45));
+  const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#1b1530'); g.addColorStop(1, '#2f2a52'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.fillStyle = 'rgba(180,140,255,0.18)'; for (let i = 0; i < 18; i++) { const px = ((i * 271 - camX * 0.3) % (W + 200) + W + 200) % (W + 200) - 100, py = H * (0.2 + (i * 37 % 60) / 100); c.beginPath(); c.moveTo(px, py); c.lineTo(px + T * 0.4, py - T * 1.4); c.lineTo(px + T * 0.8, py); c.fill(); }
+  c.save(); c.translate(-camX, -camY);
+  const x0 = Math.max(0, Math.floor(camX / T)), x1 = Math.min(L.W, Math.ceil((camX + W) / T) + 1);
+  for (let y = 0; y < L.H; y++) for (let x = x0; x < x1; x++) {
+    const v = L.t[y * L.W + x]; if (!v) continue;
+    if (v === 1) { c.fillStyle = '#4a4f66'; c.fillRect(x * T, y * T, T + 1, T + 1); c.fillStyle = '#5c6380'; c.fillRect(x * T + 2, y * T + 2, T - 4, T * 0.4);
+      if (!L.t[(y - 1) * L.W + x]) { c.fillStyle = '#dfeaf7'; c.fillRect(x * T, y * T, T + 1, T * 0.22); } }
+    else { c.fillStyle = '#c9d6e8'; for (let k = 0; k < 3; k++) { c.beginPath(); c.moveTo(x * T + k * T / 3, (y + 1) * T); c.lineTo(x * T + k * T / 3 + T / 6, y * T + T * 0.2); c.lineTo(x * T + (k + 1) * T / 3, (y + 1) * T); c.fill(); } }
+  }
+  for (const co of L.coins) if (!co.got) { c.fillStyle = '#f2c14e'; c.beginPath(); c.ellipse(co.x * T, co.y * T, T * 0.18 * Math.abs(Math.cos(D.t * 3 + co.x)) + 2, T * 0.2, 0, 0, TAU); c.fill(); }
+  const ch = L.chest; c.fillStyle = '#7a4a26'; c.fillRect(ch.x * T, (ch.y + 0.3) * T, T * 1.1, T * 0.7); c.fillStyle = '#f2c14e'; c.fillRect(ch.x * T, (ch.y + 0.45) * T, T * 1.1, T * 0.1); c.fillRect((ch.x + 0.45) * T, (ch.y + 0.4) * T, T * 0.2, T * 0.25);
+  c.fillStyle = 'rgba(255,224,138,' + (0.3 + Math.sin(D.t * 4) * 0.15) + ')'; c.beginPath(); c.arc((ch.x + 0.55) * T, (ch.y + 0.5) * T, T * 1.1, 0, TAU); c.fill();
+  for (const e of L.enemies) {
+    if (!e.alive) continue; const ex = e.x * T, ey = e.y * T, flash = e.hurt > 0, fr = e.frozen > 0;
+    c.fillStyle = flash ? '#ffffff' : fr ? '#9fe8ff' : e.type === 'slime' ? '#5fbf5a' : e.type === 'bat' ? '#5a3f7a' : '#d8d2c4';
+    if (e.type === 'slime') { c.beginPath(); c.ellipse(ex, ey - e.h * T * 0.5, e.w * T * 0.55, e.h * T * 0.55 * (1 + Math.sin(D.t * 6 + e.x) * 0.08), 0, 0, TAU); c.fill(); }
+    else if (e.type === 'bat') { c.beginPath(); c.arc(ex, ey - T * 0.3, T * 0.25, 0, TAU); c.fill(); const f = Math.sin(D.t * 14) * T * 0.25; c.beginPath(); c.moveTo(ex - T * 0.2, ey - T * 0.3); c.lineTo(ex - T * 0.7, ey - T * 0.45 + f); c.lineTo(ex - T * 0.3, ey - T * 0.15); c.moveTo(ex + T * 0.2, ey - T * 0.3); c.lineTo(ex + T * 0.7, ey - T * 0.45 + f); c.lineTo(ex + T * 0.3, ey - T * 0.15); c.fill(); }
+    else { c.fillRect(ex - T * 0.25, ey - e.h * T, T * 0.5, e.h * T); c.beginPath(); c.arc(ex, ey - e.h * T, T * 0.28, 0, TAU); c.fill(); c.fillStyle = '#1d2128'; c.fillRect(ex - T * 0.12, ey - e.h * T - 4, 4, 4); c.fillRect(ex + T * 0.05, ey - e.h * T - 4, 4, 4); }
+    c.fillStyle = '#ff5a4e'; if (e.type !== 'skeleton') { c.fillRect(ex - 5, ey - e.h * T * 0.65, 3, 3); c.fillRect(ex + 3, ey - e.h * T * 0.65, 3, 3); }
+    if (e.hp < e.max) { c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(ex - T * 0.4, ey - e.h * T - T * 0.5, T * 0.8, 5); c.fillStyle = '#e2483f'; c.fillRect(ex - T * 0.4, ey - e.h * T - T * 0.5, T * 0.8 * e.hp / e.max, 5); }
+  }
+  for (const s of D.shots) { const col = { arrow: '#f5f0e6', bullet: '#ffe08a', frost: '#9fe8ff', fire: '#ff7a3d', storm: '#cfe8ff' }[s.kind]; c.fillStyle = col; if (s.kind === 'arrow' || s.kind === 'bullet') c.fillRect(s.x * T - T * 0.25, s.y * T - 2, T * 0.5, 4); else { c.beginPath(); c.arc(s.x * T, s.y * T, T * 0.18, 0, TAU); c.fill(); c.globalAlpha = 0.4; c.beginPath(); c.arc(s.x * T - Math.sign(s.vx) * T * 0.3, s.y * T, T * 0.12, 0, TAU); c.fill(); c.globalAlpha = 1; } }
+  if (!(D.inv > 0 && (D.t * 12 | 0) % 2)) drawHero(c, D.x * T, D.y * T, T, D.face, D.swing);
+  c.restore();
+  // health and gold
+  const r = devicePixelRatio || 1, bw = 180 * r;
+  c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(16 * r, 16 * r, bw, 16 * r); c.fillStyle = '#e2483f'; c.fillRect(16 * r, 16 * r, bw * Math.max(0, S.hp / heroMax()), 16 * r);
+  c.fillStyle = '#fff'; c.font = (14 * r) + 'px sans-serif'; c.fillText('Health ' + Math.max(0, Math.round(S.hp)) + '   Gold +' + D.gold + '   ' + Math.round(D.x / L.W * 100) + '% through', 16 * r, 50 * r);
+}
+['dunL', 'dunR', 'dunJ', 'dunA'].forEach((id, k) => { const key = ['l', 'r', 'jump', 'atk'][k], el = $(id);
+  const on = e => { e.preventDefault(); e.stopPropagation(); dunKeys[key] = true; }, off = e => { e.preventDefault(); e.stopPropagation(); dunKeys[key] = false; };
+  el.addEventListener('pointerdown', on); el.addEventListener('pointerup', off); el.addEventListener('pointerleave', off); el.addEventListener('pointercancel', off); });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('dun').addEventListener(ev, e => e.stopPropagation()));
+$('dunLeave').addEventListener('click', e => { e.stopPropagation(); leaveDungeon(null); banner('You left the dungeon', false); });
+$('dunBtn').addEventListener('click', e => { e.stopPropagation(); enterDungeon(+$('dunBtn').dataset.i); });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('dunBtn').addEventListener(ev, e => e.stopPropagation()));
+window.addEventListener('resize', () => { if (DUN) resizeDun(); });
+
 function campTierEarly(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 110 ? 0 : d < 200 ? 1 : 2; }
 function openLoot(L) {
   L.opened = true; (S.loot = S.loot || []).push(L.i);
@@ -1496,7 +1747,7 @@ function plot(id, cfg) {
   p.onBuy = lv => { if (!cfg.repeat && !cfg.labels) B[id] = true; ob(lv); gainXP(cfg.xp || 25); };
   return p;
 }
-function hasRoom() { if (pop() + 1 > housing()) { note('Need more housing!', 'bad'); return false; } return true; }
+function hasRoom() { return true; }   // workers and guards live in their lodges and barracks: they don't take beds
 // ---- Tier I: Camp
 const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL III'], costs: [{ log: 80, cash: 120 }, { log: 140, stone: 80, cash: 400 }],
   requires: () => padTH.level < 2 && (padTH.level === 0 ? ringSecure(rings[0]) && S.cook : rings[1].complete && ringSecure(rings[1])),
@@ -1533,9 +1784,12 @@ const padArrow = plot('arrow', { x: -2.9, z: 17.9, labels: ['ARROWS II', 'ARROWS
   onBuy: lv => { S.towerLv = lv; banner('Sharper arrows!', true, 'Towers hit harder and faster'); }, xp: 40 });
 const padRanged = plot('ranged', { personal: true, x: -6.4, z: 11.4, labels: ['HUNTING BOW', 'CROSSBOW', 'RIFLE'], costs: [{ log: 30, cash: 60 }, { log: 60, stone: 30, cash: 180 }, { ore: 30, stone: 40, cash: 500 }], tiers: [1, 2, 3],
   requires: () => B.smith && padRanged.level < 3 && S.th >= padRanged.tiers[padRanged.level],
-  onBuy: lv => { const id = lv - 1; S.rangedOwn = S.rangedOwn || []; if (!S.rangedOwn.includes(id)) S.rangedOwn.push(id); S.rangedOn = id; applyMyLook(); banner(RANGED[id].n + '!', true, 'Fires on its own at threats within ' + RANGED[id].rng + ' m · switch weapons under Hero'); }, xp: 40 });
+  onBuy: lv => { const id = lv - 1; S.rangedOwn = S.rangedOwn || []; if (!S.rangedOwn.includes(id)) S.rangedOwn.push(id); S.rangedOn = bestRanged(); applyMyLook(); banner(RANGED[id].n + '!', true, 'Fires on its own at threats within ' + RANGED[id].rng + ' m · switch weapons under Hero'); }, xp: 40 });
 plot('pick', { personal: true, x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.pick = true; banner('Crystal pick forged!', true, 'You can now mine crystal veins in the far wilds'); } });
+const padWalls = plot('reinforce', { x: 9.4, z: 13.4, labels: ['IRON BANDS', 'STONE BASTIONS', 'RUNE WARDS'], costs: [{ log: 60, stone: 40, cash: 150 }, { stone: 90, cash: 300 }, { stone: 80, ore: 30, cash: 600 }], tiers: [2, 2, 3],
+  requires: () => B.smith && padWalls.level < 3 && S.th >= padWalls.tiers[padWalls.level],
+  onBuy: lv => { S.wallLv = lv; rings.forEach(r => r.segs.forEach(sg => { if (sg.built) { const f = sg.hp / sg.max; sg.max = segMax(sg); sg.hp = sg.max * f; } })); banner('Walls reinforced!', true, 'Every wall and gate is ' + Math.round(lv * 75) + '% tougher'); }, xp: 40 });
 plot('mason', { x: -9.2, z: 14.3, label: 'MASONRY', cost: { stone: 60, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.masonry = true; rings.forEach(r => r.segs.forEach(s => { if (s.built) { const f = s.hp / s.max; s.stone = true; s.max = segMax(s); s.hp = s.max * f; segVisual(s); } })); banner('Masonry!', true, 'Walls are twice as strong'); } });
 const padDrill = plot('drill', { x: -6, z: 14.3, labels: ['GUARD DRILL'], costs: [{ ore: 15, meat: 30, cash: 250 }], tiers: [3],
@@ -1810,6 +2064,38 @@ $('tutNext').addEventListener('click', e => { e.stopPropagation(); nextTut(); })
 $('tutSkip').addEventListener('click', e => { e.stopPropagation(); endTutorial(true); note('Tutorial skipped: replay it from the menu'); });
 ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('tut').addEventListener(ev, e => e.stopPropagation()));
 $('tutBtn').addEventListener('click', e => { e.stopPropagation(); closeMenu(); startTutorial(); });
+/* ---- co-op: hand gold, resources and spare gear to a teammate standing next to you ---- */
+let giveTo = null;
+function nearTeammate() { let b = null, bd = 3.5 * 3.5; for (const r of Object.values(NET.remotes)) { const d = d2(r.x, r.z, player.x, player.z); if (d < bd && !r.down) { bd = d; b = r; } } return b; }
+function updateGive() {
+  const r = NET.room ? nearTeammate() : null, btn = $('giveBtn');
+  btn.hidden = !r || !$('givePanel').hidden; if (r) btn.textContent = '🎁 Give to ' + remoteName(r);
+}
+function openGive() {
+  giveTo = nearTeammate(); if (!giveTo) return;
+  $('giveHead').textContent = 'Give to ' + remoteName(giveTo);
+  const L = $('giveList'), opts = [];
+  opts.push('<h3>Gold</h3>'); [10, 50, 200].forEach(n => opts.push(`<button data-g="cash:${n}" ${S.wallet < n ? 'disabled style="opacity:.4"' : ''}>${n} gold</button>`));
+  const res = ['log', 'meat', 'stone', 'ore'].filter(t => carry[t].length);
+  if (res.length) { opts.push('<h3>From your pack</h3>'); res.forEach(t => { opts.push(`<button data-g="${t}:${carry[t].length}">All ${PLURAL[t]} (${carry[t].length})</button>`); if (carry[t].length > 10) opts.push(`<button data-g="${t}:10">10 ${PLURAL[t]}</button>`); }); }
+  const gear = (S.rangedOwn || []).map(i => `<button data-g="ranged:${i}">${RANGED[i].n}</button>`)
+    .concat(['helm', 'cape'].flatMap(sl => ((S.wardrobe || {})[sl] || []).filter(i => i).map(i => `<button data-g="${sl}:${i}">${LOOKS[sl][i]}</button>`)));
+  if (gear.length) opts.push('<h3>Gear (you hand it over)</h3>', ...gear);
+  L.innerHTML = opts.join(''); $('givePanel').hidden = false;
+}
+function doGive(kind, v) {
+  const r = giveTo && NET.remotes[giveTo.peer]; if (!r) return;
+  const n = +v;
+  if (kind === 'cash') { if (S.wallet < n) return; S.wallet -= n; NET.room.emit('give', { to: r.peer, t: 'cash', n, q: 0, gift: 1 }).catch(() => {}); }
+  else if (RES.includes(kind)) { const k = Math.min(n, carry[kind].length); for (let i = 0; i < k; i++) takeFromStack(kind); bump(kind); NET.room.emit('give', { to: r.peer, t: kind, n: k, q: 0, gift: 1 }).catch(() => {}); }
+  else if (kind === 'ranged') { S.rangedOwn = (S.rangedOwn || []).filter(i => i !== n); S.rangedOn = bestRanged(); applyMyLook(); NET.room.emit('give', { to: r.peer, t: 'gear', slot: 'ranged', id: n }).catch(() => {}); }
+  else { const W = S.wardrobe[kind]; W.splice(W.indexOf(n), 1); if (S.wear[kind] === n) S.wear[kind] = Math.max(0, ...W); applyMyLook(); NET.room.emit('give', { to: r.peer, t: 'gear', slot: kind, id: n }).catch(() => {}); }
+  play('coin'); note('Gave to ' + remoteName(r)); openGive();
+}
+$('giveBtn').addEventListener('click', e => { e.stopPropagation(); openGive(); });
+$('giveClose').addEventListener('click', e => { e.stopPropagation(); $('givePanel').hidden = true; });
+$('giveList').addEventListener('click', e => { const b = e.target.closest('[data-g]'); if (!b || b.disabled) return; e.stopPropagation(); const [k, v] = b.dataset.g.split(':'); doGive(k, v); });
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => { $('giveBtn').addEventListener(ev, e => e.stopPropagation()); $('givePanel').addEventListener(ev, e => e.stopPropagation()); });
 function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
     const show = t.on() && d2(t.x, t.z, player.x, player.z) < 34 * 34; t.el.hidden = !show; if (!show) continue;
@@ -1929,14 +2215,32 @@ function makeYeti() {
 }
 let enemyId = 0;
 const dayNo = () => Math.floor(S.clock / DAY_LEN) + 1, dayMul = () => 1 + 0.12 * (dayNo() - 1), dayBite = () => 1 + Math.min(1, 0.05 * (dayNo() - 1));
+// who raids: wolves and goblins early, spiders and bears next, trolls, yetis and wraiths in later nights
+const RAID = {
+  wolf: { hp: 8, hpW: 2, speed: 2.6, wall: 3, unit: 6, xp: 8, loot: 3, size: 0.9, make: () => makeWolf() },
+  goblin: { hp: 10, hpW: 2, speed: 2.5, wall: 4, unit: 5, xp: 9, loot: 4, size: 0.8, sc: 0.78, make: () => makeGoblin() },
+  spider: { hp: 7, hpW: 1.5, speed: 3.3, wall: 2, unit: 5, xp: 7, loot: 3, size: 0.8, make: () => makeSpider() },
+  bear: { hp: 40, hpW: 5, speed: 2.1, wall: 7, unit: 13, xp: 22, loot: 10, size: 1.4, make: () => makeBear() },
+  troll: { hp: 55, hpW: 6, speed: 1.9, wall: 10, unit: 15, xp: 28, loot: 14, size: 1.6, sc: 1.7, make: () => makeTroll() },
+  yeti: { hp: 70, hpW: 8, speed: 1.7, wall: 9, unit: 20, xp: 40, loot: 25, size: 1.8, make: () => makeYeti() },
+  wraith: { hp: 45, hpW: 5, speed: 2.7, wall: 5, unit: 17, xp: 34, loot: 18, size: 1.4, make: () => makeWraith() },
+};
+const RAID_IDS = Object.keys(RAID);
+function raidPack(w) {
+  const pool = ['wolf', 'goblin'].concat(w >= 2 ? ['spider'] : [], w >= 3 ? ['bear'] : [], w >= 4 ? ['troll', 'yeti'] : [], w >= 6 ? ['wraith'] : []);
+  const big = ['bear', 'troll', 'yeti', 'wraith'], n = 4 + Math.floor(w * 1.6) + Math.floor((dayNo() - 1) / 2), out = [];
+  const lead = pool[Math.random() * pool.length | 0];   // each night has a leading kind plus a mix
+  for (let i = 0; i < n; i++) { let t = Math.random() < 0.45 ? lead : pool[Math.random() * pool.length | 0]; if (big.includes(t) && out.filter(o => big.includes(o)).length >= Math.ceil(w / 3)) t = 'wolf'; out.push(t); }
+  return out;
+}
 function spawnEnemy(type, wave, px, pz, id) {
-  const m = type === 'yeti' ? makeYeti() : makeWolf();
+  const RD = RAID[type] || RAID.wolf, m = RD.make();
   const side = (Math.random() * 3) | 0;
   const x = px !== undefined ? px : side === 0 ? rand(-30, 30) : side === 1 ? 60 : -60, z = pz !== undefined ? pz : side === 0 ? -58 : rand(-30, 40);
   m.g.position.set(x, 0, z); scene.add(m.g);
-  const yeti = type === 'yeti', hp = Math.round((yeti ? 70 + wave * 8 : 8 + wave * 2) * dayMul()), hit = 1 + 0.06 * (dayNo() - 1);
-  const e = { ...m, id: id || ++enemyId, type, x, z, nx: x, nz: z, hp, max: hp, rot: 0, walkT: 0, shake: 0, atkT: 0, tgt: null, seg: null, think: 0, alive: true,
-    speed: yeti ? 1.7 : 2.6, dmgWall: (yeti ? 9 : 3) * hit, dmgUnit: (yeti ? 20 : 6) * hit, xp: yeti ? 40 : 8, loot: yeti ? 25 : 3, bar: makeBar(), kind: 'enemy', lastBy: null };
+  const hp = Math.round((RD.hp + wave * RD.hpW) * dayMul()), hit = 1 + 0.06 * (dayNo() - 1);
+  const e = { ...m, id: id || ++enemyId, type, x, z, nx: x, nz: z, hp, max: hp, rot: 0, walkT: 0, shake: 0, atkT: 0, tgt: null, seg: null, think: 0, alive: true, sc: RD.sc || 1, size: RD.size,
+    speed: RD.speed, dmgWall: RD.wall * hit, dmgUnit: RD.unit * hit, xp: RD.xp, loot: RD.loot, bar: makeBar(), kind: 'enemy', lastBy: null };
   enemies.push(e); return e;
 }
 function killEnemy(e) {
@@ -1980,6 +2284,7 @@ function damageYak(y, dmg, by) {
   }
 }
 function hurtHero(dmg) {
+  if (DUN) return;
   if (S.downT > 0) return;
   dmg *= 1 - (S.armorLv >= 0 ? ARMORS[S.armorLv].a : 0);
   S.hp -= dmg; S.hurtT = 3; play('hurt'); burst(player.x, 1.2, player.z, 0xd9524b, 3, 2);
@@ -2005,6 +2310,8 @@ const RANGED = [
   { n: 'Fire Staff', dmg: 11, rng: 15, cd: 1.3, kind: 'fire', speed: 16 },
   { n: 'Storm Staff', dmg: 10, rng: 17, cd: 1.2, kind: 'storm' },
 ];
+const RANGED_RANK = [0, 3, 1, 5, 4, 2];   // weakest to strongest: bow, frost, crossbow, storm, fire, rifle
+function bestRanged() { const own = S.rangedOwn || []; let b = -1; for (const i of RANGED_RANK) if (own.includes(i)) b = i; return b; }
 const rangedMul = () => 1 + (S.lvl - 1) * 0.1 + S.bonusDmg;
 const shots = []; let rangedCd = 0;
 function hitTarget(k, e, dmg, frost) {
@@ -2031,7 +2338,7 @@ function updateRanged(dt) {
       if (R.kind === 'storm') {   // lightning jumps to two more foes
         let from = new THREE.Vector3(player.x, 1.6, player.z), hit = [t];
         for (const n of threats(e.x, e.z, 7)) if (hit.length < 3 && !hit.some(h => h[1] === n[1])) hit.push(n);
-        hit.forEach(([kk, ee], i) => { const to = new THREE.Vector3(ee.x, 1, ee.z); bolt(from, to); from = to; hitTarget(kk, ee, dmg * (i ? 0.6 : 1)); });
+        hit.forEach(([kk, ee], i) => { const to = new THREE.Vector3(ee.x, 1, ee.z); bolt(from, to); from = to; hitTarget(kk, ee, dmg * (i ? 0.6 : 1)); ringFx(ee.x, ee.z, 0xcfe8ff, 1.2); });
         play('zap');
       } else {
         const [col, sz] = SHOT_LOOK[R.kind];
@@ -2049,14 +2356,22 @@ function updateRanged(dt) {
     if (L < 0.5) {
       scene.remove(sh.m); shots.splice(i, 1);
       hitTarget(sh.k, e, sh.dmg, sh.R.kind === 'frost');
-      if (sh.R.kind === 'frost') burst(tx, 1, tz, 0x9fe8ff, 8, 2);
-      if (sh.R.kind === 'fire') { burst(tx, 1, tz, 0xff7a3d, 14, 3); play('boom'); for (const n of threats(tx, tz, 3.2)) if (n[1] !== e) hitTarget(n[0], n[1], sh.dmg * 0.6); }
+      if (sh.R.kind === 'frost') { burst(tx, 1, tz, 0x9fe8ff, 12, 2); ringFx(tx, tz, 0xbff2ff, 1.6); }
+      if (sh.R.kind === 'arrow') burst(tx, 1, tz, 0xf5f0e6, 4, 1.2);
+      if (sh.R.kind === 'bullet') { burst(tx, 1, tz, 0xffe08a, 8, 2.5); }
+      if (sh.R.kind === 'fire') { burst(tx, 1, tz, 0xff7a3d, 18, 3.5); ringFx(tx, tz, 0xff7a3d, 3.2); play('boom'); for (const n of threats(tx, tz, 3.2)) if (n[1] !== e) hitTarget(n[0], n[1], sh.dmg * 0.6); }
       continue;
     }
     const st = Math.min(L, sh.R.speed * dt); sh.m.position.x += dx / L * st; sh.m.position.y += dy / L * st; sh.m.position.z += dz / L * st; sh.m.lookAt(tx, ty, tz);
+    sh.trail = (sh.trail || 0) - dt; if (sh.trail <= 0) { sh.trail = 0.03; const P0 = sh.m.position, TR = { arrow: [0xf5f0e6, 0.4], bullet: [0xffe08a, 0.25], frost: [0xbff2ff, 0.7], fire: [0xff9a3d, 0.9] }[sh.R.kind]; spark(P0.x, P0.y, P0.z, TR[0], TR[1]); }
     if (sh.R.kind !== 'arrow') sh.m.rotation.z += dt * 10;
   }
 }
+// small effects: a fading puff for trails, an expanding ring for blasts
+const fxList = [];
+function spark(x, y, z, col, size) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.08 * size + 0.04, 6, 4), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 })); m.position.set(x, y, z); scene.add(m); fxList.push({ m, t: 0, life: 0.35, grow: 1.5 }); }
+function ringFx(x, z, col, r) { const m = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.45, 24), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.15, z); scene.add(m); fxList.push({ m, t: 0, life: 0.45, grow: r * 2.2 }); }
+function updateFx(dt) { for (let i = fxList.length - 1; i >= 0; i--) { const f = fxList[i]; f.t += dt; const k = f.t / f.life; if (k >= 1) { scene.remove(f.m); fxList.splice(i, 1); continue; } f.m.scale.setScalar(1 + k * f.grow); f.m.material.opacity = 0.9 * (1 - k); } }
 function bolt(a, b) {
   const pts = [a.clone()]; for (let i = 1; i < 6; i++) { const p = a.clone().lerp(b, i / 6); p.x += rand(-0.4, 0.4); p.y += rand(-0.3, 0.3); p.z += rand(-0.4, 0.4); pts.push(p); } pts.push(b.clone());
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff })); scene.add(line);
@@ -2198,6 +2513,7 @@ renderer.domElement.addEventListener('pointercancel', endJoy);
 window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; unlockAudio(); $('hint').style.opacity = 0; });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 function readInput() {
+  if (DUN) { input.x = input.y = 0; return; }   // the hero waits at the entrance while you play the dungeon
   let x = joyVec.x, y = joyVec.y;
   if (keys['a'] || keys['arrowleft']) x -= 1; if (keys['d'] || keys['arrowright']) x += 1;
   if (keys['w'] || keys['arrowup']) y -= 1; if (keys['s'] || keys['arrowdown']) y += 1;
@@ -2322,7 +2638,9 @@ function update(dt) {
     const mx = RIGHT.x * input.x - FWD.x * input.y, mz = RIGHT.y * input.x - FWD.y * input.y, mag = Math.hypot(mx, mz);
     player.moving = mag > 0.05;
     if (player.moving) {
-      const sp = 6 * (1 + (S.lvl - 1) * 0.02 + S.boots * 0.15 + S.speedBonus) * Math.min(1, Math.max(0.55, mag)) * dt;
+      const deep = Math.hypot(player.x - C.x, player.z - C.z) > 300 ? 0.62 : 1;   // deep snow in the far wilds
+      if (deep < 1 && !S.deepNoted) { S.deepNoted = true; note('Deep snow: the far wilds are slow going'); }
+      const sp = 6 * (1 + (S.lvl - 1) * 0.02 + S.boots * 0.15 + S.speedBonus) * Math.min(1, Math.max(0.55, mag)) * deep * dt;
       collide(player, player.x + mx / mag * sp, player.z + mz / mag * sp, 0.38);
       if (player.swingT <= 0) player.rot = turnTo(player.rot, Math.atan2(mx, mz), 0.25);
       player.walkT += dt; if ((player.walkT * 3.2 | 0) !== ((player.walkT - dt) * 3.2 | 0)) play("step");
@@ -2333,7 +2651,7 @@ function update(dt) {
     if (player.atkT <= 0 && playerAttack()) { player.atkT = AXE[S.axe].int; player.swingT = 0.3; }
   }
   player.g.position.set(player.x, 0, player.z); player.g.rotation.y = player.rot;
-  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt); updateTaming(dt); updatePet(dt);
+  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt); updateFx(dt); updateTaming(dt); updatePet(dt); updateGive(); updateDungeonDoors();
   if (player.swingT > 0) {
     player.swingT -= dt; const k = 1 - player.swingT / 0.3;
     axePivot.rotation.y = -k * TAU; trail.material.opacity = Math.sin(k * Math.PI) * 0.55;
@@ -2407,7 +2725,7 @@ function update(dt) {
       banner(freezing ? 'A villager froze to death' : 'A villager starved', false, freezing ? 'Bring firewood!' : 'Bring meat!');
     }
   } else S.declineT = Math.max(0, S.declineT - dt);
-  if (S.cook && S.warm > warmCap() * 0.5 && S.food > foodCap() * 0.5 && P < housing()) {
+  if (S.cook && S.warm > warmCap() * 0.5 && S.food > foodCap() * 0.5 && S.civ < housing()) {
     S.growT += dt;
     if (S.growT > 14) { S.growT = 0; S.civ++; floatText('+1 villager', DOOR.x, 3, DOOR.z, 'xp'); play('villager'); }
   } else S.growT = 0;
@@ -2615,13 +2933,12 @@ function update(dt) {
   /* --- raids --- */
   const raidsOn = S.step >= 3;
   if (isGuest()) {} else if (raidsOn && !S.raidOn) {
-    S.waveT -= dt;
-    if (S.waveT <= 0) {
-      S.raidOn = true; S.wave++;
-      const nW = 2 + S.wave + (isNight() ? 2 : 0) + Math.floor((dayNo() - 1) / 2), nY = S.wave >= 4 && S.wave % 3 === 1 ? Math.ceil(S.wave / 4) : 0;
-      for (let i = 0; i < nW; i++) spawnEnemy('wolf', S.wave);
-      for (let i = 0; i < nY; i++) spawnEnemy('yeti', S.wave);
-      banner('Raid ' + S.wave + '!', false, nW + ' wolves' + (nY ? ' and ' + nY + ' yeti' : '') + ' incoming');
+    S.waveT = ((0.755 - timeOfDay() + 1) % 1) * DAY_LEN;   // raids come once a night, at nightfall
+    if (isNight() && S.lastRaidDay !== dayNo()) {
+      S.lastRaidDay = dayNo(); S.raidOn = true; S.raidT = 0; S.wave++;
+      const pack = raidPack(S.wave), counts = {};
+      pack.forEach(t => { spawnEnemy(t, S.wave); counts[t] = (counts[t] || 0) + 1; });
+      banner('Night raid ' + S.wave + '!', false, Object.entries(counts).map(([t, n]) => n + ' ' + (n > 1 ? QUEST_NAMES[t] : t)).join(', ') + ' incoming');
       play('horn');
     }
   } else if (S.raidOn && (S.raidT = (S.raidT || 0) + dt) > 180 && enemies.some(e => e.alive)) {   // a raid that stalls (say, gnawing a gate out of tower range) gives up
@@ -2651,9 +2968,9 @@ function update(dt) {
     const t = e.tgt;
     if (isGuest()) {} else if (t && (t === player || (t.kind === 'remote' && NET.remotes[t.peer]) || (t.kind === 'guard' && t.alive) || (t.kind === 'worker' && t.hp > 0 && workers.includes(t)) || (t.kind === 'pet' && t === pet) || (t.kind === 'civ' && t.g.parent))) {
       const dd = Math.sqrt(d2(e.x, e.z, t.x, t.z));
-      if (dd > (e.type === 'yeti' ? 1.8 : 1.2)) {
+      if (dd > 0.7 + e.size * 0.6) {
         const nx = e.x + (t.x - e.x) / dd * e.speed * 1.15 * dt, nz = e.z + (t.z - e.z) / dd * e.speed * 1.15 * dt;
-        const seg = blockingSeg(nx, nz, e.type === 'yeti' ? 0.8 : 0.5);
+        const seg = blockingSeg(nx, nz, 0.3 + e.size * 0.3);
         if (seg) { e.seg = seg; e.tgt = null; e.think = 2; } else { e.x = nx; e.z = nz; e.rot = turnTo(e.rot, Math.atan2(t.x - e.x, t.z - e.z), 0.25); moving = true; }
       } else {
         e.rot = turnTo(e.rot, Math.atan2(t.x - e.x, t.z - e.z), 0.3); e.atkT -= dt;
@@ -2669,15 +2986,15 @@ function update(dt) {
       const dx = C.x - e.x, dz = C.z - e.z, L = Math.hypot(dx, dz);
       if (L > 1) {
         const sp = e.speed * (e.slowT > 0 ? 0.45 : 1); const nx = e.x + dx / L * sp * dt, nz = e.z + dz / L * sp * dt;
-        const seg = blockingSeg(nx, nz, e.type === 'yeti' ? 0.8 : 0.5);
+        const seg = blockingSeg(nx, nz, 0.3 + e.size * 0.3);
         if (seg) e.seg = seg; else { e.x = nx; e.z = nz; e.rot = turnTo(e.rot, Math.atan2(dx, dz), 0.2); moving = true; }
       }
     }
     if (moving) e.walkT += dt;
     const sc = e.shake > 0 ? 1 + Math.sin((e.shake -= dt) * 40) * 0.08 : 1;
-    e.g.position.set(e.x, 0, e.z); e.g.rotation.y = e.rot; e.g.scale.setScalar(sc);
-    const a = Math.sin(e.walkT * (e.type === 'yeti' ? 5 : 10)) * 0.6; e.legs[0].rotation.x = e.legs[3].rotation.x = a; e.legs[1].rotation.x = e.legs[2].rotation.x = -a;
-    setBar(e.bar, e.hp / e.max, e.x, e.type === 'yeti' ? 4 : 1.9, e.z);
+    e.g.position.set(e.x, 0, e.z); e.g.rotation.y = e.rot; e.g.scale.setScalar(sc * (e.sc || 1));
+    if (e.legs && e.legs.length >= 4) { const a = Math.sin(e.walkT * (e.size > 1.3 ? 5 : 10)) * 0.6; e.legs[0].rotation.x = e.legs[3].rotation.x = a; e.legs[1].rotation.x = e.legs[2].rotation.x = -a; }
+    setBar(e.bar, e.hp / e.max, e.x, 1.2 + e.size * (e.sc > 1 ? 2 : 1.3), e.z);
   }
 
   netTick(dt);
@@ -2719,7 +3036,7 @@ function update(dt) {
   const now = { cash: S.wallet, log: carry.log.length, meat: carry.meat.length, ore: carry.ore.length, stone: carry.stone.length };
   for (const k in now) if (now[k] !== shown[k]) { vals[k].textContent = now[k]; shown[k] = now[k]; }
   $('thName').textContent = ['', 'Camp', 'Town', 'Citadel'][S.th] + ' · TH ' + ROMAN[S.th];
-  $('popTxt').textContent = P + '/' + housing();
+  $('popTxt').textContent = S.civ + '/' + housing() + (P > S.civ ? ' +' + (P - S.civ) : '');
   const wf = S.warm / warmCap(), ff = S.cook ? S.food / foodCap() : 0;
   $('warmBar').style.width = (wf * 100) + '%'; $('warmTxt').textContent = Math.round(wf * 100) + '%'; $('mWarm').classList.toggle('low', wf < 0.25);
   $('foodBar').style.width = (ff * 100) + '%'; $('foodTxt').textContent = S.cook ? Math.round(ff * 100) + '%' : '—'; $('mFood').classList.toggle('low', S.cook && ff < 0.25);
@@ -2834,7 +3151,7 @@ const wilds = [], wildCamps = [];
 const POOL = [['spider', 'goblin', 'wolf'], ['bear', 'troll'], ['wraith', 'golem'], ['raptor', 'tiger'], ['mammoth', 'trex', 'dragon']];
 function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 110 ? 0 : d < 165 ? 1 : d < 250 ? 2 : d < 300 ? 3 : 4; }   // beasts past 250 m, the biggest past 300 m
 // beyond the tier itself, every step farther from the fort makes guards tougher
-const distMul = (x, z) => 1 + Math.max(0, Math.hypot(x - C.x, z - C.z) - 70) / 70;
+const distMul = (x, z) => 1 + Math.max(0, Math.hypot(x - C.x, z - C.z) - 70) / 150;   // gentler: far monsters were far too tough
 // Stakes, tents, a fire pit and a banner around the chest, dressed for whoever lives there.
 const CAMP_LOOK = { spider: [0x3a3a48, 0xd8dde6], goblin: [0x6b8a3a, 0xb8452e], wolf: [0x7d8794, 0x9a5e38], bear: [0x5a3b26, 0x8a6a4a], troll: [0x55634a, 0x7a4527], wraith: [0x8fb3d9, 0x2b4a74], golem: [0x6f7a88, 0x7fd3f0], raptor: [0x4a5a6a, 0xd9524b], tiger: [0x8a6a4a, 0xf2c14e], mammoth: [0x5a3b26, 0xf1ead8], trex: [0x4d5a3e, 0xb8452e], dragon: [0x2b4a74, 0x7fd3f0] };
 function buildCampProps(g, kind) {
@@ -2873,14 +3190,15 @@ function spawnCamp(far, opts) {
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
   const kind = opts ? opts.kind : POOL[tier][Math.random() * POOL[tier].length | 0];
   const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : tier === 3 ? 1 + (Math.random() < 0.4 ? 1 : 0) : 2).fill(kind);
-  if (opts) list.length = 1;   // a beast guards its lair alone
+  if (opts || kind === 'dragon') list.length = 1;   // a beast guards its lair alone
   camp.kind = kind; buildCampProps(chest, kind); chest.children.forEach(c => { if (c !== camp.glow) { c.updateMatrix(); c.matrixAutoUpdate = false; } });
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
     m.g.position.set(hx, 0, hz); m.g.scale.multiplyScalar(type === 'wolf' ? 1.1 : 1); scene.add(m.g);
-    const hp = Math.round(T.hp * 2.2 * (1 + S.th * 0.4) * distMul(x, z) * dayMul());
+    const hp = Math.round(T.hp * 1.5 * (1 + S.th * 0.3) * distMul(x, z) * Math.min(dayMul(), 2));
     const dm = distMul(x, z);
     const w = { ...m, dm, type, T, camp, x: hx, z: hz, hx, hz, hp, max: hp, rot: rand(0, TAU), walkT: 0, shake: 0, atkT: 0, aggro: false, alive: true, bar: makeBar(), kind: 'wild', bob: rand(0, 6) };
+    if (type === 'dragon' && !opts) { w.hp = w.max = Math.round(w.max * 1.8); w.big = 2; w.dm *= 1.3; }
     if (opts) { w.hp = w.max = Math.round(w.max * 2.5); w.elite = opts.name; w.big = 1.45; w.dm *= 1.6; }
     wilds.push(w); camp.guards.push(w);
   });
@@ -2948,11 +3266,11 @@ function openTreasure(camp) {
   if (t === 2 && !S.pick) gifts.push(() => { S.pick = true; return ['Crystal Pick', 'You can now mine crystal veins']; });
   if (!S.tamer && t >= 2 && Math.random() < 0.12) gifts.push(() => { grantCharm(); return ['Beast Charm', 'You can now tame weakened creatures']; });
   { const own = S.rangedOwn = S.rangedOwn || [], staff = [3, 4, 5].filter(i => !own.includes(i) && (i - 3) < t);
-    if (staff.length) gifts.push(() => { const i = staff[0]; own.push(i); S.rangedOn = i; applyMyLook(); return [RANGED[i].n, 'Magic: fires on its own at threats · switch under Hero']; }); }
+    if (staff.length) gifts.push(() => { const i = staff[0]; own.push(i); S.rangedOn = bestRanged(); applyMyLook(); return [RANGED[i].n, 'Magic: fires on its own at threats · switch under Hero']; }); }
   for (const slot of ['helm', 'cape']) {
     const W = S.wardrobe = S.wardrobe || { helm: [0], cape: [0] }; W[slot] = W[slot] || [0];
     const missing = LOOKS[slot].map((_, i) => i).filter(i => i && !W[slot].includes(i) && i <= t + 2);
-    if (missing.length) gifts.push(() => { const i = missing[Math.random() * missing.length | 0]; W[slot].push(i); (S.wear = S.wear || {})[slot] = i; applyMyLook(); return [LOOKS[slot][i], 'New look: change what you wear under Hero']; });
+    if (missing.length) gifts.push(() => { const i = missing[Math.random() * missing.length | 0]; W[slot].push(i); (S.wear = S.wear || {})[slot] = Math.max(...W[slot]); applyMyLook(); return [LOOKS[slot][i], 'New look: change what you wear under Hero']; });
   }
   gifts.push(() => { S.medkits = Math.min(5, S.medkits + 2); return ['Med Kits', '+2 med kits for reviving teammates']; });
   gifts.push(() => { S.bonusHp += 15 * (t + 1); S.hp = heroMax(); return ['Heart Stone', '+' + 15 * (t + 1) + ' max health']; });
@@ -3054,6 +3372,7 @@ function drawMini(dt) {
   for (const r of rocks) if (r.alive && !r.hidden && show(r.x, r.z)) { c.fillStyle = r.kind === 'gold' ? '#4fc6f0' : '#7d8794'; c.fillRect(MX(r.x) - 4, MZ(r.z) - 4, 8, 8); }
   c.fillStyle = '#7a5230'; for (const y of yaks) if (y.alive && show(y.x, y.z)) { c.beginPath(); c.arc(MX(y.x), MZ(y.z), 3.5, 0, TAU); c.fill(); }
   for (const ru of RUINS) if (show(ru.x, ru.z)) { c.fillStyle = ru.opened ? '#9aa4b1' : '#d9b25a'; c.fillRect(MX(ru.x) - 4.5, MZ(ru.z) - 4.5, 9, 9); }
+  for (const d of DUNGEONS) if (show(d.x, d.z)) { c.fillStyle = dungeonReady(d) ? '#b36bff' : '#6b6478'; c.fillRect(MX(d.x) - 5, MZ(d.z) - 5, 10, 10); c.strokeStyle = '#fff'; c.lineWidth = 1.5; c.strokeRect(MX(d.x) - 5, MZ(d.z) - 5, 10, 10); }
   c.fillStyle = '#ffd34d'; for (const L of LOOT) if (!L.opened && show(L.x, L.z)) { c.save(); c.translate(MX(L.x), MZ(L.z)); c.rotate(Math.PI / 4); c.fillRect(-3.5, -3.5, 7, 7); c.restore(); }
   for (const r of activeRings()) { c.strokeStyle = '#8a5a36'; c.lineWidth = 3; c.strokeRect(MX(-r.h), MZ(r.zN), (2 * r.h) * MSC, (r.zS - r.zN) * MSC); }
   for (const P of piles) if (P.on && onMini(P.x, P.z)) { c.fillStyle = '#ff8a3d'; c.fillRect(MX(P.x) - 3, MZ(P.z) - 3, 6, 6); }
@@ -3184,7 +3503,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['wallLv', 'houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner', 'hauler', 'mender'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -3218,7 +3537,7 @@ function liveState() {
   const ack = {}; for (const k in NET.lastSeq) ack[k] = NET.lastSeq[k];
   return {
     role: 'host', h: heroState(), ack, s,
-    e: enemies.filter(e => e.alive).slice(0, 30).map(e => [e.id, e.type === 'yeti' ? 1 : 0, R2(e.x), R2(e.z), R2(e.rot), Math.ceil(e.hp), e.max]),
+    e: enemies.filter(e => e.alive).slice(0, 30).map(e => [e.id, RAID_IDS.indexOf(e.type), R2(e.x), R2(e.z), R2(e.rot), Math.ceil(e.hp), e.max]),
     w: workers.map(w => [ROLE_IDS.indexOf(w.role), R2(w.x), R2(w.z), R2(w.rot), w.items.length]),
     g: guards.map(g => [R2(g.x), R2(g.z), R2(g.rot), Math.ceil(g.hp), g.max]),
     y: yaks.filter(y => y.alive).map(y => [y.id, R2(y.x), R2(y.z), R2(y.rot), y.hp, GAME_IDS.indexOf(y.sp)]),
@@ -3276,7 +3595,7 @@ function applyHost(pr) {
     for (let i = enemies.length - 1; i >= 0; i--) { const e = enemies[i]; if (!ids.has(e.id)) { e.alive = false; scene.remove(e.g); e.bar.remove(); burst(e.x, 1, e.z, 0x7d8794, 10); enemies.splice(i, 1); } }
     for (const d of pr.e) {
       let e = enemies.find(x => x.id === d[0]);
-      if (!e) { e = spawnEnemy(d[1] ? 'yeti' : 'wolf', S.wave, d[2], d[3], d[0]); }
+      if (!e) { e = spawnEnemy(RAID_IDS[d[1]] || 'wolf', S.wave, d[2], d[3], d[0]); }
       e.nx = d[2]; e.nz = d[3]; e.nrot = d[4]; e.hp = d[5]; e.max = d[6];
     }
   }
@@ -3334,6 +3653,13 @@ function onGive(msg) {
   if (d.t === 'hurt') { hurtHero(d.n); return; }
   if (d.t === 'revive') { if (S.downT > 0) reviveHere(0.5, 'A teammate used a med kit on you'); return; }
   if (d.t === 'none') return;
+  if (d.t === 'gear') {
+    const who = NET.remotes[msg.peer] ? remoteName(NET.remotes[msg.peer]) : 'A teammate';
+    if (d.slot === 'ranged') { S.rangedOwn = S.rangedOwn || []; if (!S.rangedOwn.includes(d.id)) S.rangedOwn.push(d.id); S.rangedOn = bestRanged(); banner(who + ' gave you a ' + RANGED[d.id].n, true); }
+    else { const W = (S.wardrobe = S.wardrobe || { helm: [0], cape: [0] })[d.slot] = (S.wardrobe[d.slot] || [0]); if (!W.includes(d.id)) W.push(d.id); (S.wear = S.wear || {})[d.slot] = Math.max(...W); banner(who + ' gave you ' + LOOKS[d.slot][d.id], true); }
+    applyMyLook(); play('treasure'); return;
+  }
+  if (d.gift && NET.remotes[msg.peer]) note(remoteName(NET.remotes[msg.peer]) + ' gave you ' + d.n + ' ' + (d.t === 'cash' ? 'gold' : PLURAL[d.t]));
   if (d.t === 'cash') { S.wallet += d.n; bump('cash'); floatText('+' + d.n + ' gold', player.x, 2.8, player.z, 'cash'); play('coin'); return; }
   if (!RES.includes(d.t)) return;
   let left = Math.min(d.n, 400);
@@ -3700,12 +4026,13 @@ window.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'Escape
 function frame(now) {
   let dt = Math.min(0.15, (now - last) / 1000); last = now;
   if (paused) dt = 0;
+  const ddt = dt;
   while (dt > 0.0001) { const step = Math.min(dt, 0.04); update(step); dt -= step; }
-  renderer.render(scene, camera);
+  if (DUN) dungeonStep(ddt); else renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, enterDungeon, dunKeys, dun: () => DUN, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>

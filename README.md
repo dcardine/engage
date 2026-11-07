@@ -29,6 +29,9 @@ A ranged weapon fires on its own at the nearest threat in range (raiders, monste
 ## Pets
 Only a hero with a **Beast Charm** can tame. You earn one by slaying a quest legend, by reaching hero level 10, or (rarely) from a 3★+ treasure chest. Weaken a rabbit, eagle, wolf, bear, sabre tiger or ice dragon (rabbits below 60% health, eagles 50%, wolves 30%, bears and tigers 25%, dragons 20%); your attacks then hold back and a **Tame** button appears. Stand still beside it for two seconds. Odds: rabbit 85%, eagle and wolf 60%, bear 45%, tiger 35%, dragon 22%; a failed attempt lets it recover some health. You keep one pet at a time: it follows you, fights whatever threatens you (dragons breathe frost on groups), draws attacks, heals slowly out of combat and grows with your level. A pet that falls is gone for good. Eagles circle the far meadows.
 
+## Dungeons
+Twelve cave entrances lie 200–315 m out (purple squares on the minimap; ★★ to ★★★★ by distance). Step up to one and tap **Enter dungeon** to play a 2D side-scrolling level: run, jump over pits and ice spikes, stomp or axe slimes, skeletons and bats, and grab coins on the way to the treasure chest at the far end. Your health, axe, armour, ranged weapon (it fires on its own at foes ahead) and looks come with you. Use the on-screen arrows, jump and attack buttons (or A/D, W/Space, J). Reaching the chest gives a treasure chest outside the entrance; falling in battle puts you back at the entrance with half health. A cleared dungeon refills after two days.
+
 ## Quests
 Once the camp is up and running, the Town Hall offers one quest at a time (shown in the Quest card; hide it from the cog menu). Quests include hunting animals, collecting logs, stone, crystal or fish, defeating a kind of monster, clearing monster camps, and hunting down a **legend**: a named giant creature (Old Greymane the bear, Mossjaw the troll, Whisper the White Wolf, Cragheart, the Hollow King, Whitefang, Tuskmother, Frostmaw the Ancient) that guards its own chest and drops a trophy. A legend is always marked on the minimap with a gold **!**, pinned to the edge when it is far away. Rewards grow with your Town Hall: gold, XP and a reward chest that can hold weapons, armour and looks. A new quest arrives about 25 seconds after you finish one.
 
@@ -65,6 +68,8 @@ Crystal veins only appear far out in the wilds and need a **Crystal Pick** (Blac
 Tap **Co-op** on the published page. The first player in hosts, so their town is the shared one. Anyone else who opens the page and taps Co-op joins that town with their own hero, pack and wallet, and can chop, fight, build and trade alongside the host. Guests' own saved towns stay untouched; **Leave co-op** returns them to it. If the host leaves, a guest takes over hosting. Players need Contributor (interact) access or higher to host; anyone who can open the page can join as a guest.
 
 ## Co-op extras
+Stand next to a teammate and tap **Give** to hand over gold, logs, meat, stone or crystal from your pack, or spare gear (ranged weapons, helmets, capes).
+
 Set your name and coat colour under **Co-op** or **Hero**. Teammates show with your name, a ring in your colour and a stack of whatever they carry (icons in the name tag too). Everyone appears on the minimap as a star in their colour, pinned to the rim when far away, and you get an alert when a teammate is under attack or knocked out.
 
 ## Personal gear in co-op
@@ -102,8 +107,10 @@ Finishing a new wall ring tears down the old one and clears the forest inside it
 - **Haulers** (after the cookhouse and logger lodge) carry logs from the woodpile to the firewood stall and meat, fish and veggies to the cookhouse, serving whichever meter is lower first.
 - **Menders** (after the blacksmith) walk the walls and repair damaged sections.
 - Each work building shows how many of its workers you have and the limit (for example **Loggers 2/3**).
+- Workers and guards live in their lodges and barracks, so they don't count against housing.
+- **Wall reinforcement** (Blacksmith, Town Hall II/III): Iron Bands, Stone Bastions and Rune Wards make every wall and gate 75% tougher per level.
 - Workers have health. Raiders and camp monsters go after workers caught outside the walls first, and a worker who dies drops what they carried.
 - Every corner of every wall ring has a watchtower spot.
 - **Guards** hold the north gate and fight raiders nearby. **Watchtowers** shoot anything in range.
-- **Raids** grow every wave (raiders who can't break through give up after 3 minutes), and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
+- **Raids** come once a night, at nightfall, and grow every night. Raiders are a mix: wolves and goblins at first, then spiders and bears, then trolls, yetis and wraiths. Raiders who can't break through give up after 3 minutes, and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
 - **Hero levels** come from gathering, building, selling and fighting, and add damage and health.
