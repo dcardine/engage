@@ -23,6 +23,9 @@ The valley spans roughly 690 m by 690 m. Monster camps start about 65 m from the
 Every new day is harder: raiders get more health and hit harder, raids bring more wolves and come sooner, camp monsters are tougher, and firewood and food burn faster (up to double).
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
+## Boots
+The blacksmith sells personal speed upgrades: Fur Boots (Town Hall I), Runner Boots (II) and Windwalkers (III), each +12% movement speed (also in dungeons).
+
 ## Ranged weapons
 A ranged weapon fires on its own at the nearest threat in range (raiders, monsters that have spotted you or a worker, and charging boars), alongside your axes. Forge them at the blacksmith (a personal upgrade): **Hunting Bow** (12 m), **Crossbow** (Town Hall II, 15 m) and **Rifle** (Town Hall III, 22 m, heavy hits). Magic staffs come from treasure and quest chests: the **Frost Staff** slows what it hits, the **Fire Staff** explodes and hurts everything nearby, and the **Storm Staff** throws lightning that jumps to two more foes. Your level and war runes boost ranged damage. Switch weapons in the Hero panel; the one you carry shows on your back.
 
@@ -37,6 +40,9 @@ Once the camp is up and running, the Town Hall offers one quest at a time (shown
 
 ## Fishing
 Stand still at the edge of a lake (or out on the ice in winter, where you cut a hole) and you cast a line automatically. After a few seconds the bobber dips and you catch 2–4 fish (food, sold at the cookhouse like meat), more at far-off lakes. Now and then you reel in a sunken treasure chest instead; lakes farther from the fort give bigger catches and better chests. Fishing stops if raiders are close.
+
+## Ranged monsters
+In the wilds, goblins throw spears, trolls hurl rocks and wraiths cast frost orbs that chill you (slower for 2 seconds). They keep their distance and throw where you stood, so keep moving to dodge.
 
 ## Beasts
 Past 250 m there are around 36 beast lairs, and their beasts prowl around them and spot you from 17 m away (22 m at night). Lairs hold one or two huge beasts: raptors and sabre tigers from 250 m, and mammoths, T-rexes and ice dragons past 300 m. They hit very hard, but their chests give the best loot: the Raptor Fang and Dragonbone axes, Sabre Hide and Dragonscale armour, and rare looks.

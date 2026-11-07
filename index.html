@@ -1400,10 +1400,11 @@ function genLevel(d) {
   const rnd = mulberryEarly(d.i * 7919 + dayNo() * 31), H = 13, W = 80 + d.tier * 18, t = new Uint8Array(W * H);   // 1 solid, 2 spikes
   const set = (x, y, v) => { if (x >= 0 && x < W && y >= 0 && y < H) t[y * W + x] = v; };
   for (let x = 0; x < W; x++) { set(x, 0, 1); }
-  let x = 0, ground = 10; const enemies = [], coins = [];
+  let x = 0, ground = 10, pitLast = false; const enemies = [], coins = [];
   while (x < W) {
     const seg = 4 + (rnd() * 7 | 0);
-    if (x > 10 && x < W - 12 && rnd() < 0.3) { x += 2 + (rnd() * (d.tier >= 3 ? 3 : 2) | 0); continue; }   // a pit to jump
+    if (x > 10 && x < W - 12 && !pitLast && rnd() < 0.3) { x += 2 + (rnd() * (d.tier >= 3 ? 2 : 1.5) | 0); pitLast = true; continue; }   // a pit to jump: never two in a row, never wider than 3
+    pitLast = false;
     if (x > 8 && rnd() < 0.35) ground = Math.max(7, Math.min(11, ground + (rnd() < 0.5 ? -1 : 1)));
     for (let k = 0; k < seg && x < W; k++, x++) {
       for (let y = ground; y < H; y++) set(x, y, 1);
@@ -1417,6 +1418,20 @@ function genLevel(d) {
       const px = x - 3 - (rnd() * 3 | 0), py = ground - 3 - (rnd() * 2 | 0), len = 3 + (rnd() * 3 | 0);
       for (let k = 0; k < len; k++) { set(px + k, py, 1); if (rnd() < 0.6) coins.push({ x: px + k + 0.5, y: py - 1 }); }
     }
+  }
+  // keep every floating ledge high enough to walk or jump beneath, including next to a step
+  const solid = (x, y) => x >= 0 && x < W && y >= 0 && y < H && t[y * W + x] === 1;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    if (!solid(x, y) || solid(x, y + 1)) continue;   // only the underside of a floating ledge
+    let ok = true; for (const cx of [x - 1, x, x + 1]) for (let k = 1; k <= 3; k++) if (solid(cx, y + k)) ok = false;
+    if (!ok) { t[y * W + x] = 0; for (const c of coins) if (Math.floor(c.x) === x && Math.floor(c.y) === y - 1) c.gone = true; }
+  }
+  for (let i = coins.length - 1; i >= 0; i--) if (coins[i].gone) coins.splice(i, 1);
+  const pitCol = x => { for (let y = 1; y < H; y++) if (t[y * W + x] === 1) return false; return true; };   // no ground at all in this column
+  for (let y = 1; y < H; y++) for (let x = 2; x < W - 2; x++) if (t[y * W + x] === 2 && [-2, -1, 1, 2].some(k => pitCol(x + k))) t[y * W + x] = 0;   // no spikes at a pit's edge
+  for (let y = 1; y < H - 1; y++) for (let x = 2; x < W - 2; x++) {   // no ledge over or beside a pit (it would bump your head mid-jump), and no lone floating blocks
+    if (t[y * W + x] !== 1 || t[(y + 1) * W + x] === 1) continue;
+    if ([-2, -1, 0, 1, 2].some(k => pitCol(x + k)) || (t[y * W + x - 1] !== 1 && t[y * W + x + 1] !== 1)) t[y * W + x] = 0;
   }
   for (let y = 0; y < H; y++) { set(0, y, 1); set(W - 1, y, 1); }
   let gy = 10; for (let y = 1; y < H; y++) if (t[y * W + W - 5]) { gy = y; break; }
@@ -1455,7 +1470,7 @@ function dungeonStep(dt) {
   const D = DUN; if (!D) return; dt = Math.min(dt, 0.05); D.t += dt; const L = D.L;
   // run and jump
   const want = (dunKeys.r || keys['d'] || keys['arrowright'] ? 1 : 0) - (dunKeys.l || keys['a'] || keys['arrowleft'] ? 1 : 0);
-  const speed = 7 * (1 + S.speedBonus * 0.5);
+  const speed = 7 * (1 + S.speedBonus * 0.5 + (S.runLv || 0) * 0.08);
   D.vx += (want * speed - D.vx) * Math.min(1, dt * (D.ground ? 14 : 6)); if (want) D.face = want;
   if ((dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.ground) { D.vy = -15.5; D.ground = false; play('cast'); }
   if (!(dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.vy < -6) D.vy = -6;   // short hop on a tap
@@ -1785,6 +1800,9 @@ const padArrow = plot('arrow', { x: -2.9, z: 17.9, labels: ['ARROWS II', 'ARROWS
 const padRanged = plot('ranged', { personal: true, x: -6.4, z: 11.4, labels: ['HUNTING BOW', 'CROSSBOW', 'RIFLE'], costs: [{ log: 30, cash: 60 }, { log: 60, stone: 30, cash: 180 }, { ore: 30, stone: 40, cash: 500 }], tiers: [1, 2, 3],
   requires: () => B.smith && padRanged.level < 3 && S.th >= padRanged.tiers[padRanged.level],
   onBuy: lv => { const id = lv - 1; S.rangedOwn = S.rangedOwn || []; if (!S.rangedOwn.includes(id)) S.rangedOwn.push(id); S.rangedOn = bestRanged(); applyMyLook(); banner(RANGED[id].n + '!', true, 'Fires on its own at threats within ' + RANGED[id].rng + ' m · switch weapons under Hero'); }, xp: 40 });
+const padRun = plot('run', { personal: true, x: -9.2, z: 10.8, labels: ['FUR BOOTS', 'RUNNER BOOTS', 'WINDWALKERS'], costs: [{ meat: 15, log: 20, cash: 60 }, { meat: 30, stone: 25, cash: 200 }, { ore: 25, meat: 40, cash: 450 }], tiers: [1, 2, 3],
+  requires: () => B.smith && padRun.level < 3 && S.th >= padRun.tiers[padRun.level],
+  onBuy: lv => { S.runLv = lv; banner(['', 'Fur boots!', 'Runner boots!', 'Windwalkers!'][lv], true, 'You move ' + lv * 12 + '% faster'); }, xp: 30 });
 plot('pick', { personal: true, x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.pick = true; banner('Crystal pick forged!', true, 'You can now mine crystal veins in the far wilds'); } });
 const padWalls = plot('reinforce', { x: 9.4, z: 13.4, labels: ['IRON BANDS', 'STONE BASTIONS', 'RUNE WARDS'], costs: [{ log: 60, stone: 40, cash: 150 }, { stone: 90, cash: 300 }, { stone: 80, ore: 30, cash: 600 }], tiers: [2, 2, 3],
@@ -2372,6 +2390,27 @@ const fxList = [];
 function spark(x, y, z, col, size) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.08 * size + 0.04, 6, 4), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 })); m.position.set(x, y, z); scene.add(m); fxList.push({ m, t: 0, life: 0.35, grow: 1.5 }); }
 function ringFx(x, z, col, r) { const m = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.45, 24), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.15, z); scene.add(m); fxList.push({ m, t: 0, life: 0.45, grow: r * 2.2 }); }
 function updateFx(dt) { for (let i = fxList.length - 1; i >= 0; i--) { const f = fxList[i]; f.t += dt; const k = f.t / f.life; if (k >= 1) { scene.remove(f.m); fxList.splice(i, 1); continue; } f.m.scale.setScalar(1 + k * f.grow); f.m.material.opacity = 0.9 * (1 - k); } }
+// thrown by camp monsters: flies to where you stood, so you can sidestep it
+const mshots = [];
+const MSHOT = { spear: [0x8a5a36, () => { const m = new THREE.Mesh(Cyl(0.04, 0.04, 1.1, 5), mat(0x8a5a36)); m.geometry.rotateX(Math.PI / 2); return m; }], rock: [0x7d8794, () => new THREE.Mesh(new THREE.DodecahedronGeometry(0.4, 0), mat(0x7d8794))], frost: [0x9fe8ff, () => new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0), basic(0x9fe8ff))] };
+function monsterShot(w, RG, tx, tz, dmg, vsPet) {
+  const m = MSHOT[RG.kind][1](), y0 = 1 + w.T.size * 0.5; m.position.set(w.x, y0, w.z); scene.add(m);
+  const d = Math.hypot(tx - w.x, tz - w.z) || 1; w.rot = Math.atan2(tx - w.x, tz - w.z); w.shake = 0.15;
+  mshots.push({ m, kind: RG.kind, vx: (tx - w.x) / d * RG.speed, vz: (tz - w.z) / d * RG.speed, dist: d + 1.5, gone: 0, y0, dmg, vsPet });
+  play(RG.kind === 'frost' ? 'spell' : 'bow', 0, w.x, w.z);
+}
+function updateMonsterShots(dt) {
+  for (let i = mshots.length - 1; i >= 0; i--) {
+    const s = mshots[i], st = Math.hypot(s.vx, s.vz) * dt; s.gone += st;
+    s.m.position.x += s.vx * dt; s.m.position.z += s.vz * dt; s.m.position.y = s.y0 + Math.sin(Math.min(1, s.gone / s.dist) * Math.PI) * (s.kind === 'rock' ? 2.2 : 0.6);
+    s.m.lookAt(s.m.position.x + s.vx, s.m.position.y, s.m.position.z + s.vz); if (s.kind !== 'spear') s.m.rotation.z += dt * 8;
+    if (s.kind === 'frost') { s.tr = (s.tr || 0) - dt; if (s.tr <= 0) { s.tr = 0.04; spark(s.m.position.x, s.m.position.y, s.m.position.z, 0xbff2ff, 0.6); } }
+    const P = s.m.position;
+    if (pet && d2(P.x, P.z, pet.x, pet.z) < 1.1 && s.vsPet) { hurtPet(s.dmg); burst(P.x, 1, P.z, MSHOT[s.kind][0], 8, 2); scene.remove(s.m); mshots.splice(i, 1); continue; }
+    if (S.downT <= 0 && d2(P.x, P.z, player.x, player.z) < 0.9 && P.y < 2.6) { hurtHero(s.dmg); if (s.kind === 'frost') { S.chillT = 2; note('Chilled: you slow down'); } burst(P.x, 1, P.z, MSHOT[s.kind][0], 8, 2); scene.remove(s.m); mshots.splice(i, 1); continue; }
+    if (s.gone >= s.dist) { burst(P.x, 0.3, P.z, MSHOT[s.kind][0], 6, 1.5); if (s.kind === 'rock') ringFx(P.x, P.z, 0x9aa4b1, 1.2); scene.remove(s.m); mshots.splice(i, 1); }
+  }
+}
 function bolt(a, b) {
   const pts = [a.clone()]; for (let i = 1; i < 6; i++) { const p = a.clone().lerp(b, i / 6); p.x += rand(-0.4, 0.4); p.y += rand(-0.3, 0.3); p.z += rand(-0.4, 0.4); pts.push(p); } pts.push(b.clone());
   const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xcfe8ff })); scene.add(line);
@@ -2640,7 +2679,7 @@ function update(dt) {
     if (player.moving) {
       const deep = Math.hypot(player.x - C.x, player.z - C.z) > 300 ? 0.62 : 1;   // deep snow in the far wilds
       if (deep < 1 && !S.deepNoted) { S.deepNoted = true; note('Deep snow: the far wilds are slow going'); }
-      const sp = 6 * (1 + (S.lvl - 1) * 0.02 + S.boots * 0.15 + S.speedBonus) * Math.min(1, Math.max(0.55, mag)) * deep * dt;
+      const sp = 6 * (1 + (S.lvl - 1) * 0.02 + S.boots * 0.15 + S.speedBonus + (S.runLv || 0) * 0.12) * Math.min(1, Math.max(0.55, mag)) * deep * (S.chillT > 0 ? 0.6 : 1) * dt;
       collide(player, player.x + mx / mag * sp, player.z + mz / mag * sp, 0.38);
       if (player.swingT <= 0) player.rot = turnTo(player.rot, Math.atan2(mx, mz), 0.25);
       player.walkT += dt; if ((player.walkT * 3.2 | 0) !== ((player.walkT - dt) * 3.2 | 0)) play("step");
@@ -2651,7 +2690,7 @@ function update(dt) {
     if (player.atkT <= 0 && playerAttack()) { player.atkT = AXE[S.axe].int; player.swingT = 0.3; }
   }
   player.g.position.set(player.x, 0, player.z); player.g.rotation.y = player.rot;
-  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt); updateFx(dt); updateTaming(dt); updatePet(dt); updateGive(); updateDungeonDoors();
+  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt); updateRanged(dt); updateFx(dt); updateMonsterShots(dt); S.chillT = Math.max(0, (S.chillT || 0) - dt); updateTaming(dt); updatePet(dt); updateGive(); updateDungeonDoors();
   if (player.swingT > 0) {
     player.swingT -= dt; const k = 1 - player.swingT / 0.3;
     axePivot.rotation.y = -k * TAU; trail.material.opacity = Math.sin(k * Math.PI) * 0.55;
@@ -3067,11 +3106,11 @@ const WEAPONS = [{ n: 'Frostbite Axe', m: 1.35 }, { n: 'Ember Cleaver', m: 1.7 }
 const ARMORS = [{ n: 'Fur Jerkin', a: 0.15 }, { n: 'Iron Mail', a: 0.3 }, { n: 'Runic Plate', a: 0.45 }, { n: 'Sabre Hide', a: 0.55 }, { n: 'Dragonscale Plate', a: 0.62 }];
 const WILD = {
   spider: { hp: 6, dmg: 4, speed: 3.2, size: 0.8, xp: 6, tier: 0 },
-  goblin: { hp: 9, dmg: 5, speed: 2.7, size: 0.8, xp: 8, tier: 0 },
+  goblin: { hp: 9, dmg: 5, speed: 2.7, size: 0.8, xp: 8, tier: 0, ranged: { rng: 9, cd: 2.2, kind: 'spear', speed: 14 } },
   wolf: { hp: 8, dmg: 6, speed: 3.3, size: 0.9, xp: 8, tier: 0 },
   bear: { hp: 32, dmg: 12, speed: 2.5, size: 1.4, xp: 20, tier: 1 },
-  troll: { hp: 48, dmg: 16, speed: 2.0, size: 1.6, xp: 28, tier: 1 },
-  wraith: { hp: 80, dmg: 20, speed: 2.8, size: 1.4, xp: 50, tier: 2 },
+  troll: { hp: 48, dmg: 16, speed: 2.0, size: 1.6, xp: 28, tier: 1, ranged: { rng: 11, cd: 3.0, kind: 'rock', speed: 11 } },
+  wraith: { hp: 80, dmg: 20, speed: 2.8, size: 1.4, xp: 50, tier: 2, ranged: { rng: 12, cd: 2.4, kind: 'frost', speed: 12 } },
   golem: { hp: 140, dmg: 28, speed: 1.6, size: 2.2, xp: 70, tier: 2 },
   raptor: { hp: 170, dmg: 26, speed: 4.4, size: 1.6, xp: 90, tier: 3 },
   tiger: { hp: 210, dmg: 32, speed: 4.0, size: 1.7, xp: 100, tier: 3 },
@@ -3312,7 +3351,9 @@ function updateWilds(dt) {
     if (w.aggro) {
       const reach = 1.1 + T.size * 0.5;
       const vsPet = pet && (pet.tgt === w || d2(pet.x, pet.z, w.x, w.z) < d2(player.x, player.z, w.x, w.z)), ax = vsPet ? pet.x : player.x, az = vsPet ? pet.z : player.z, da = Math.hypot(ax - w.x, az - w.z) || 1;
-      if (da > reach) { w.x += (ax - w.x) / da * T.speed * dt; w.z += (az - w.z) / da * T.speed * dt; moving = true; }
+      const RG = T.ranged; w.rcd = (w.rcd || rand(0.5, 1.5)) - dt;
+      if (RG && da > reach + 1.5 && da < RG.rng) { if (w.rcd <= 0) { w.rcd = RG.cd; monsterShot(w, RG, ax, az, T.dmg * 1.2 * (1 + S.th * 0.25) * w.dm * nightMean(), vsPet); } }   // stand off and throw
+      else if (da > reach) { w.x += (ax - w.x) / da * T.speed * dt; w.z += (az - w.z) / da * T.speed * dt; moving = true; }
       else { w.atkT -= dt; if (w.atkT <= 0) { w.atkT = 1.1; w.shake = 0.15; const hit = T.dmg * 1.7 * (1 + S.th * 0.25) * w.dm * nightMean(); if (vsPet) hurtPet(hit); else hurtHero(hit); } }
       w.rot = turnTo(w.rot, Math.atan2(ax - w.x, az - w.z), 0.2);
     } else if (dh > 0.4) {
@@ -3911,16 +3952,16 @@ $('coop').addEventListener('click', e => {
 const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { hauler: [0, 17], mender: [-3, 9.4], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
-const HERO_KEYS = ['tamer', 'pet', 'rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
+const HERO_KEYS = ['runLv', 'tamer', 'pet', 'rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
 let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
 function savePersonal() {
-  if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level, ranged: padRanged.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
+  if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level, ranged: padRanged.level, run: padRun.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
   try { localStorage.setItem('frosthold-hero', JSON.stringify(h)); } catch (e) {}
 }
 function loadPersonal() {
   heroReady = true; let h = null; try { h = JSON.parse(localStorage.getItem('frosthold-hero')); } catch (e) {} if (!h) return;
   HERO_KEYS.forEach(k => { if (h[k] !== undefined) S[k] = h[k]; });
-  if (h.lv) { padAxe.level = h.lv.axe || 0; padBag.level = h.lv.bag || 0; padRanged.level = h.lv.ranged || 0; padAxe.paid = {}; padBag.paid = {}; padRanged.paid = {}; }
+  if (h.lv) { padAxe.level = h.lv.axe || 0; padBag.level = h.lv.bag || 0; padRanged.level = h.lv.ranged || 0; padRun.level = h.lv.run || 0; padAxe.paid = {}; padBag.paid = {}; padRanged.paid = {}; }
   if (h.pickB || S.pick) { B.pick = true; const pp = pads.find(q => q.id === 'pick'); if (pp) { pp.done = true; pp.g.visible = false; } }
   applyAxeLook();
 }
@@ -4033,6 +4074,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, enterDungeon, dunKeys, dun: () => DUN, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, enterDungeon, dunKeys, dun: () => DUN, dstep: dt => dungeonStep(dt), mshots: () => mshots, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>
