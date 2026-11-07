@@ -1755,18 +1755,21 @@ function makeYak(model = 'yak', size = 2.0) {
 }
 let yakId = 0;
 // what you can hunt: health, meat, how fast it walks and bolts, model size; boars fight back
-const GAME = { yak: { hp: 6, meat: 5, walk: 1.1, flee: 3.2, size: 2.0 }, deer: { hp: 4, meat: 4, walk: 1.4, flee: 5.4, size: 2.3 }, rabbit: { hp: 1, meat: 1, walk: 1.8, flee: 6.2, size: 0.75 }, boar: { hp: 10, meat: 6, walk: 1.2, flee: 4.2, size: 1.6 } };
+const GAME = { yak: { hp: 6, meat: [5, 6], walk: 1.1, flee: 3.2, size: 2.0, n: 22 }, deer: { hp: 4, meat: [2, 3], walk: 1.4, flee: 5.4, size: 2.3, n: 30 }, rabbit: { hp: 1, meat: [1, 1], walk: 1.8, flee: 6.2, size: 0.75, n: 40 }, boar: { hp: 10, meat: [5, 6], walk: 1.2, flee: 4.2, size: 1.6, n: 8 } };
+// rabbits and deer graze close around the settlement; yaks and boars keep to the far meadows
+const NEAR_HERDS = (() => { const rnd = mulberryEarly(1212), out = []; for (let i = 0; i < 14; i++) { const a = i / 14 * TAU + rnd() * 0.4, r = 32 + rnd() * 55; out.push([C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]); } return out; })();
+const FAR_HERDS = (() => { const rnd = mulberryEarly(3434), out = []; for (let i = 0; i < 16; i++) { const a = i / 16 * TAU + rnd() * 0.4, r = 130 + rnd() * 170; out.push([clamp(C.x + Math.cos(a) * r, -320, 320), clamp(C.z + Math.sin(a) * r, -305, 335)]); } return out; })();
 const GAME_IDS = ['yak', 'deer', 'rabbit', 'boar'];
 function spawnYak(px, pz, id, sp) {
-  sp = sp || (r => r < 0.4 ? 'yak' : r < 0.68 ? 'deer' : r < 0.9 ? 'rabbit' : 'boar')(Math.random());
+  sp = sp || (r => r < 0.22 ? 'yak' : r < 0.52 ? 'deer' : r < 0.92 ? 'rabbit' : 'boar')(Math.random());
   const A = GAME[sp], m = makeYak(sp, A.size); let x = px, z = pz, n = 0;
-  const home = HERDS[Math.random() * HERDS.length | 0];
+  const H = sp === 'yak' || sp === 'boar' ? FAR_HERDS : NEAR_HERDS, home = H[Math.random() * H.length | 0];
   if (x === undefined) do { x = home[0] + rand(-7, 7); z = home[1] + rand(-7, 7); } while (n++ < 20 && d2(x, z, player.x, player.z) < 100);
   m.g.position.set(x, 0, z); scene.add(m.g);
   const y = { ...m, hx: home[0], hz: home[1], id: id || ++yakId, x, z, nx: x, nz: z, hp: A.hp, max: A.hp, sp, A, atk: 0, alive: true, tx: x, tz: z, idle: rand(0, 2), flee: 0, rot: 0, walkT: 0, shake: 0, bar: makeBar(), kind: 'yak' };
   yaks.push(y); return y;
 }
-for (let i = 0; i < 64; i++) spawnYak();
+for (const sp of GAME_IDS) for (let i = 0; i < GAME[sp].n; i++) spawnYak(undefined, undefined, undefined, sp);
 
 /* ================= enemies ================= */
 const enemies = [];
@@ -1837,14 +1840,14 @@ function damageYak(y, dmg, by) {
   y.tx = clamp(y.x + Math.sin(a) * 6, BOUNDS.x0, BOUNDS.x1); y.tz = clamp(y.z + Math.cos(a) * 6, BOUNDS.z0, BOUNDS.z1);
   if (y.hp <= 0) {
     y.alive = false; scene.remove(y.g); y.bar.remove();
-    const M = y.A ? y.A.meat : 5;
+    const M = y.A ? y.A.meat[0] + (Math.random() * (y.A.meat[1] - y.A.meat[0] + 1) | 0) : 5;
     if (by && by.remote) netGive(by.remote, 'meat', M);
     else {
       const kept = by ? Math.min(M, workerCap(by) - by.items.length) : 0;
       if (by) workerTake(by, kept); else gainXP(Math.max(2, M));
       if (M - kept > 0) dropItem('meat', y.x, y.z, M - kept);
     }
-    burst(y.x, 1, y.z, 0x6b4a33, 10); setTimeout(() => { if (!isGuest()) spawnYak(); }, 8000);
+    burst(y.x, 1, y.z, 0x6b4a33, 10); setTimeout(() => { if (!isGuest()) spawnYak(undefined, undefined, undefined, y.sp); }, 8000);
   }
 }
 function hurtHero(dmg) {
@@ -2676,7 +2679,7 @@ function openTreasure(camp) {
   if (S.speedBonus < 0.3) gifts.push(() => { S.speedBonus = Math.min(0.3, S.speedBonus + 0.06); return ['Wind Charm', 'You run faster']; });
   gifts.push(() => { S.pileBonus += 60 * (t + 1); piles.forEach(syncPile); return ['Storage Charm', 'Every pile holds ' + 60 * (t + 1) + ' more']; });
   gifts.push(() => { rings.forEach(r => r.active && r.segs.forEach(sg => { if (sg.built) sg.hp = sg.max; })); S.warmUp = Math.min(3, S.warmUp + 0.5); return ['Ember Totem', 'Walls repaired, firewood lasts longer']; });
-  gifts.push(() => { for (let i = 0; i < 3 + t * 2; i++) spawnYak(); return ['Yak Totem', 'A new herd wanders near the fort']; });
+  gifts.push(() => { for (let i = 0; i < 3 + t * 2; i++) spawnYak(undefined, undefined, undefined, 'yak'); return ['Yak Totem', 'A new yak herd wanders the far meadows']; });
   const g = gifts[Math.random() * gifts.length | 0](); banner(g[0] + '!', true, g[1] + ' \u00b7 see Hero');
   (S.relics = S.relics || []).push(g[0] + ': ' + g[1]);
   const cash = 12 * (t + 1) * (t + 1); dropItem('cash', camp.x, camp.z, cash);

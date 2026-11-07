@@ -30,7 +30,7 @@ Past 250 m there are around 36 beast lairs, and their beasts prowl around them a
 Weapons, armour, helmets and capes all show on your hero, and teammates see them too. Helmets (fur hood, horned helm, iron helm, frost crown) and capes (red, wolf pelt, royal, dragonwing) come from treasure chests; choose what to wear in the **Wardrobe** section of the Hero panel.
 
 ## Things to find
-Game roams all around the valley: yaks (5 meat), deer (4, fast to bolt), rabbits (1, one hit) and boars (6, they charge back when hurt). Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
+Rabbits (1 food, one hit) and deer (2–3 food, quick to bolt) graze in large numbers close around the settlement. Yaks (5–6 food) and boars (5–6 food, they charge back when hurt) keep to the far meadows, 130 m and more from the fort. Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
 
 ## Knockouts and revives
 - Solo: you respawn at the Town Hall a few seconds after being knocked out, and your pack spills where you fell.
