@@ -20,6 +20,9 @@ The valley spans roughly 690 m by 690 m. Monster camps start about 65 m from the
 Every new day is harder: raiders get more health and hit harder, raids bring more wolves and come sooner, camp monsters are tougher, and firewood and food burn faster (up to double).
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
+## Fishing
+Stand still at the edge of a lake (or out on the ice in winter, where you cut a hole) and you cast a line automatically. After a few seconds the bobber dips and you catch a fish (food, sold at the cookhouse like meat), sometimes two. Now and then you reel in a sunken treasure chest instead; lakes farther from the fort give bigger catches and better chests. Fishing stops if raiders are close.
+
 ## Beasts
 Past 250 m, beast lairs hold a single huge guardian: raptors and sabre tigers from 250 m, and mammoths, T-rexes and ice dragons past 300 m. They hit very hard, but their chests give the best loot: the Raptor Fang and Dragonbone axes, Sabre Hide and Dragonscale armour, and rare looks.
 

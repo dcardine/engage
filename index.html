@@ -523,6 +523,8 @@ const SOUNDS = {
   chime: ['fanfare', 0, () => { voice({ f: 1175, type: 'sine', vol: 0.07, dur: 0.6 }); voice({ f: 1760, type: 'sine', vol: 0.04, dur: 0.5, when: 0.08 }); }],
   villager: ['town', 0, () => { voice({ f: 784, type: 'sine', vol: 0.06, dur: 0.5 }); voice({ f: 1175, type: 'sine', vol: 0.04, dur: 0.6, when: 0.1 }); }],
   step: ['steps', 0, () => voice({ noise: true, filt: 'bandpass', ff: S.season === 3 ? jit(2600, 0.2) : jit(900, 0.2), q: 1.2, vol: S.season === 3 ? 0.05 : 0.035, at: 0.005, dur: 0.06 })],
+  cast: ['gather', 0, () => { voice({ noise: true, filt: 'highpass', ff: 1800, vol: 0.06, at: 0.02, dur: 0.18 }); voice({ f: 900, f2: 1500, type: 'sine', vol: 0.03, dur: 0.15 }); }],
+  splash: ['gather', 0, () => { voice({ noise: true, filt: 'lowpass', ff: 1400, vol: 0.2, at: 0.005, dur: 0.25 }); voice({ f: 420, f2: 160, type: 'sine', vol: 0.12, dur: 0.18 }); }],
   blizzard: ['wind', 0, () => voice({ noise: true, filt: 'bandpass', ff: 500, q: 0.7, vol: 0.18, at: 0.6, dur: 2.4 })],
 };
 const lastPlay = {};
@@ -1650,6 +1652,45 @@ const WORKER_TAGS = [['logger', 'Loggers', 6, 20.4, () => B.lodge], ['hunter', '
   ['miner', 'Miners', -25.5, -12, () => B.minerC], ['hauler', 'Haulers', 0, 18.4, () => B.cook && B.lodge], ['mender', 'Menders', -3, 7.6, () => B.smith]].map(([role, name, x, z, on]) => {
   const el = document.createElement('div'); el.className = 'tag wtag'; el.hidden = true; ov.appendChild(el); return { role, name, x, z, on, el };
 });
+// ---- fishing: stand still at a lake's edge (or out on the ice in winter) and you cast a line ----
+const rod = new THREE.Group(); { const pole = mk(Cyl(0.025, 0.035, 1.8, 5), 0x6b4a2d); pole.geometry.translate(0, 0.9, 0); rod.add(pole); }
+rod.position.set(0.35, 0.9, 0.25); rod.rotation.x = 1.0; rod.visible = false; player.g.add(rod);
+const bobber = new THREE.Group(); { const top = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), basic(0xe2483f)); top.position.y = 0.08; bobber.add(top); const bot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8, 0, TAU, Math.PI / 2, Math.PI / 2), basic(0xffffff)); bobber.add(bot);
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(0.45, 14), basic(0x2d4a66)); hole.rotation.x = -Math.PI / 2; hole.position.y = -0.03; hole.name = 'hole'; bobber.add(hole); }
+bobber.visible = false; scene.add(bobber);
+let fishing = null, fishWait = 0;
+function fishingSpot() {
+  for (const L of LAKES) { const d = Math.hypot(player.x - L.x, player.z - L.z);
+    if (S.season === 3 ? d < L.r - 0.6 : d < L.r + 2.6) return L; }
+  return null;
+}
+function stopFishing() { fishing = null; rod.visible = false; bobber.visible = false; }
+function updateFishing(dt) {
+  const L = !player.moving && S.downT <= 0 && !enemies.some(e => e.alive && d2(e.x, e.z, player.x, player.z) < 100) ? fishingSpot() : null;
+  if (!L) { if (fishing) stopFishing(); fishWait = 0; return; }
+  if (!fishing) {
+    fishWait += dt; if (fishWait < 0.8) return;
+    const winter = S.season === 3, dx = L.x - player.x, dz = L.z - player.z, d = Math.hypot(dx, dz) || 1;
+    const reach = winter ? 1.6 : Math.max(1.6, d - L.r + 2.2), bx = player.x + dx / d * reach, bz = player.z + dz / d * reach;
+    player.rot = Math.atan2(dx, dz); player.g.rotation.y = player.rot;
+    fishing = { L, t: rand(3.5, 6.5), bx, bz }; rod.visible = true; bobber.visible = true; bobber.position.set(bx, 0.06, bz);
+    bobber.getObjectByName('hole').visible = winter; play('cast'); floatText('Fishing…', player.x, 2.4, player.z, 'xp'); return;
+  }
+  fishing.t -= dt; const dip = fishing.t < 0.7;
+  bobber.position.y = dip ? -0.06 + Math.sin(time * 30) * 0.03 : 0.06 + Math.sin(time * 4) * 0.025;
+  rod.rotation.x = dip ? 0.75 : 1.0;
+  if (fishing.t > 0) return;
+  // a bite: usually a fish, sometimes something heavier
+  const f = fishing, tier = Math.min(4, campTier(f.L.x, f.L.z)); stopFishing(); fishWait = 0.5;
+  burst(f.bx, 0.3, f.bz, 0x9fd3ff, 10, 2); play('splash');
+  if (Math.random() < 0.06 + tier * 0.015) {
+    banner('Something heavy on the line!', true, 'You fished up a sunken chest'); openTreasure({ x: f.bx, z: f.bz, tier, g: new THREE.Group(), tag: { remove() {} }, guards: [] });
+    return;
+  }
+  const n = 1 + (Math.random() < 0.2 + tier * 0.08 ? 1 : 0); gainXP(2);
+  if (S.noCollect.meat || room() < n) { dropItem('meat', player.x, player.z, n); note(room() < n ? 'Pack full: the fish lands at your feet' : 'Caught ' + n + ' fish'); }
+  else { for (let k = 0; k < n; k++) giveItem('meat', new THREE.Vector3(f.bx, 0.5, f.bz)); floatText('+' + n + ' fish', player.x, 2.6, player.z, 'xp'); }
+}
 function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
     const show = t.on() && d2(t.x, t.z, player.x, player.z) < 34 * 34; t.el.hidden = !show; if (!show) continue;
@@ -1999,7 +2040,7 @@ function update(dt) {
     if (player.atkT <= 0 && playerAttack()) { player.atkT = AXE[S.axe].int; player.swingT = 0.3; }
   }
   player.g.position.set(player.x, 0, player.z); player.g.rotation.y = player.rot;
-  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt;
+  animWalk(player, player.walkT, player.moving); ring.rotation.z += dt; updateFishing(dt);
   if (player.swingT > 0) {
     player.swingT -= dt; const k = 1 - player.swingT / 0.3;
     axePivot.rotation.y = -k * TAU; trail.material.opacity = Math.sin(k * Math.PI) * 0.55;
@@ -3330,6 +3371,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, applySeason, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, applySeason, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>
