@@ -895,7 +895,7 @@ const AXE = [null, { dmg: 2, int: 0.55, range: 2.0, max: 2 }, { dmg: 3, int: 0.4
 const CAPS = [50, 100, 200, 400];
 const S = {
   wallet: 0, axe: 1, bag: 0, th: 1, xp: 0, lvl: 1, hp: 100, downT: 0, hurtT: 0,
-  civ: 6, warm: 48, food: 40, clock: 60, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
+  civ: 6, warm: 48, food: 40, clock: 120, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
   tamer: false, pet: null, rangedOwn: [], rangedOn: -1, houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
   wave: 0, waveT: 150, raidOn: false, blizT: 170, blizOn: 0,
   towerLv: 0, masonry: false, guardLv: 0, bank: false, carpenter: false, mine: false, gold: false,
@@ -3653,9 +3653,9 @@ function syncToggles() {
 }
 
 /* ================= time of day & seasons =================
-   One day lasts 4 minutes (night is the last quarter); every 3 days the season turns,
+   One day lasts 8 minutes (night is the last quarter); every 2 days the season turns,
    so a year is 12 days. Night is colder and the wilds turn meaner. */
-const DAY_LEN = 240, DAYS_PER_SEASON = 3;
+const DAY_LEN = 480, DAYS_PER_SEASON = 2;   // 8-minute days, so a raid each night comes every 8 minutes; seasons last 16 minutes
 const SEASONS = [
   { n: 'Spring', ground: 0xb9d99c, patch: 0x8fbf6a, snow: 0xb7dd9a, leaf: 0x8fd16e, pond: [0x5fb3d8, 0x86c9e8], lake: 0x5aa9d6, shore: 0xc9dfb0, sky: 0xcfe8f7, warm: 0.8, flakes: 0 },
   { n: 'Summer', ground: 0x86bd62, patch: 0x679f4a, snow: 0x7fbf5c, leaf: 0x4fa955, pond: [0x3f9fd0, 0x6dbde6], lake: 0x3c97cc, shore: 0xd9cfa0, sky: 0xbfe2fb, warm: 0.45, flakes: 0 },
