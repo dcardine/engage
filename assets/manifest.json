@@ -56,8 +56,12 @@
     "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b271-f75b-76a0-aa32-30063a309e24/output/preview.png?Expires=4947523200&Signature=cf4HVVtQJqjRl-MsPf3NSVMEUJBIeQfIpCt3m3ybvgs~qYUTzeEnt-inYCMZS~2tG5WfEw3DHbEJna-goJK1grNliRIl9h1zZ8weCVzGUR23~92ZWjoZpGQX0bynfSWj7dT4ktniE~ZCF2fOqMtr7K7OaUUqxN4aw3~6FQpX3n6R4UtQubbtxEAXpsLMws2eQVEvw9Y6qMhd7b5rGCEYFCMaDMrmyVMRmZBSIhrEvgrj1niuB9GmbqZDWP7D-148wEEv87msTzU-g3CwsXXglktq~mlHuoJlZoq5I5ddpajr4xBi99emffCUMm7Eq5or3nf7WMYhywM2H28U5cAsIw__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "dragon": {
+    "file": "assets/models/dragon.glb",
     "hash": "e9a85d9d19c9c572",
-    "preview": "01a1b371-1a9f-738a-8262-cb7a218d8713"
+    "preview": "01a1b371-1a9f-738a-8262-cb7a218d8713",
+    "refine": "01a1b372-4e88-764b-87a3-67bbe98687c1",
+    "status": "done",
+    "thumbnail": "https://assets.meshy.ai/8cc6e673-7f1a-4752-8a73-92316000d4fd/tasks/01a1b372-4e88-764b-87a3-67bbe98687c1/output/preview.png?Expires=4947609600&Signature=ZPhRD4W-F7LMFFm7hNy6DqOGffjOxxMeC7xUOWH2xM9o8Etqg3nlGilaH1zDYKHNx5rs4m-3nC60nTh23q49~El441B2vyoNoTNKk3Q8jtm7aTGaGSAk72QtnSO1d~qdhElWbzk6BFcmypy18U8AiK6twDAkFx4FnHYKdWPKBQX0uG4G6sRQBUijb4PiQ3lGqhL1pBMRkD804ZqaZOJv44gtCJFRRvtfmms6oBGEoMEav7SsnNhHrVGdsC0wneUBn-vFzTrODZDN~MBndkFTYUbgDi0HZ0ELK65CKRSoANIf2IV-CD5mR~PWaQ8o7TtFD--aXKGknZGVNOUGPAj3XA__&Key-Pair-Id=K1VGYTHIYLM9UM"
   },
   "fishery": {
     "file": "assets/models/fishery.glb",
