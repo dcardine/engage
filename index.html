@@ -33,6 +33,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 .card{background:var(--panel);border:1px solid var(--panel-line);border-radius:13px;padding:7px 11px;color:#fff}
 #quest{font:800 14px/1.28 var(--body);text-wrap:balance}
 #quest b{display:block;font:12px/1 var(--display);letter-spacing:.14em;color:var(--ember);margin-bottom:4px;text-transform:uppercase}
+#qcard{font:800 13px/1.28 var(--body)}#qcard b{display:block;font:12px/1 var(--display);letter-spacing:.14em;color:#ffd166;margin-bottom:4px;text-transform:uppercase}#qcard small{display:block;margin-top:3px;font:800 11px var(--body);color:#ffd9a0;opacity:.9}
 #quest.alert{border-color:#ff8b7e;box-shadow:0 0 0 2px rgba(226,72,63,.45)}
 #quest.alert b{color:#ff8b7e}
 #town{display:flex;flex-direction:column;gap:5px;font:800 11px/1 var(--body);font-variant-numeric:tabular-nums}
@@ -143,6 +144,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 
 <div id="left" class="hud">
   <div id="quest" class="card"><b id="questHead">Goal</b><span id="questTxt">Chop trees to gather logs</span></div>
+  <div id="qcard" class="card" hidden><b>Quest</b><span id="qTxt"></span><small id="qRew"></small></div>
   <div id="town" class="card">
     <div class="row"><span id="thName">Camp</span><span><span class="k">Pop</span> <span id="popTxt">6/6</span></span></div>
     <div class="meter" id="mWarm"><span>Warmth</span><div class="bar"><i id="warmBar"></i></div><span id="warmTxt">0</span></div>
@@ -171,7 +173,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div id="menu" hidden><div class="box"><h2>Menu</h2>
 <div class="mgrid"><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
 <h3>Show on screen</h3>
-<div class="mshow"><label><input type="checkbox" data-hud="quest" checked> Goal</label><label><input type="checkbox" data-hud="town" checked> Town gauges</label><label><input type="checkbox" data-hud="res" checked> Resources</label><label><input type="checkbox" data-hud="mini" checked> Minimap</label></div>
+<div class="mshow"><label><input type="checkbox" data-hud="quest" checked> Goal</label><label><input type="checkbox" data-hud="qcard" checked> Quest</label><label><input type="checkbox" data-hud="town" checked> Town gauges</label><label><input type="checkbox" data-hud="res" checked> Resources</label><label><input type="checkbox" data-hud="mini" checked> Minimap</label></div>
 <h3>Sounds</h3><div class="mshow" id="sndList"></div>
 <button id="closeMenu" type="button" class="ghost">Close</button></div></div>
 <div id="invite" hidden><div class="box"><h2>Play together</h2><p>Scan with a phone, open Frosthold and tap <b>Co-op</b> to join your town.</p><div id="qr"></div><p class="link"><span id="inviteUrl"></span></p><div class="btns"><button id="copyLink" type="button">Copy link</button><button id="closeInvite" type="button">Done</button></div><p class="fine">Friends need access to this page: share it from the page’s Share menu first.</p></div></div>
@@ -863,6 +865,7 @@ function syncCash() { const n = 0; if (n !== cashShown) { for (let i = 0; i < CA
 const chipEls = { cash: $('cCash'), log: $('cLog'), meat: $('cMeat'), ore: $('cOre'), stone: $('cStone') };
 function bump(t) { const c = chipEls[t]; c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump'); }
 function addToStack(type) {
+  if (!loading) questEvent('gather', type);
   if (carry[type].length >= VIS[type]) { carry[type].push(null); bump(type); return; }
   const m = itemMesh(type); m.position.copy(stackLocal(type, carry[type].length)); m.rotation.y = (Math.random() - 0.5) * 0.2;
   stackGroup.add(m); carry[type].push(m); bump(type);
@@ -1687,9 +1690,55 @@ function updateFishing(dt) {
     banner('Something heavy on the line!', true, 'You fished up a sunken chest'); openTreasure({ x: f.bx, z: f.bz, tier, g: new THREE.Group(), tag: { remove() {} }, guards: [] });
     return;
   }
-  const n = 2 + (Math.random() * 3 | 0) + Math.floor(tier / 2); gainXP(3);
+  const n = 2 + (Math.random() * 3 | 0) + Math.floor(tier / 2); gainXP(3); questEvent('gather', 'fish', n);
   if (S.noCollect.meat || room() < n) { dropItem('meat', player.x, player.z, n); note(room() < n ? 'Pack full: the fish lands at your feet' : 'Caught ' + n + ' fish'); }
   else { for (let k = 0; k < n; k++) giveItem('meat', new THREE.Vector3(f.bx, 0.5, f.bz)); floatText('+' + n + ' fish', player.x, 2.6, player.z, 'xp'); }
+}
+/* ---- quests: one at a time, offered by the Town Hall; rewards grow with the town ---- */
+const LEGENDS = [['bear', 'Old Greymane', "Greymane's Claw", 120, 200], ['troll', 'Mossjaw', "Mossjaw's Tusk", 130, 220], ['wolf', 'Whisper, the White Wolf', 'White Wolf Pelt', 90, 160],
+  ['golem', 'Cragheart', 'Cragheart Core', 170, 250], ['wraith', 'The Hollow King', 'Hollow Crown', 180, 250], ['tiger', 'Whitefang', "Whitefang's Fang", 255, 300], ['mammoth', 'Tuskmother', "Tuskmother's Tusk", 300, 340], ['dragon', 'Frostmaw the Ancient', "Frostmaw's Heartscale", 300, 340]];
+const QUEST_TROPHY = Object.fromEntries(LEGENDS.map(l => [l[1], l[2]]));
+const QUEST_NAMES = { rabbit: 'rabbits', deer: 'deer', yak: 'yaks', boar: 'boars', log: 'logs', stone: 'stone', ore: 'crystals', meat: 'meat', fish: 'fish', wolf: 'wolves', yeti: 'yetis', spider: 'spiders', goblin: 'goblins', bear: 'bears', troll: 'trolls', wraith: 'wraiths', golem: 'golems', raptor: 'raptors', tiger: 'sabre tigers', mammoth: 'mammoths', trex: 'T-rexes', dragon: 'dragons' };
+function newQuest() {
+  const th = S.th, pick = a => a[Math.random() * a.length | 0], opts = [];
+  opts.push(() => { const sp = pick(th >= 2 ? ['deer', 'yak', 'boar', 'rabbit'] : ['rabbit', 'deer']); const n = { rabbit: 6, deer: 4, yak: 3, boar: 2 }[sp] + th; return { type: 'hunt', what: sp, n, text: 'Hunt ' + n + ' ' + QUEST_NAMES[sp] }; });
+  opts.push(() => { const t = pick(['log', 'log', 'fish'].concat(th >= 2 ? ['stone'] : [], S.pick ? ['ore'] : [])); const n = { log: 40, fish: 12, stone: 30, ore: 12 }[t] * th; return { type: 'gather', what: t, n, text: (t === 'fish' ? 'Catch ' : 'Collect ') + n + ' ' + QUEST_NAMES[t] }; });
+  const near = wildCamps.filter(c => !c.open && !c.elite && c.tier <= th);
+  if (near.length) opts.push(() => { const k = pick(near).kind, n = 3 + th * 2; return { type: 'slay', what: k, n, text: 'Defeat ' + n + ' ' + QUEST_NAMES[k] }; });
+  opts.push(() => { const n = Math.min(3, th); return { type: 'clear', what: 1, n, text: 'Clear ' + n + ' monster camp' + (n > 1 ? 's' : '') }; });
+  opts.push(() => { const pool = LEGENDS.filter(l => l[3] <= 120 + th * 70); const L = pick(pool.length ? pool : LEGENDS.slice(0, 2));
+    return { type: 'elite', what: L[1], n: 1, kind: L[0], r0: L[3], r1: L[4], text: 'Slay ' + L[1] + ' and bring back ' + L[2] }; });
+  const q = pick(opts)(); q.have = 0; q.tier = Math.min(4, th - 1 + (q.type === 'elite' ? 1 : 0) + (q.type === 'clear' ? 1 : 0));
+  q.gold = [40, 90, 180, 300, 450][q.tier]; S.quest = q;
+  if (q.type === 'elite') spawnLegend(q);
+  banner('New quest', true, q.text); play('chime'); renderQuest();
+}
+function spawnLegend(q) {
+  if (wildCamps.some(c => c.elite === q.what && !c.open)) return;
+  for (let k = 0; k < 5; k++) if (spawnCamp(false, { r0: q.r0, r1: q.r1, kind: q.kind, name: q.what })) break;
+}
+function questEvent(type, what, n = 1) {
+  const q = S.quest; if (!q || q.done || q.type !== type || (q.type !== 'clear' && q.what !== what)) return;
+  q.have = Math.min(q.n, q.have + n); renderQuest();
+  if (q.have >= q.n) {
+    q.done = true; S.questT = 25; (S.questsDone = (S.questsDone || 0) + 1);
+    banner('Quest complete!', true, q.text + ' · +' + q.gold + ' gold and a reward chest'); play('levelup');
+    giveCash(q.gold, new THREE.Vector3(player.x, 2, player.z)); gainXP(20 + q.tier * 20);
+    openTreasure({ x: player.x + 1.2, z: player.z + 1.2, tier: q.tier, g: new THREE.Group(), tag: { remove() {} }, guards: [], questReward: true });
+    renderQuest();
+  }
+}
+function renderQuest() {
+  const q = S.quest, el = $('qcard'); if (!el) return;
+  if (!q) { el.hidden = true; return; } el.hidden = false;
+  $('qTxt').textContent = q.done ? 'Done! A new quest comes soon' : q.text + (q.n > 1 ? ' (' + q.have + '/' + q.n + ')' : '');
+  $('qRew').textContent = q.done ? '' : 'Reward: ' + q.gold + ' gold + ' + ['★', '★★', '★★★', '★★★★', '★★★★★'][q.tier] + ' chest';
+}
+function updateQuests(dt) {
+  if (S.step < 3) return;
+  if (!S.quest || S.quest.done) { S.questT = (S.questT === undefined ? 8 : S.questT) - dt; if (S.questT <= 0) { S.questT = 25; newQuest(); } return; }
+  if (!updateQuests.shown) { updateQuests.shown = true; renderQuest(); }
+  if (S.quest.type === 'elite' && !wildCamps.some(c => c.elite === S.quest.what)) spawnLegend(S.quest);   // after a reload
 }
 function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
@@ -1818,7 +1867,7 @@ function killEnemy(e) {
   else { dropItem('cash', e.x, e.z, e.loot); dropItem('meat', e.x, e.z, meat); }
   burst(e.x, 1, e.z, e.type === 'yeti' ? 0xeef2f7 : 0x7d8794, 12); gainXP(e.xp);
 }
-function damageEnemy(e, dmg, by) { if (!e.alive) return; e.lastBy = by || null; e.hp -= dmg; e.shake = 0.25; burst(e.x, 1, e.z, 0x9aa4b1, 3, 2); play('hit'); if (e.hp <= 0) killEnemy(e); }
+function damageEnemy(e, dmg, by) { if (!e.alive) return; e.lastBy = by || null; e.hp -= dmg; e.shake = 0.25; burst(e.x, 1, e.z, 0x9aa4b1, 3, 2); play('hit'); if (e.hp <= 0) { if (!by) questEvent('slay', e.type); killEnemy(e); } }
 
 /* ================= combat helpers ================= */
 function hitTree(t, dmg) {
@@ -1841,6 +1890,7 @@ function damageYak(y, dmg, by) {
   if (y.hp <= 0) {
     y.alive = false; scene.remove(y.g); y.bar.remove();
     const M = y.A ? y.A.meat[0] + (Math.random() * (y.A.meat[1] - y.A.meat[0] + 1) | 0) : 5;
+    if (!by) questEvent('hunt', y.sp);
     if (by && by.remote) netGive(by.remote, 'meat', M);
     else {
       const kept = by ? Math.min(M, workerCap(by) - by.items.length) : 0;
@@ -2413,7 +2463,7 @@ function update(dt) {
   }
 
   netTick(dt);
-  streamTrees(dt); updateCalendar(dt); updateWind(); if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) applyMyLook(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
+  streamTrees(dt); updateQuests(dt); updateCalendar(dt); updateWind(); if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) applyMyLook(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
   $('gearTxt').textContent = (S.medkits ? S.medkits + ' med kit' + (S.medkits > 1 ? 's' : '') + ' \u00b7 ' : '') + (S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')) + (S.armorLv >= 0 ? ' \u00b7 ' + ARMORS[S.armorLv].n : '');
 
   /* --- flyers / particles / floats / growth --- */
@@ -2587,11 +2637,11 @@ function buildCampProps(g, kind) {
   const flag = mk(Box(0.8, 0.5, 0.04), accent); flag.position.set(2.62, 2.1, 2.2); g.add(flag);
   for (let i = 0; i < 4; i++) { const b = mk(Cyl(0.05, 0.05, 0.5, 6), 0xece4d2); b.position.set(rand(-3, 3), 0.05, rand(-3, 3)); b.rotation.set(Math.PI / 2, 0, rand(0, 3)); g.add(b); }
 }
-function spawnCamp(far) {
+function spawnCamp(far, opts) {
   const R = outerRing();
   let x, z, n = 0;
-  do { if (far) { const a = rand(0, TAU), r = rand(254, 340); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else { x = rand(-330, 330); z = rand(-314, 346); } n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
-  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || (!far && Math.hypot(x - C.x, z - C.z) >= 248) || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
+  do { if (opts) { const a = rand(0, TAU), r = rand(opts.r0, opts.r1); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else if (far) { const a = rand(0, TAU), r = rand(254, 340); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else { x = rand(-330, 330); z = rand(-314, 346); } n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
+  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || (!far && !opts && Math.hypot(x - C.x, z - C.z) >= 248) || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
   if (n >= 120) return;
   const tier = campTier(x, z);
   const camp = { x, z, tier, guards: [], open: false };
@@ -2603,8 +2653,9 @@ function spawnCamp(far) {
   const glow = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.2, 28), new THREE.MeshBasicMaterial({ color: [0xffe08a, 0x9fd3ff, 0xd38cff, 0xff9a4d, 0xff4a4a][tier], transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
   glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; chest.add(glow); camp.glow = glow;
   camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
-  const kind = POOL[tier][Math.random() * POOL[tier].length | 0];
-  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : tier === 3 ? 1 + (Math.random() < 0.4 ? 1 : 0) : 2).fill(kind);   // a beast guards its lair alone
+  const kind = opts ? opts.kind : POOL[tier][Math.random() * POOL[tier].length | 0];
+  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : tier === 3 ? 1 + (Math.random() < 0.4 ? 1 : 0) : 2).fill(kind);
+  if (opts) list.length = 1;   // a beast guards its lair alone
   camp.kind = kind; buildCampProps(chest, kind); chest.children.forEach(c => { if (c !== camp.glow) { c.updateMatrix(); c.matrixAutoUpdate = false; } });
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
@@ -2612,16 +2663,19 @@ function spawnCamp(far) {
     const hp = Math.round(T.hp * 2.2 * (1 + S.th * 0.4) * distMul(x, z) * dayMul());
     const dm = distMul(x, z);
     const w = { ...m, dm, type, T, camp, x: hx, z: hz, hx, hz, hp, max: hp, rot: rand(0, TAU), walkT: 0, shake: 0, atkT: 0, aggro: false, alive: true, bar: makeBar(), kind: 'wild', bob: rand(0, 6) };
+    if (opts) { w.hp = w.max = Math.round(w.max * 2.5); w.elite = opts.name; w.big = 1.45; w.dm *= 1.6; }
     wilds.push(w); camp.guards.push(w);
   });
-  wildCamps.push(camp);
+  if (opts) { camp.elite = opts.name; camp.tag.textContent = opts.name; }
+  wildCamps.push(camp); return camp;
 }
 function damageWild(w, dmg) {
   if (!w.alive) return;
   w.hp -= dmg; w.shake = 0.25; w.aggro = true; burst(w.x, 1, w.z, 0x9aa4b1, 3, 2); play('hit');
   w.camp.guards.forEach(o => { if (d2(o.x, o.z, w.x, w.z) < 100) o.aggro = true; });
   if (w.hp <= 0) {
-    w.alive = false; scene.remove(w.g); w.bar.remove(); burst(w.x, 1, w.z, 0x6b5a4a, 12); gainXP(w.T.xp);
+    w.alive = false; scene.remove(w.g); w.bar.remove(); burst(w.x, 1, w.z, 0x6b5a4a, 12); gainXP(w.T.xp); questEvent('slay', w.type);
+    if (w.elite) { questEvent('elite', w.elite); floatText(QUEST_TROPHY[w.elite] || 'Trophy', w.x, 3, w.z, 'xp'); }
     dropItem('cash', w.x, w.z, 1 + w.T.tier * 4);
     if (w.type === 'wolf' || w.type === 'bear') dropItem('meat', w.x, w.z, w.type === 'bear' ? 6 : 2);
     if (w.camp.guards.every(o => !o.alive)) { floatText('Treasure unguarded!', w.camp.x, 2.5, w.camp.z, 'xp'); play('chime'); }
@@ -2665,6 +2719,7 @@ $('statsBtn').addEventListener('click', e => { e.stopPropagation(); showStats();
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
 $('statsBody').addEventListener('click', e => { const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
 function openTreasure(camp) {
+  if (camp.guards && camp.guards.length && !camp.questReward) questEvent('clear', 1);
   camp.open = true; scene.remove(camp.g); camp.tag.remove();
   const t = camp.tier, gifts = [];
   if (S.weapon < t) gifts.push(() => { S.weapon = t; return [WEAPONS[t].n, 'New weapon: ' + Math.round((WEAPONS[t].m - 1) * 100) + '% more damage']; });
@@ -2696,7 +2751,7 @@ function updateWilds(dt) {
     for (let k = 0, lairs = wildCamps.filter(c => c.tier >= 3).length; lairs < 36 && k < 50; k++) { const n = wildCamps.length; spawnCamp(true); if (wildCamps.length > n) lairs++; } }
   for (const c of wildCamps) {
     c.glow.rotation.z += dt; const clear = c.guards.every(o => !o.alive);
-    c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
+    c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = c.elite && !clear ? '\u2620 ' + c.elite : (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
     if (clear && !c.open && S.downT <= 0 && d2(c.x, c.z, player.x, player.z) < 2.6) openTreasure(c);
   }
   for (let i = wilds.length - 1; i >= 0; i--) {
@@ -2725,7 +2780,7 @@ function updateWilds(dt) {
     if (moving) w.walkT += dt;
     const sc = w.shake > 0 ? 1 + Math.sin((w.shake -= dt) * 40) * 0.06 : 1;
     w.g.position.set(w.x, w.type === 'wraith' ? 0.3 + Math.sin(time * 2 + w.bob) * 0.2 : 0, w.z); w.g.rotation.y = w.rot;
-    w.g.scale.setScalar(sc * (w.type === 'troll' ? 1.7 : w.type === 'goblin' ? 0.78 : 1));
+    w.g.scale.setScalar(sc * (w.type === 'troll' ? 1.7 : w.type === 'goblin' ? 0.78 : 1) * (w.big || 1));
     if (w.legs.length >= 4) { const a = Math.sin(w.walkT * 9) * 0.5; w.legs[0].rotation.x = w.legs[3].rotation.x = a; w.legs[1].rotation.x = w.legs[2].rotation.x = -a; }
     if (w.hp < w.max || w.aggro) setBar(w.bar, w.hp / w.max, w.x, 1.6 + T.size, w.z); else w.bar.hidden = true;
   }
@@ -2794,6 +2849,8 @@ function drawMini(dt) {
     if (!inside) { const a = Math.atan2(y - 120, x - 120); x = 120 + Math.cos(a) * 108; y = 120 + Math.sin(a) * 108; }   // teammates off the map sit on the rim
     if (r.alertT > 0 && (time * 4 | 0) % 2) { c.fillStyle = 'rgba(226,72,63,0.55)'; c.beginPath(); c.arc(x, y, 13, 0, TAU); c.fill(); }
     star(c, x, y, inside ? 8 : 6.5, hex(r.col ?? 0x2f7fb8)); }
+  if (S.quest && S.quest.type === 'elite' && !S.quest.done) { const lc = wildCamps.find(cp => cp.elite === S.quest.what); if (lc) { let x = MX(lc.x), y = MZ(lc.z); if (!onMini(lc.x, lc.z)) { const a = Math.atan2(y - 120, x - 120); x = 120 + Math.cos(a) * 106; y = 120 + Math.sin(a) * 106; }
+    c.fillStyle = '#ffd166'; c.strokeStyle = '#7a1d16'; c.lineWidth = 2.5; c.beginPath(); c.arc(x, y, 8, 0, TAU); c.fill(); c.stroke(); c.fillStyle = '#7a1d16'; c.font = 'bold 11px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('!', x, y + 0.5); } }
   star(c, MX(player.x), MZ(player.z), 11, hex(PROFILE.color), true);
   c.save(); c.translate(120, 120); c.rotate(-player.rot + Math.PI);
   c.fillStyle = '#fff'; c.strokeStyle = '#16233a'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -9); c.lineTo(7, 7); c.lineTo(-7, 7); c.closePath(); c.fill(); c.stroke(); c.restore();

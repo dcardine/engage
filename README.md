@@ -20,6 +20,9 @@ The valley spans roughly 690 m by 690 m. Monster camps start about 65 m from the
 Every new day is harder: raiders get more health and hit harder, raids bring more wolves and come sooner, camp monsters are tougher, and firewood and food burn faster (up to double).
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
+## Quests
+Once the camp is up and running, the Town Hall offers one quest at a time (shown in the Quest card; hide it from the cog menu). Quests include hunting animals, collecting logs, stone, crystal or fish, defeating a kind of monster, clearing monster camps, and hunting down a **legend**: a named giant creature (Old Greymane the bear, Mossjaw the troll, Whisper the White Wolf, Cragheart, the Hollow King, Whitefang, Tuskmother, Frostmaw the Ancient) that guards its own chest and drops a trophy. A legend is always marked on the minimap with a gold **!**, pinned to the edge when it is far away. Rewards grow with your Town Hall: gold, XP and a reward chest that can hold weapons, armour and looks. A new quest arrives about 25 seconds after you finish one.
+
 ## Fishing
 Stand still at the edge of a lake (or out on the ice in winter, where you cut a hole) and you cast a line automatically. After a few seconds the bobber dips and you catch 2–4 fish (food, sold at the cookhouse like meat), more at far-off lakes. Now and then you reel in a sunken treasure chest instead; lakes farther from the fort give bigger catches and better chests. Fishing stops if raiders are close.
 
