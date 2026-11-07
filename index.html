@@ -57,6 +57,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #mini{width:118px;height:118px;right:calc(8px + env(safe-area-inset-right,0px));top:calc(196px + env(safe-area-inset-top,0px));border-radius:14px;border:1px solid var(--panel-line);background:rgba(18,30,50,.6)}
 #res .chip:not(#cCash){pointer-events:auto;cursor:pointer}
 .wtag{background:#2b4a74;color:#fff}.wtag.full{background:#5c6b80}
+.ward{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 8px}.ward b{width:44px;font:800 13px var(--body)}.ward button{border:2px solid #c9d6e8;background:#fff;border-radius:9px;padding:6px 9px;font:800 13px var(--body);color:var(--ink);cursor:pointer}.ward button[aria-pressed=true]{border-color:#2b4a74;background:#2b4a74;color:#fff}
 .chip.off{opacity:.45}.chip.off span{text-decoration:line-through}
 #cog{pointer-events:auto;width:46px;height:46px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
 #menu{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.6);padding:0 16px}
@@ -255,7 +256,7 @@ function skin(g, id, size, opts) { const e = Object.assign({ g, id, size }, opts
 function loadModels() {
   if (!THREE.GLTFLoader) return;
   const loader = new THREE.GLTFLoader();
-  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine'].forEach(id =>
+  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine', 'raptor', 'sabre_tiger', 'mammoth', 'trex', 'dragon'].forEach(id =>
     loader.load('assets/game/' + id + '.json', g => {
       g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
         const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
@@ -338,6 +339,7 @@ function groundTexture() {
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(940, 940), new THREE.MeshLambertMaterial({ color: 0xf6faff, map: groundTexture() }));
 ground.receiveShadow = true; ground.position.z = 10;
 ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const TRAIL_MAT = new THREE.MeshLambertMaterial({ color: 0xe8dccb });
 const GROUND_TEX = {};   // generated with tools/openai_texture.py; the canvas tile stays until they load
 ['snow_ground', 'grass_ground'].forEach(n => new THREE.TextureLoader().load('assets/textures/' + n + '.jpg', t => {
   t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(26, 26); t.anisotropy = 8; GROUND_TEX[n] = t; groundLook();
@@ -346,7 +348,7 @@ const GROUND_TINT = [0xb4c2a8, 0xb0b0b0, 0xc8a870, 0xb8c0cc];   // the scene lig
 function groundLook() {
   const i = appliedSeason < 0 ? S.season : appliedSeason, t = GROUND_TEX[i === 3 ? 'snow_ground' : 'grass_ground'];
   if (!t) return; ground.material.map = t; ground.material.color.setHex(GROUND_TINT[i]); ground.material.needsUpdate = true;
-  if (typeof PATCH_MAT !== 'undefined') PATCH_MAT.visible = false;   // the painted tiles already carry their own patches
+  if (typeof PATCH_MAT !== 'undefined') PATCH_MAT.visible = false; TRAIL_MAT.visible = false;   // the painted tiles already carry their own patches
 }
 function flat(w, d, c, x, z, y = 0.012) { const m = mk(new THREE.PlaneGeometry(w, d), c, false, true); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); scene.add(m); return m; }
 // Worn ground under the plaza and the north road: soft-edged and tinted per season (packed snow, then trodden earth),
@@ -425,7 +427,7 @@ const LAKES = [], RUINS = [];
     const cap = new THREE.Mesh(new THREE.SphereGeometry(sz * 0.75, 14, 8).scale(1, 0.35, 1), capMat); cap.position.set(m.position.x, sz * 1.35, m.position.z); decor(cap);
   }
   // worn trails leading out of the four camp gates
-  const trailMat = new THREE.MeshLambertMaterial({ color: 0xe8dccb });
+  const trailMat = TRAIL_MAT;
   const trail = (pts) => { for (let i = 0; i < pts.length - 1; i++) { const [ax, az] = pts[i], [bx, bz] = pts[i + 1], L = Math.hypot(bx - ax, bz - az);
     const st = new THREE.Mesh(new THREE.PlaneGeometry(2.6, L + 1.2), trailMat); st.rotation.x = -Math.PI / 2; st.rotation.z = -Math.atan2(bx - ax, bz - az); st.position.set((ax + bx) / 2, 0.009, (az + bz) / 2); st.receiveShadow = true; decor(st);
     const dot = new THREE.Mesh(new THREE.CircleGeometry(1.3, 12), trailMat); dot.rotation.x = -Math.PI / 2; dot.position.set(bx, 0.009, bz); decor(dot); } };
@@ -778,6 +780,42 @@ const axe2 = makeAxe(); axe2.rotation.y = Math.PI; axe2.visible = false; axePivo
 const trail = new THREE.Mesh(new THREE.RingGeometry(0.8, 1.25, 24, 1, 0, Math.PI * 0.9), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
 trail.rotation.x = -Math.PI / 2; axePivot.add(trail);
 const heroBar = makeBar('me');
+// ---- what heroes wear: weapon colours, armour pieces, helmets and capes, all visible to teammates ----
+const LOOKS = { helm: ['None', 'Fur Hood', 'Horned Helm', 'Iron Helm', 'Frost Crown'], cape: ['None', 'Red Cape', 'Wolf Pelt Cloak', 'Royal Cape', 'Dragonwing Cape'] };
+const WEAPON_COL = [0xb9c3cf, 0x9fdcff, 0xff7a3d, 0x9a7bff, 0xf0e6c8, 0x7ff0e0];   // camp axe, then each weapon
+const ARMOR_COL = [0x8a6a4a, 0x9aa3ad, 0x6f7fa8, 0xe8a85a, 0x3fb8a8];
+function weaponLook(axe, w) {
+  const c = WEAPON_COL[w + 1] || WEAPON_COL[0]; [axe.children[1], axe.children[2]].forEach((m, i) => { if (!m) return; m.material = m.material.clone(); m.material.color.setHex(i ? 0xffffff : c); if (m.material.emissive) m.material.emissive.setHex(w >= 1 ? c : 0).multiplyScalar(w >= 1 ? 0.35 : 0); });
+  axe.children[1] && axe.children[1].scale.set(1, 1 + Math.max(0, w) * 0.12, 1 + Math.max(0, w) * 0.12);
+}
+function buildGear(g, look) {
+  const [w, armor, helm, cape] = look || [-1, -1, 0, 0];
+  if (g.userData.gearKey === String(look)) return; g.userData.gearKey = String(look);
+  if (g.userData.gear) g.remove(g.userData.gear);
+  const G = new THREE.Group(); g.add(G); g.userData.gear = G;
+  if (armor >= 0) {
+    const c = ARMOR_COL[armor];
+    [-1, 1].forEach(k => { const sp = mk(new THREE.SphereGeometry(0.2, 12, 8, 0, TAU, 0, Math.PI / 2), c); sp.position.set(k * 0.36, 1.05, 0); sp.rotation.z = -k * 0.5; G.add(sp); });
+    if (armor >= 1) { const pl = mk(Box(0.46, 0.34, 0.08), c); pl.position.set(0, 0.86, 0.33); G.add(pl); }
+    if (armor >= 2) { const rune = new THREE.Mesh(Box(0.12, 0.12, 0.02), basic(armor === 4 ? 0x7ff0e0 : 0x7fb0ff)); rune.position.set(0, 0.88, 0.38); rune.rotation.z = Math.PI / 4; G.add(rune); }
+    if (armor === 0) { const fur = mk(new THREE.TorusGeometry(0.3, 0.09, 8, 16), 0xe9dcc6); fur.rotation.x = Math.PI / 2; fur.position.y = 1.08; G.add(fur); }
+  }
+  if (helm) {
+    const H = new THREE.Group(); H.position.y = 1.52; G.add(H);
+    const cols = [0, 0xd9cbb0, 0x8f99a6, 0xaab4c0, 0xf2c14e];
+    if (helm === 4) { const ring = mk(Cyl(0.3, 0.32, 0.14, 16, 1), cols[4]); ring.position.y = 0.36; H.add(ring); for (let i = 0; i < 6; i++) { const sp = mk(Cone(0.05, 0.18, 4), cols[4]); const a = i / 6 * TAU; sp.position.set(Math.cos(a) * 0.29, 0.5, Math.sin(a) * 0.29); H.add(sp); } const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.06), basic(0x7fd3f0)); gem.position.set(0, 0.38, 0.32); H.add(gem); }
+    else { const cap = mk(new THREE.SphereGeometry(0.4, 16, 10, 0, TAU, 0, Math.PI / 2), cols[helm]); cap.scale.set(1, 0.8, 1); cap.position.y = 0.16; H.add(cap);
+      if (helm === 2) [-1, 1].forEach(k => { const h = mk(Cone(0.1, 0.6, 8), 0xf1ead8); h.position.set(k * 0.46, 0.42, 0); h.rotation.z = -k * 1.0; H.add(h); });
+      if (helm === 3) { const nose = mk(Box(0.06, 0.24, 0.05), cols[3]); nose.position.set(0, 0.1, 0.4); H.add(nose); } }
+  }
+  if (cape) {
+    const cols = [0, 0xc8452f, 0x8d97a4, 0x5b3fa3, 0x3fb8a8];
+    const cp = mk(Box(0.62, 0.9, 0.04), cols[cape]); cp.geometry.translate(0, -0.45, 0); cp.position.set(0, 1.12, -0.5); cp.rotation.x = 0.18; G.add(cp);
+    if (cape === 2) { const fur = mk(new THREE.TorusGeometry(0.28, 0.08, 8, 14), 0xd8dde4); fur.rotation.x = Math.PI / 2; fur.position.set(0, 1.1, -0.05); G.add(fur); }
+  }
+}
+const myLook = () => [S.weapon, S.armorLv, (S.wear && S.wear.helm) || 0, (S.wear && S.wear.cape) || 0];
+function applyMyLook() { buildGear(player.g, myLook()); weaponLook(axe1, S.weapon); weaponLook(axe2, S.weapon); }
 
 /* ================= state ================= */
 const AXE = [null, { dmg: 2, int: 0.55, range: 2.0, max: 2 }, { dmg: 3, int: 0.45, range: 2.3, max: 3 }, { dmg: 4, int: 0.4, range: 2.5, max: 4 }, { dmg: 6, int: 0.34, range: 2.8, max: 5 }];
@@ -785,6 +823,7 @@ const CAPS = [50, 100, 200, 400];
 const S = {
   wallet: 0, axe: 1, bag: 0, th: 1, xp: 0, lvl: 1, hp: 100, downT: 0, hurtT: 0,
   civ: 6, warm: 48, food: 40, clock: 60, season: 3, medkits: 0, medCd: 0, medRevive: 0, pick: false, noCollect: {}, logToStall: false, weapon: -1, armorLv: -1, bonusHp: 0, bonusDmg: 0, speedBonus: 0, pileBonus: 0, warmUp: 0, foodUp: 0, bell: 0, priceMul: 1, taxMul: 1, boots: 0, medic: 0, sleds: 0, horn: 0, cook: false, houses: 0,
+  houseLv: 0, wardrobe: { helm: [0], cape: [0] }, wear: { helm: 0, cape: 0 },
   wave: 0, waveT: 150, raidOn: false, blizT: 170, blizOn: 0,
   towerLv: 0, masonry: false, guardLv: 0, bank: false, carpenter: false, mine: false, gold: false,
   step: 0, over: false, declineT: 0, growT: 0, taxT: 0, won: false, time: 0,
@@ -796,7 +835,7 @@ let reserved = 0;
 const carried = () => carry.log.length + carry.meat.length + carry.ore.length + carry.stone.length;
 const room = () => cap() - carried() - reserved - NET.incoming;
 const pop = () => S.civ + workers.length + guards.length;
-const housing = () => [0, 8, 12, 16][S.th] + S.houses * 4;
+const housing = () => [0, 8, 14, 24][S.th] + S.houses * (4 + (S.houseLv || 0) * 3);   // bunk beds and lofts add room to every house
 const warmCap = () => 30 + pop() * 3;
 const foodCap = () => 30 + pop() * 3;
 const heroMax = () => 100 + (S.lvl - 1) * 12 + S.bonusHp;
@@ -1434,6 +1473,9 @@ const padTH = plot('th', { x: 0, z: 10.6, labels: ['TOWN HALL II', 'TOWN HALL II
 plot('cook', { x: cookStall.x, z: cookStall.z, label: 'COOKHOUSE', cost: { log: 30, cash: 15 },
   onBuy: () => { S.cook = true; S.food = foodCap() * 0.6; openStall(cookStall); banner('Cookhouse built!', true, 'Your people now need food. Hunt yaks!'); } });
 plot('garden', { x: 5.6, z: 13.4, label: 'GARDEN', cost: { log: 20, cash: 20 }, req: () => S.cook, onBuy: () => { garden = modelGarden(5.6, 13.4); openPile(gardenPile); banner('Garden planted!', true, 'Veggies pile up beside it; sell them at the cookhouse'); } });
+const padHomes = plot('homes', { x: 0, z: 2.6, labels: ['BUNK BEDS', 'STONE LOFTS'], costs: [{ log: 60, stone: 30, cash: 150 }, { stone: 80, ore: 20, cash: 400 }], tiers: [2, 3],
+  requires: () => padHomes.level < 2 && S.houses > 0 && S.th >= padHomes.tiers[padHomes.level],
+  onBuy: lv => { S.houseLv = lv; banner(lv === 1 ? 'Bunk beds!' : 'Stone lofts!', true, 'Every house now holds ' + (4 + lv * 3) + ' villagers'); }, xp: 40 });
 plot('houseA', { x: -9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => S.cook, onBuy: () => { modelHouse(-9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('houseB', { x: 9.6, z: 6.9, label: 'HOUSE', cost: { log: 25 }, req: () => B.houseA, onBuy: () => { modelHouse(9.6, 6.9); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('towerA', { x: -9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 }, req: () => S.cook, onBuy: () => { buildTower(-9.6, 0.4); banner('Watchtower built!', true); } });
@@ -2297,7 +2339,7 @@ function update(dt) {
   }
 
   netTick(dt);
-  streamTrees(dt); updateCalendar(dt); updateWind(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
+  streamTrees(dt); updateCalendar(dt); updateWind(); if ((time * 2 | 0) !== ((time - dt) * 2 | 0)) applyMyLook(); updateFog(dt); updateWilds(dt); drawMini(dt); updateWorkerTags();
   $('gearTxt').textContent = (S.medkits ? S.medkits + ' med kit' + (S.medkits > 1 ? 's' : '') + ' \u00b7 ' : '') + (S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')) + (S.armorLv >= 0 ? ' \u00b7 ' + ARMORS[S.armorLv].n : '');
 
   /* --- flyers / particles / floats / growth --- */
@@ -2362,8 +2404,8 @@ function update(dt) {
 /* ================= wild encounters =================
    Monster camps guard treasure chests across the wilds. The farther from the
    fort, the tougher the guards and the better the loot. */
-const WEAPONS = [{ n: 'Frostbite Axe', m: 1.35 }, { n: 'Ember Cleaver', m: 1.7 }, { n: 'Runic Greataxe', m: 2.2 }];
-const ARMORS = [{ n: 'Fur Jerkin', a: 0.15 }, { n: 'Iron Mail', a: 0.3 }, { n: 'Runic Plate', a: 0.45 }];
+const WEAPONS = [{ n: 'Frostbite Axe', m: 1.35 }, { n: 'Ember Cleaver', m: 1.7 }, { n: 'Runic Greataxe', m: 2.2 }, { n: 'Raptor Fang Axe', m: 2.8 }, { n: 'Dragonbone Axe', m: 3.5 }];
+const ARMORS = [{ n: 'Fur Jerkin', a: 0.15 }, { n: 'Iron Mail', a: 0.3 }, { n: 'Runic Plate', a: 0.45 }, { n: 'Sabre Hide', a: 0.55 }, { n: 'Dragonscale Plate', a: 0.62 }];
 const WILD = {
   spider: { hp: 6, dmg: 4, speed: 3.2, size: 0.8, xp: 6, tier: 0 },
   goblin: { hp: 9, dmg: 5, speed: 2.7, size: 0.8, xp: 8, tier: 0 },
@@ -2372,7 +2414,27 @@ const WILD = {
   troll: { hp: 48, dmg: 16, speed: 2.0, size: 1.6, xp: 28, tier: 1 },
   wraith: { hp: 80, dmg: 20, speed: 2.8, size: 1.4, xp: 50, tier: 2 },
   golem: { hp: 140, dmg: 28, speed: 1.6, size: 2.2, xp: 70, tier: 2 },
+  raptor: { hp: 170, dmg: 26, speed: 4.4, size: 1.6, xp: 90, tier: 3 },
+  tiger: { hp: 210, dmg: 32, speed: 4.0, size: 1.7, xp: 100, tier: 3 },
+  mammoth: { hp: 460, dmg: 42, speed: 1.9, size: 3.4, xp: 170, tier: 4 },
+  trex: { hp: 400, dmg: 50, speed: 2.7, size: 3.2, xp: 180, tier: 4 },
+  dragon: { hp: 520, dmg: 56, speed: 2.5, size: 3.6, xp: 220, tier: 4 },
 };
+// Big beasts: a simple body of spheres stands in until the generated model loads.
+function makeBeast(id, col, len, height, modelSize, extra) {
+  const g = new THREE.Group();
+  const body = mk(new THREE.SphereGeometry(0.5, 16, 12), col); body.scale.set(height * 0.9, height * 0.8, len); body.position.y = height; g.add(body);
+  const head = mk(new THREE.SphereGeometry(0.4, 14, 10), col); head.scale.setScalar(height * 0.8); head.position.set(0, height * 1.15, len * 0.55); g.add(head);
+  const legs = [[-0.3, 0.3], [0.3, 0.3], [-0.3, -0.3], [0.3, -0.3]].map(([x, z]) => { const l = mk(Cyl(0.12 * height, 0.1 * height, height, 8), col); l.geometry.translate(0, -height / 2, 0); l.position.set(x * height, height, z * len); g.add(l); return l; });
+  if (extra) extra(g, height, len);
+  skin(g, id, modelSize, { parts: g.children.slice() });
+  return { g, legs };
+}
+const makeRaptor = () => makeBeast('raptor', 0x6f8aa0, 1.4, 1.0, 3.0);
+const makeTiger = () => makeBeast('sabre_tiger', 0xe0dcd2, 1.6, 0.9, 3.2);
+const makeMammoth = () => makeBeast('mammoth', 0x6b4a33, 2.6, 2.0, 6.2, (g, h, l) => [-1, 1].forEach(k => { const t = mk(Cone(0.12, 1.6, 8), 0xf1ead8); t.position.set(k * 0.5, h * 0.9, l * 0.75); t.rotation.x = 1.2; g.add(t); }));
+const makeTrex = () => makeBeast('trex', 0x6b7d5a, 2.4, 2.0, 6.2);
+const makeDragon = () => makeBeast('dragon', 0x8fc3e6, 2.6, 1.7, 6.8, (g, h) => [-1, 1].forEach(k => { const w = mk(Box(2.4, 0.08, 1.3), 0x6aa8d6); w.position.set(k * 1.4, h * 1.4, 0); w.rotation.z = k * 0.4; g.add(w); }));
 function makeSpider() {
   const g = new THREE.Group();
   const body = mk(new THREE.SphereGeometry(0.4, 16, 12), 0x2b2b36); body.scale.set(1, 0.7, 1.25); body.position.y = 0.55; g.add(body);
@@ -2419,14 +2481,14 @@ function makeGolem() {
   const legs = [-1, 1].map(k => { const l = mk(new THREE.IcosahedronGeometry(0.4, 1), c); l.scale.set(1, 1.6, 1); l.geometry.translate(0, -0.45, 0); l.position.set(k * 0.5, 1, 0); g.add(l); return l; });
   return { g, legs: [legs[0], legs[1], arms[0], arms[1]] };
 }
-const MAKERS = { spider: makeSpider, goblin: makeGoblin, wolf: makeWolf, bear: makeBear, troll: makeTroll, wraith: makeWraith, golem: makeGolem };
+const MAKERS = { spider: makeSpider, goblin: makeGoblin, wolf: makeWolf, bear: makeBear, troll: makeTroll, wraith: makeWraith, golem: makeGolem, raptor: makeRaptor, tiger: makeTiger, mammoth: makeMammoth, trex: makeTrex, dragon: makeDragon };
 const wilds = [], wildCamps = [];
-const POOL = [['spider', 'goblin', 'wolf'], ['bear', 'troll'], ['wraith', 'golem']];
-function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 110 ? 0 : d < 165 ? 1 : 2; }
+const POOL = [['spider', 'goblin', 'wolf'], ['bear', 'troll'], ['wraith', 'golem'], ['raptor', 'tiger'], ['mammoth', 'trex', 'dragon']];
+function campTier(x, z) { const d = Math.hypot(x - C.x, z - C.z); return d < 110 ? 0 : d < 165 ? 1 : d < 250 ? 2 : d < 300 ? 3 : 4; }   // beasts past 250 m, the biggest past 300 m
 // beyond the tier itself, every step farther from the fort makes guards tougher
 const distMul = (x, z) => 1 + Math.max(0, Math.hypot(x - C.x, z - C.z) - 70) / 70;
 // Stakes, tents, a fire pit and a banner around the chest, dressed for whoever lives there.
-const CAMP_LOOK = { spider: [0x3a3a48, 0xd8dde6], goblin: [0x6b8a3a, 0xb8452e], wolf: [0x7d8794, 0x9a5e38], bear: [0x5a3b26, 0x8a6a4a], troll: [0x55634a, 0x7a4527], wraith: [0x8fb3d9, 0x2b4a74], golem: [0x6f7a88, 0x7fd3f0] };
+const CAMP_LOOK = { spider: [0x3a3a48, 0xd8dde6], goblin: [0x6b8a3a, 0xb8452e], wolf: [0x7d8794, 0x9a5e38], bear: [0x5a3b26, 0x8a6a4a], troll: [0x55634a, 0x7a4527], wraith: [0x8fb3d9, 0x2b4a74], golem: [0x6f7a88, 0x7fd3f0], raptor: [0x4a5a6a, 0xd9524b], tiger: [0x8a6a4a, 0xf2c14e], mammoth: [0x5a3b26, 0xf1ead8], trex: [0x4d5a3e, 0xb8452e], dragon: [0x2b4a74, 0x7fd3f0] };
 function buildCampProps(g, kind) {
   const [main, accent] = CAMP_LOOK[kind];
   for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; if (i % 6 === 0) continue; const st = mk(Cone(0.12, 1.1, 5), 0x6b4a2d); st.position.set(Math.cos(a) * 5, 0.5, Math.sin(a) * 5); st.rotation.z = Math.cos(a) * 0.25; st.rotation.x = -Math.sin(a) * 0.25; g.add(st); }
@@ -2445,11 +2507,11 @@ function buildCampProps(g, kind) {
   const flag = mk(Box(0.8, 0.5, 0.04), accent); flag.position.set(2.62, 2.1, 2.2); g.add(flag);
   for (let i = 0; i < 4; i++) { const b = mk(Cyl(0.05, 0.05, 0.5, 6), 0xece4d2); b.position.set(rand(-3, 3), 0.05, rand(-3, 3)); b.rotation.set(Math.PI / 2, 0, rand(0, 3)); g.add(b); }
 }
-function spawnCamp() {
+function spawnCamp(far) {
   const R = outerRing();
   let x, z, n = 0;
-  do { x = rand(-330, 330); z = rand(-314, 346); n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
-  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
+  do { if (far) { const a = rand(0, TAU), r = rand(254, 340); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else { x = rand(-330, 330); z = rand(-314, 346); } n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
+  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || (!far && Math.hypot(x - C.x, z - C.z) >= 248) || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
   if (n >= 120) return;
   const tier = campTier(x, z);
   const camp = { x, z, tier, guards: [], open: false };
@@ -2457,12 +2519,12 @@ function spawnCamp() {
   const cg = new THREE.Group(); chest.add(cg);
   const box = mk(Box(1.1, 0.7, 0.75), 0x7a4a26); box.position.y = 0.35; cg.add(box);
   const lid = mk(Cyl(0.38, 0.38, 1.1, 14, 1), 0x8d5a30); lid.rotation.z = Math.PI / 2; lid.scale.set(1, 1, 0.98); lid.position.y = 0.72; cg.add(lid);
-  const band = mk(Box(1.14, 0.12, 0.8), [0xc9b26a, 0xd9dde4, 0xf2c14e][tier]); band.position.y = 0.55; cg.add(band); skin(cg, 'treasure_chest', 1.4);
-  const glow = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.2, 28), new THREE.MeshBasicMaterial({ color: [0xffe08a, 0x9fd3ff, 0xd38cff][tier], transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
+  const band = mk(Box(1.14, 0.12, 0.8), [0xc9b26a, 0xd9dde4, 0xf2c14e, 0xff8a3d, 0xff4a4a][tier]); band.position.y = 0.55; cg.add(band); skin(cg, 'treasure_chest', 1.4);
+  const glow = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.2, 28), new THREE.MeshBasicMaterial({ color: [0xffe08a, 0x9fd3ff, 0xd38cff, 0xff9a4d, 0xff4a4a][tier], transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
   glow.rotation.x = -Math.PI / 2; glow.position.y = 0.04; chest.add(glow); camp.glow = glow;
-  camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
+  camp.tag = document.createElement('div'); camp.tag.className = 'tag'; camp.tag.textContent = ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][tier]; camp.tag.hidden = true; ov.appendChild(camp.tag);
   const kind = POOL[tier][Math.random() * POOL[tier].length | 0];
-  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : 2).fill(kind);
+  const list = Array(tier === 0 ? 3 + (Math.random() * 2 | 0) : tier === 1 ? 2 + (Math.random() * 2 | 0) : tier === 2 ? 2 : 1).fill(kind);   // a beast guards its lair alone
   camp.kind = kind; buildCampProps(chest, kind); chest.children.forEach(c => { if (c !== camp.glow) { c.updateMatrix(); c.matrixAutoUpdate = false; } });
   list.forEach((type, i) => {
     const T = WILD[type], m = MAKERS[type](); const a = i / list.length * TAU, hx = x + Math.cos(a) * 2.4, hz = z + Math.sin(a) * 2.4;
@@ -2514,11 +2576,14 @@ function showStats() {
     row('Workers', workers.length ? ROLE_IDS.map(r => roleCount(r) ? roleCount(r) + ' ' + r + (roleCount(r) > 1 ? 's' : '') : '').filter(Boolean).join(', ') : 'None'),
   ].join('');
   const relics = (S.relics || []).length ? '<ul>' + S.relics.slice(-12).reverse().map(r => `<li>${r}</li>`).join('') + '</ul>' : '<p class="none">Open treasure chests in monster camps to find relics.</p>';
-  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
+  const W = S.wardrobe || { helm: [0], cape: [0] }, wear = S.wear || {};
+  const ward = ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
+  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
   $('stats').hidden = false;
 }
 $('statsBtn').addEventListener('click', e => { e.stopPropagation(); showStats(); });
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
+$('statsBody').addEventListener('click', e => { const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
 function openTreasure(camp) {
   camp.open = true; scene.remove(camp.g); camp.tag.remove();
   const t = camp.tier, gifts = [];
@@ -2526,6 +2591,11 @@ function openTreasure(camp) {
   if (S.weapon < t + 1 && t < 2 && Math.random() < 0.3) gifts.push(() => { S.weapon = Math.min(2, Math.max(S.weapon, t) + (S.weapon >= t ? 1 : 0)); return [WEAPONS[S.weapon].n, 'A finer weapon!']; });
   if (S.armorLv < t) gifts.push(() => { S.armorLv = t; return [ARMORS[t].n, 'Armour: take ' + Math.round(ARMORS[t].a * 100) + '% less damage']; });
   if (t === 2 && !S.pick) gifts.push(() => { S.pick = true; return ['Crystal Pick', 'You can now mine crystal veins']; });
+  for (const slot of ['helm', 'cape']) {
+    const W = S.wardrobe = S.wardrobe || { helm: [0], cape: [0] }; W[slot] = W[slot] || [0];
+    const missing = LOOKS[slot].map((_, i) => i).filter(i => i && !W[slot].includes(i) && i <= t + 2);
+    if (missing.length) gifts.push(() => { const i = missing[Math.random() * missing.length | 0]; W[slot].push(i); (S.wear = S.wear || {})[slot] = i; applyMyLook(); return [LOOKS[slot][i], 'New look: change what you wear under Hero']; });
+  }
   gifts.push(() => { S.medkits = Math.min(5, S.medkits + 2); return ['Med Kits', '+2 med kits for reviving teammates']; });
   gifts.push(() => { S.bonusHp += 15 * (t + 1); S.hp = heroMax(); return ['Heart Stone', '+' + 15 * (t + 1) + ' max health']; });
   gifts.push(() => { S.bonusDmg += 0.1 * (t + 1); return ['Warrior’s Rune', '+' + 10 * (t + 1) + '% damage']; });
@@ -2536,16 +2606,17 @@ function openTreasure(camp) {
   const g = gifts[Math.random() * gifts.length | 0](); banner(g[0] + '!', true, g[1] + ' \u00b7 see Hero');
   (S.relics = S.relics || []).push(g[0] + ': ' + g[1]);
   const cash = 12 * (t + 1) * (t + 1); dropItem('cash', camp.x, camp.z, cash);
-  dropItem(['log', 'stone', 'ore'][t], camp.x + 1, camp.z, 10 + t * 10);
+  dropItem(['log', 'stone', 'ore', 'ore', 'ore'][t], camp.x + 1, camp.z, 10 + t * 10);
   burst(camp.x, 1, camp.z, 0xf2c14e, 26, 4); play('treasure'); gainXP(30 * (t + 1));
   const i = wildCamps.indexOf(camp); if (i >= 0) wildCamps.splice(i, 1);
 }
 let campT = 4; setTimeout(syncToggles, 0);
 function updateWilds(dt) {
-  campT -= dt; if (campT <= 0) { campT = 100; while (wildCamps.length < 40) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; } }
+  campT -= dt; if (campT <= 0) { campT = 100; while (wildCamps.length < 40) { const n = wildCamps.length; spawnCamp(); if (wildCamps.length === n) break; }
+    for (let k = 0, lairs = wildCamps.filter(c => c.tier >= 3).length; lairs < 12 && k < 20; k++) { const n = wildCamps.length; spawnCamp(true); if (wildCamps.length > n) lairs++; } }
   for (const c of wildCamps) {
     c.glow.rotation.z += dt; const clear = c.guards.every(o => !o.alive);
-    c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
+    c.tag.hidden = d2(c.x, c.z, player.x, player.z) > 30 * 30; if (!c.tag.hidden) { c.tag.textContent = (clear ? 'Open: ' : '') + ['Treasure ★', 'Treasure ★★', 'Treasure ★★★', 'Beast lair ★★★★', 'Beast lair ★★★★★'][c.tier]; place(c.tag, c.x, 1.9, c.z); }
     if (clear && !c.open && S.downT <= 0 && d2(c.x, c.z, player.x, player.z) < 2.6) openTreasure(c);
   }
   for (let i = wilds.length - 1; i >= 0; i--) {
@@ -2629,7 +2700,7 @@ function drawMini(dt) {
   for (const cp of wildCamps) {
     if (!show(cp.x, cp.z)) continue;
     const clear = cp.guards.every(o => !o.alive);
-    c.fillStyle = clear ? '#f2c14e' : ['#c0703a', '#b8452e', '#7a2a8a'][cp.tier];
+    c.fillStyle = clear ? '#f2c14e' : ['#c0703a', '#b8452e', '#7a2a8a', '#ff7a1a', '#ff2a2a'][cp.tier];
     c.beginPath(); c.arc(MX(cp.x), MZ(cp.z), 5 + cp.tier * 2, 0, TAU); c.fill();
   }
   // unexplored ground stays dark (only the cells inside the window are drawn)
@@ -2697,7 +2768,7 @@ const SEASONS = [
   { n: 'Spring', ground: 0xb9d99c, patch: 0x8fbf6a, snow: 0xb7dd9a, leaf: 0x8fd16e, pond: [0x5fb3d8, 0x86c9e8], lake: 0x5aa9d6, shore: 0xc9dfb0, sky: 0xcfe8f7, warm: 0.8, flakes: 0 },
   { n: 'Summer', ground: 0x86bd62, patch: 0x679f4a, snow: 0x7fbf5c, leaf: 0x4fa955, pond: [0x3f9fd0, 0x6dbde6], lake: 0x3c97cc, shore: 0xd9cfa0, sky: 0xbfe2fb, warm: 0.45, flakes: 0 },
   { n: 'Autumn', ground: 0xc9b878, patch: 0xae7c3c, snow: 0xd29a4a, leaf: 0xe08a34, pond: [0x5b9cc4, 0x7fb6d6], lake: 0x568fb8, shore: 0xcdb98a, sky: 0xd8e2ea, warm: 1.0, flakes: 1 },
-  { n: 'Winter', ground: 0xf6faff, patch: 0xeaf1f9, snow: 0xfbfdff, leaf: 0xfbfdff, pond: [0x8fd0f2, 0xb9e6fb], lake: 0x9fd8f2, shore: 0xe9f2fb, sky: 0xd6e9f8, warm: 1.4, flakes: 2 },
+  { n: 'Winter', ground: 0xf6faff, patch: 0xeaf1f9, snow: 0xfbfdff, leaf: 0xfbfdff, pond: [0x78b2d4, 0x96c8e4], lake: 0x86bfdc, shore: 0xb4c0d0, sky: 0xd6e9f8, warm: 1.4, flakes: 2 },
 ];
 const timeOfDay = () => (S.clock % DAY_LEN) / DAY_LEN;            // 0 = dawn
 const dayNum = () => Math.floor(S.clock / DAY_LEN) + 1;
@@ -2709,7 +2780,7 @@ const _c1 = new THREE.Color(), _c2 = new THREE.Color();
 let appliedSeason = -1;
 function applySeason(i) {
   const SE = SEASONS[i]; appliedSeason = i;
-  ground.material.color.setHex(SE.ground); groundLook(); WORN_MAT.color.setHex(i === 3 ? 0xd6dfec : i === 2 ? 0x8a6a44 : 0x8f7552); WORN_MAT.opacity = i === 3 ? 0.4 : 0.6; PATCH_MAT.color.setHex(SE.patch); mat(SNOWW).color.setHex(SE.snow);
+  ground.material.color.setHex(SE.ground); groundLook(); WORN_MAT.color.setHex(i === 3 ? 0xa9b5c6 : i === 2 ? 0x8a6a44 : 0x8f7552); WORN_MAT.opacity = i === 3 ? 0.35 : 0.6; PATCH_MAT.color.setHex(SE.patch); mat(SNOWW).color.setHex(SE.snow);
   POND_OUT.color.setHex(SE.pond[0]); POND_IN.color.setHex(SE.pond[1]); LAKE_WATER.color.setHex(SE.lake); LAKE_SHORE.color.setHex(SE.shore);
   _c1.setHex(SE.leaf);
   for (const [g, flags] of SEASON_GEOS) { const c = g.attributes.color; for (let k = 0; k < flags.length; k++) if (flags[k]) c.setXYZ(k, _c1.r, _c1.g, _c1.b); c.needsUpdate = true; }
@@ -2751,7 +2822,7 @@ const NET = { mode: 'solo', room: null, me: null, host: null, seq: 0, buf: new M
   lastSeq: {}, remotes: {}, presT: 0, flushT: 0, worldT: 0, hostSeen: 0, lastHostPres: null, padKey: '', known: new Set(), th: 1 };
 function isGuest() { return NET.mode === 'guest'; }
 function isHost() { return NET.mode === 'host'; }
-const SYNC_KEYS = ['clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
+const SYNC_KEYS = ['houseLv', 'clock', 'season', 'civ', 'warm', 'food', 'th', 'cook', 'houses', 'wave', 'waveT', 'raidOn', 'blizOn', 'towerLv', 'masonry', 'guardLv', 'bank', 'carpenter', 'mine', 'gold', 'warmUp', 'foodUp', 'bell', 'priceMul', 'taxMul', 'boots', 'medic', 'sleds', 'horn', 'won', 'over'];
 const ROLE_IDS = ['logger', 'hunter', 'stonecutter', 'miner', 'hauler', 'mender'];
 const R2 = v => Math.round(v * 100) / 100;
 function netAct(kind, target, a, b) {
@@ -2762,7 +2833,7 @@ function netAct(kind, target, a, b) {
   else NET.buf.set(key, cur ? [kind, target, a, cur[3] + b] : [kind, target, a, b]);
 }
 function netGive(peer, t, n, q) { if (NET.room && n > 0) NET.room.emit('give', { to: peer, t, n, q: q || 0 }).catch(() => {}); }
-function heroState() { return [R2(player.x), R2(player.z), R2(player.rot), player.swingT > 0 ? 1 : 0, S.downT > 0 ? 1 : 0, PROFILE.name, PROFILE.color, [carry.log.length, carry.meat.length, carry.ore.length, carry.stone.length], S.hurtT > 2.2 ? 1 : 0]; }
+function heroState() { return [R2(player.x), R2(player.z), R2(player.rot), player.swingT > 0 ? 1 : 0, S.downT > 0 ? 1 : 0, PROFILE.name, PROFILE.color, [carry.log.length, carry.meat.length, carry.ore.length, carry.stone.length], S.hurtT > 2.2 ? 1 : 0, myLook()]; }
 
 const COOP_COATS = [0x2f7fb8, 0x8e44ad, 0xd4a017, 0x2e8b57, 0xc0392b];
 function makeRemote(peer, n) {
@@ -2927,6 +2998,7 @@ function remoteExtras(r, h, wasDown) {
   if (h[8] && time - r.hurtWarn > 10 && !r.down) { r.hurtWarn = time; banner(nm + ' is under attack!', false, far > 12 ? far + ' m away: look for the ' + colorName(r.col) + ' star on the map' : 'Right beside you'); play('alert'); }
   if (h[4] && !wasDown && time > 3) banner(nm + ' was knocked out!', false, S.medkits > 0 ? 'Stand next to them to revive' : 'A med kit can revive them');
   r.alertT = h[8] || h[4] ? 3 : Math.max(0, (r.alertT || 0) - 0.1);
+  if (Array.isArray(h[9])) { buildGear(r.g, h[9]); if (String(h[9][0]) !== r.wLook) { r.wLook = String(h[9][0]); weaponLook(r.axe, h[9][0] | 0); } }
 }
 function colorName(c) { const k = COLORS.find(x => x[1] === c); return k ? k[0].toLowerCase() : 'blue'; }
 function mountProfiles() {
@@ -3139,7 +3211,7 @@ $('coop').addEventListener('click', e => {
 const SAVE_KEY = 'frosthold-save-v6';
 const WORKER_HOME = { hauler: [0, 17], mender: [-3, 9.4], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
-const HERO_KEYS = ['axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
+const HERO_KEYS = ['wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
 let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
 function savePersonal() {
   if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });

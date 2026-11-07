@@ -20,6 +20,12 @@ The valley spans roughly 690 m by 690 m. Monster camps start about 65 m from the
 Every new day is harder: raiders get more health and hit harder, raids bring more wolves and come sooner, camp monsters are tougher, and firewood and food burn faster (up to double).
 A day lasts 4 minutes; the last part is night, which is darker, colder (more firewood burned, worst in winter) and more dangerous (monsters spot you from farther and hit harder; raids bring extra wolves). Every 3 days the season turns: winter, spring, summer, autumn, then a new year. The ground, trees, ponds and lakes change with each season; summer needs the least firewood, winter the most, and blizzards only blow in winter. Lakes block your path except in winter, when they freeze over.
 
+## Beasts
+Past 250 m, beast lairs hold a single huge guardian: raptors and sabre tigers from 250 m, and mammoths, T-rexes and ice dragons past 300 m. They hit very hard, but their chests give the best loot: the Raptor Fang and Dragonbone axes, Sabre Hide and Dragonscale armour, and rare looks.
+
+## Looks
+Weapons, armour, helmets and capes all show on your hero, and teammates see them too. Helmets (fur hood, horned helm, iron helm, frost crown) and capes (red, wolf pelt, royal, dragonwing) come from treasure chests; choose what to wear in the **Wardrobe** section of the Hero panel.
+
 ## Things to find
 Meadows of yaks graze all around the valley. Ruins (standing stones, abandoned cabins, watchtowers, shrines, sled wrecks) each hide a cache you can search once for gold, materials, med kits or heart stones. Lakes and ruins show on the minimap once explored.
 
@@ -65,7 +71,7 @@ Three cash-only upgrade spaces sit around the plaza. Comfort opens once the camp
 - **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each meat sold feeds three times as long as a log warms. Firewood burns slowly in the camp and faster as the town grows. Blizzards start once you reach Town Hall II and make it burn 2.5× faster.
 - **Food:** once the cookhouse is built, villagers also eat. Sell meat there. Plant a **Garden** (after the cookhouse) and veggies pile up beside it: fastest in summer, slowest in winter. Herds of yaks graze just outside the fort and across the valley, wolves drop 2 meat and yetis 8, and the fishery adds a steady supply.
 - If either meter hits zero, villagers start dying. Lose them all and Frosthold falls.
-- With both meters above half and free housing, new villagers arrive. Villagers pay taxes to the Town Hall pallet.
+- With both meters above half and free housing, new villagers arrive. Each house holds 4; **Bunk Beds** (Town Hall II) raise that to 7 and **Stone Lofts** (Town Hall III) to 10, and each Town Hall level adds more room of its own. Villagers pay taxes to the Town Hall pallet.
 
 ## Progression
 | Tier | Goal | Unlocks |

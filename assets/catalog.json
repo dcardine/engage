@@ -149,6 +149,31 @@
     {
       "id": "crystal_mine",
       "prompt": "mine entrance in a snowy rock face with wooden support beams, rails and glowing blue crystals"
+    },
+    {
+      "id": "raptor",
+      "prompt": "fierce feathered raptor dinosaur with sharp claws, running pose, winter colored blue-grey feathers",
+      "polycount": 10000
+    },
+    {
+      "id": "sabre_tiger",
+      "prompt": "snow sabre-toothed tiger with white and grey striped fur and long fangs, standing",
+      "polycount": 10000
+    },
+    {
+      "id": "mammoth",
+      "prompt": "huge woolly mammoth with long curved tusks and shaggy brown fur, standing",
+      "polycount": 10000
+    },
+    {
+      "id": "trex",
+      "prompt": "giant tyrannosaurus rex dinosaur with frosty green-grey scales, roaring, standing",
+      "polycount": 10000
+    },
+    {
+      "id": "dragon",
+      "prompt": "ice dragon with pale blue scales, folded wings, horns and long tail, standing on four legs",
+      "polycount": 10000
     }
   ]
 }
