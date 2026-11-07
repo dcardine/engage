@@ -4142,7 +4142,7 @@ function saveGame() {
     v: 1, S: Object.assign({}, S, { raidOn: false, downT: 0 }), B: Object.assign({}, B),
     player: [player.x, player.z],
     carry: { log: carry.log.length, meat: carry.meat.length, ore: carry.ore.length, stone: carry.stone.length },
-    pads: pads.map(p => [p.level, p.done ? 1 : 0, p.paid]),
+    pads: pads.map(p => [p.level, p.done ? 1 : 0, p.paid]), padsById: Object.fromEntries(pads.filter(p => p.id).map(p => [p.id, [p.level, p.done ? 1 : 0, p.paid]])),
     rings: rings.map(r => [r.active ? 1 : 0, r.complete ? 1 : 0, r.segs.map(sg => [sg.built ? 1 : 0, Math.round(sg.hp), sg.broken ? 1 : 0, sg.stone ? 1 : 0])]),
     workers: workers.map(w => w.role), guards: guards.length,
     fog: fogSave(), fogN: FOG_N, towers: towers.map(t => t.pad.level), piles: piles.map(Pl => Pl.n), pallets: pallets.map(P => P.amount), stock: stalls.map(st => st.stock),
@@ -4159,7 +4159,17 @@ function loadGame() {
     // replay finished buildings (their effects), then restore the exact numbers
     for (const id in d.B) { const p = pads.find(q => q.id === id); if (p && p.rawBuy && !p.labels) { B[id] = true; p.rawBuy(1); } }
     Object.assign(S, d.S);
-    d.pads.forEach(([lv, done, paid], i) => { const p = pads[i]; if (!p) return; p.level = lv; p.done = !!done; p.paid = paid || {}; drawPad(p); });
+    if (d.padsById) pads.forEach(p => { const v = p.id && d.padsById[p.id]; if (!v) return; p.level = v[0]; p.done = !!v[1]; p.paid = v[2] || {}; });
+    else {   // older saves stored spaces by position in a list that has since grown: repair what we can from what was built
+      d.pads.forEach(([lv, done, paid], i) => { const p = pads[i]; if (p && !p.id) { p.level = lv; p.done = !!done; p.paid = paid || {}; } });
+      const lvOf = { th: S.th - 1, axe: Math.max(0, S.axe - 1), bag: S.bag, arrow: S.towerLv, homes: S.houseLv || 0, reinforce: S.wallLv || 0, drill: S.guardLv ? 1 : 0 };
+      pads.forEach(p => { if (!p.id) return; p.paid = {};
+        if (p.repeat || p.hire) { p.done = false; p.level = 0; }
+        else if (p.id in lvOf) { p.level = lvOf[p.id] || 0; p.done = p.labels ? p.level >= p.costs.length : !!B[p.id]; }
+        else if (!p.labels) p.done = !!B[p.id];
+        else if (!p.personal) { const old = d.pads.find(() => false); p.done = false; } });
+    }
+    pads.forEach(p => { if (p.repeat || p.hire) p.done = false; drawPad(p); });
     d.rings.forEach(([act, comp, segs], i) => {
       const r = rings[i]; r.active = !!act; r.complete = !!comp;
       segs.forEach(([b, hp, br, st], j) => { const sg = r.segs[j]; if (!sg) return; sg.built = !!b; sg.stone = !!st; sg.max = segMax(sg); sg.hp = b ? Math.min(hp, sg.max) : 0; sg.broken = !!br; segVisual(sg); });
