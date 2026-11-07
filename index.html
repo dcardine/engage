@@ -126,12 +126,25 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #lobby #joinBtn{background:#2b4a74}
 #lobby button:focus-visible,#lobby input:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
 #stats{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
-#stats .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px 18px 14px;width:min(340px,100%);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#stats .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px 18px 14px;width:min(380px,100%);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #stats h2{margin:0 0 8px;font:26px/1 var(--display);color:#2b4a74;text-align:center}
 #stats h3{margin:12px 0 4px;font:13px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ember)}
 #stats dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0;font:700 14px/1.3 var(--body)}
 #stats dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
 #stats .none{font:700 13px/1.3 var(--body);opacity:.65;margin:0}
+.rtabs{display:flex;gap:4px;margin:6px 0 10px}.rtabs button{flex:1;border:0;border-radius:9px;padding:9px 4px;font:13px/1 var(--display);letter-spacing:.05em;background:#dfe6f0;color:#2b4a74;cursor:pointer}.rtabs button[aria-pressed=true]{background:#2b4a74;color:#fff}
+.rpg{display:grid;grid-template-columns:60px 1fr 60px;gap:8px;align-items:center;background:linear-gradient(#26324a,#1b2336);border:2px solid #c9a24a;border-radius:14px;padding:10px}
+.rpg .col{display:flex;flex-direction:column;gap:7px}
+.slot{position:relative;width:58px;height:58px;border-radius:10px;background:radial-gradient(circle at 50% 40%,#3a4866,#222b40);border:2px solid #6d5a2e;display:grid;place-items:center;cursor:pointer;padding:0}
+.slot.on{border-color:#ffd166;box-shadow:0 0 0 2px rgba(255,209,102,.35)}
+.slot svg{width:42px;height:42px}.slot.empty svg{opacity:.28}
+.slot i{position:absolute;bottom:-2px;left:0;right:0;font:800 9px/1.1 var(--body);font-style:normal;color:#e7d9b0;text-shadow:0 1px 2px #000;text-transform:uppercase;letter-spacing:.04em}
+.slot b{position:absolute;top:2px;right:4px;font:12px/1 var(--display);color:#fff;text-shadow:0 1px 2px #000}
+.portrait{display:flex;flex-direction:column;align-items:center;gap:4px}.portrait canvas{width:100%;max-width:170px;aspect-ratio:3/4}
+.portrait .nm{font:18px/1 var(--display);color:#ffd9a0}.portrait .lv{font:800 12px var(--body);color:#c9d6e8}
+.portrait .hpb{width:90%;height:8px;border-radius:5px;background:#3a2a2a;overflow:hidden}.portrait .hpb i{display:block;height:100%;background:#e2483f}
+.icard{margin-top:8px;background:#fff;border:2px solid #c9d6e8;border-radius:12px;padding:8px 10px;font:700 13px/1.35 var(--body);min-height:40px}.icard b{display:block;font:16px/1.2 var(--display);color:#2b4a74}
+.inv{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.inv .slot{width:100%;height:auto;aspect-ratio:1}
 #stats ul{margin:0;padding-left:18px;font:700 13px/1.4 var(--body)}
 #closeStats{display:block;margin:14px auto 0;border:0;border-radius:12px;background:#2b4a74;color:#fff;font:16px/1 var(--display);padding:10px 20px;cursor:pointer}
 #invite{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
@@ -217,7 +230,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <button id="hostBtn" type="button">Host a game</button>
 <div class="joinrow"><label for="codeIn">Room code</label><input id="codeIn" maxlength="6" autocomplete="off" inputmode="text" placeholder="e.g. K7Q2"><button id="joinBtn" type="button">Join</button></div>
 <p id="lobbyMsg" class="fine"></p><button id="closeLobby" type="button" class="ghost">Cancel</button></div></div>
-<div id="stats" hidden><div class="box"><h2>Hero &amp; town</h2><div class="prof"></div><div id="statsBody"></div><button id="closeStats" type="button">Close</button></div></div>
+<div id="stats" hidden><div class="box"><h2>Hero</h2><div id="statsBody"></div><h3>Name and coat colour</h3><div class="prof"></div><button id="closeStats" type="button">Close</button></div></div>
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1550,7 +1563,7 @@ function drawHero(c, x, y, T, face, swing) {
   if (look[2]) { const hc = [0, '#d9cbb0', '#8f99a6', '#aab4c0', '#f2c14e'][look[2]]; c.fillStyle = hc; c.beginPath(); c.arc(0, -h * 0.86, w * 0.5, Math.PI, 0); c.fill();
     if (look[2] === 2) { c.fillStyle = '#f1ead8'; c.beginPath(); c.moveTo(-w * 0.45, -h * 0.9); c.lineTo(-w * 0.7, -h * 1.15); c.lineTo(-w * 0.3, -h * 0.95); c.fill(); c.beginPath(); c.moveTo(w * 0.45, -h * 0.9); c.lineTo(w * 0.7, -h * 1.15); c.lineTo(w * 0.3, -h * 0.95); c.fill(); } }
   // axe
-  c.save(); c.translate(w * 0.35, -h * 0.5); c.rotate(swing > 0 ? 1.6 - swing * 8 : -0.5);
+  c.save(); c.translate(w * 0.35, -h * 0.5); c.rotate(swing > 0 ? 1.6 - swing * 8 : swing < 0 ? 2.3 : -0.5);
   c.fillStyle = '#8a5a36'; c.fillRect(-T * 0.04, -T * 0.55, T * 0.08, T * 0.6); c.fillStyle = css(WEAPON_COL[S.weapon + 1] || WEAPON_COL[0]); c.fillRect(-T * 0.02, -T * 0.6, T * 0.3, T * 0.24); c.restore();
   c.restore();
 }
@@ -1782,8 +1795,8 @@ plot('smith', { x: -6, z: 20.4, label: 'BLACKSMITH', cost: { log: 40, cash: 30 }
 plot('lodge', { x: 6, z: 20.4, label: 'LOGGER LODGE', cost: { log: 35 }, req: () => S.cook, onBuy: () => { modelHut(6, 20.4, 0x2b4a74, 'log', 'logger_lodge'); openPile(woodPile); banner('Logger lodge built!', true, 'Loggers stack wood on the woodpile for you'); } });
 plot('hireHaul', { x: 0, z: 18.4, label: 'HIRE HAULER', cost: { cash: 50 }, repeat: true, xp: 10,
   requires: () => B.cook && B.lodge && roleCount('hauler') < maxWorkers.hauler(), canPay: () => hasRoom(), onBuy: () => spawnWorker('hauler', 0, 17) });
-plot('hireMend', { x: -3, z: 7.6, label: 'HIRE MENDER', cost: { log: 20, cash: 50 }, repeat: true, xp: 10,
-  requires: () => B.smith && roleCount('mender') < maxWorkers.mender(), canPay: () => hasRoom(), onBuy: () => spawnWorker('mender', -3, 9.4) });
+plot('hireMend', { x: 8.2, z: 10.2, label: 'HIRE MENDER', cost: { log: 20, cash: 50 }, repeat: true, xp: 10,
+  requires: () => B.smith && roleCount('mender') < maxWorkers.mender(), canPay: () => hasRoom(), onBuy: () => spawnWorker('mender', 8.2, 9) });
 plot('hireLog', { x: 3.2, z: 18, label: 'HIRE LOGGER', cost: { cash: 40 }, repeat: true, xp: 10,
   requires: () => B.lodge && roleCount('logger') < maxWorkers.logger(), canPay: () => hasRoom(), onBuy: () => spawnWorker('logger', 6, 18.5) });
 // research at the blacksmith
@@ -1805,7 +1818,7 @@ const padRun = plot('run', { personal: true, x: -9.2, z: 10.8, labels: ['FUR BOO
   onBuy: lv => { S.runLv = lv; banner(['', 'Fur boots!', 'Runner boots!', 'Windwalkers!'][lv], true, 'You move ' + lv * 12 + '% faster'); }, xp: 30 });
 plot('pick', { personal: true, x: -9.2, z: 17.4, label: 'CRYSTAL PICK', cost: { stone: 40, cash: 150 }, tier: 2, req: () => B.smith,
   onBuy: () => { S.pick = true; banner('Crystal pick forged!', true, 'You can now mine crystal veins in the far wilds'); } });
-const padWalls = plot('reinforce', { x: 9.4, z: 13.4, labels: ['IRON BANDS', 'STONE BASTIONS', 'RUNE WARDS'], costs: [{ log: 60, stone: 40, cash: 150 }, { stone: 90, cash: 300 }, { stone: 80, ore: 30, cash: 600 }], tiers: [2, 2, 3],
+const padWalls = plot('reinforce', { x: 12.4, z: 11.2, labels: ['IRON BANDS', 'STONE BASTIONS', 'RUNE WARDS'], costs: [{ log: 60, stone: 40, cash: 150 }, { stone: 90, cash: 300 }, { stone: 80, ore: 30, cash: 600 }], tiers: [2, 2, 3],
   requires: () => B.smith && padWalls.level < 3 && S.th >= padWalls.tiers[padWalls.level],
   onBuy: lv => { S.wallLv = lv; rings.forEach(r => r.segs.forEach(sg => { if (sg.built) { const f = sg.hp / sg.max; sg.max = segMax(sg); sg.hp = sg.max * f; } })); banner('Walls reinforced!', true, 'Every wall and gate is ' + Math.round(lv * 75) + '% tougher'); }, xp: 40 });
 plot('mason', { x: -9.2, z: 14.3, label: 'MASONRY', cost: { stone: 60, cash: 150 }, tier: 2, req: () => B.smith,
@@ -1954,7 +1967,7 @@ function hurtWorker(w, dmg) {
 }
 // how many of each worker you have, above the building they come from
 const WORKER_TAGS = [['logger', 'Loggers', 6, 20.4, () => B.lodge], ['hunter', 'Hunters', 16.5, 14, () => B.hunt], ['stonecutter', 'Stonecutters', -16.5, 27.4, () => B.cutter],
-  ['miner', 'Miners', -25.5, -12, () => B.minerC], ['hauler', 'Haulers', 0, 18.4, () => B.cook && B.lodge], ['mender', 'Menders', -3, 7.6, () => B.smith]].map(([role, name, x, z, on]) => {
+  ['miner', 'Miners', -25.5, -12, () => B.minerC], ['hauler', 'Haulers', 0, 18.4, () => B.cook && B.lodge], ['mender', 'Menders', 8.2, 10.2, () => B.smith], ['guard', 'Guards', -16.5, 14, () => B.barracks]].map(([role, name, x, z, on]) => {
   const el = document.createElement('div'); el.className = 'tag wtag'; el.hidden = true; ov.appendChild(el); return { role, name, x, z, on, el };
 });
 // ---- fishing: stand still at a lake's edge (or out on the ice in winter) and you cast a line ----
@@ -2117,8 +2130,8 @@ $('giveList').addEventListener('click', e => { const b = e.target.closest('[data
 function updateWorkerTags() {
   for (const t of WORKER_TAGS) {
     const show = t.on() && d2(t.x, t.z, player.x, player.z) < 34 * 34; t.el.hidden = !show; if (!show) continue;
-    const n = roleCount(t.role), mx = maxWorkers[t.role]();
-    t.el.textContent = t.name + ' ' + n + '/' + mx; t.el.classList.toggle('full', n >= mx); place(t.el, t.x, 4.6, t.z);
+    const n = t.role === 'guard' ? guards.length : roleCount(t.role), mx = t.role === 'guard' ? maxGuards() : maxWorkers[t.role]();
+    t.el.textContent = t.name + ' ' + n + '/' + mx + (n >= mx && t.role === 'guard' && S.th < 3 ? ' · more at Town Hall III' : ''); t.el.classList.toggle('full', n >= mx); place(t.el, t.x, 4.6, t.z);
   }
   for (const w of workers) { if (w.hurtT > 0) { w.hurtT -= 1 / 60; } else if (w.hp < w.max) w.hp = Math.min(w.max, w.hp + 0.05); if (w.hp < w.max) setBar(w.bar, w.hp / w.max, w.x, 2.3, w.z); else w.bar.hidden = true; }
 }
@@ -3256,7 +3269,73 @@ function damageWild(w, dmg) {
     if (w.camp.guards.every(o => !o.alive)) { floatText('Treasure unguarded!', w.camp.x, 2.5, w.camp.z, 'xp'); play('chime'); }
   }
 }
+// 2D item pictures for the hero screen
+function icon(kind, a, b) {
+  const c = v => typeof v === 'number' ? css(v) : v, S2 = x => `<svg viewBox="0 0 48 48">${x}</svg>`;
+  switch (kind) {
+    case 'axe': return S2(`<rect x="22" y="8" width="5" height="34" rx="2" fill="#8a5a36"/><path d="M27 9 C40 9 44 18 40 26 L27 24 Z" fill="${c(a)}" stroke="#1d2128" stroke-width="1.5"/>${b ? `<path d="M22 9 C9 9 5 18 9 26 L22 24 Z" fill="${c(a)}" stroke="#1d2128" stroke-width="1.5"/>` : ''}`);
+    case 'armor': return S2(`<path d="M12 10 L20 7 Q24 11 28 7 L36 10 L40 20 L34 22 L34 40 L14 40 L14 22 L8 20 Z" fill="${c(a)}" stroke="#1d2128" stroke-width="1.5"/><path d="M24 14 L24 38" stroke="rgba(0,0,0,.25)" stroke-width="2"/>${b ? '<path d="M24 20 l4 4 -4 4 -4 -4 z" fill="#7fe8ff"/>' : ''}`);
+    case 'helm': return S2(a === 4 ? `<path d="M8 32 L10 16 L17 24 L24 12 L31 24 L38 16 L40 32 Z" fill="#f2c14e" stroke="#7a5a10" stroke-width="1.5"/><circle cx="24" cy="27" r="3" fill="#7fd3f0"/>`
+      : `<path d="M8 32 Q8 10 24 10 Q40 10 40 32 Z" fill="${c([0, 0xd9cbb0, 0x8f99a6, 0xaab4c0][a] || 0x8f99a6)}" stroke="#1d2128" stroke-width="1.5"/>${a === 2 ? '<path d="M9 22 Q2 14 4 6 Q8 14 13 18 Z M39 22 Q46 14 44 6 Q40 14 35 18 Z" fill="#f1ead8" stroke="#8a7a5a"/>' : ''}${a === 3 ? '<rect x="22" y="22" width="4" height="12" fill="#6b7380"/>' : ''}${a === 1 ? '<path d="M8 32 Q24 38 40 32" stroke="#fff" stroke-width="4" fill="none"/>' : ''}`);
+    case 'cape': return S2(`<path d="M14 8 L34 8 L40 42 Q24 36 8 42 Z" fill="${c([0, 0xc8452f, 0x8d97a4, 0x5b3fa3, 0x3fb8a8][a] || 0x888888)}" stroke="#1d2128" stroke-width="1.5"/><path d="M14 8 L34 8" stroke="#f2c14e" stroke-width="3"/>`);
+    case 'ranged':
+      if (a <= 1) return S2(`<path d="M14 6 Q38 24 14 42" fill="none" stroke="#7a4a26" stroke-width="4"/><line x1="14" y1="6" x2="14" y2="42" stroke="#eee" stroke-width="1.5"/><line x1="10" y1="24" x2="40" y2="24" stroke="#5b3416" stroke-width="2"/><path d="M40 24 l-5 -3 0 6 z" fill="#aab4c0"/>${a === 1 ? '<rect x="20" y="20" width="16" height="8" rx="2" fill="#5b3416"/>' : ''}`);
+      if (a === 2) return S2(`<rect x="6" y="20" width="30" height="6" rx="2" fill="#3a3f48"/><path d="M30 20 L44 18 L44 30 L34 30 L30 26 Z" fill="#6b4a2d"/><rect x="18" y="26" width="5" height="7" fill="#3a3f48"/>`);
+      return S2(`<line x1="14" y1="42" x2="32" y2="12" stroke="#6b4a2d" stroke-width="4" stroke-linecap="round"/><circle cx="33" cy="10" r="7" fill="${['#9fe8ff', '#ff7a3d', '#cfe8ff'][a - 3]}" stroke="#fff" stroke-width="1.5"/>${a === 5 ? '<path d="M33 4 l-3 6 h4 l-3 6" stroke="#2b4a74" stroke-width="1.5" fill="none"/>' : ''}`);
+    case 'pack': return S2(`<rect x="12" y="12" width="24" height="28" rx="6" fill="#6f4a2d" stroke="#1d2128" stroke-width="1.5"/><rect x="16" y="22" width="16" height="10" rx="2" fill="#8a5a36"/><path d="M18 12 Q24 4 30 12" stroke="#4e3424" stroke-width="3" fill="none"/>${'<circle cx="24" cy="27" r="2" fill="#f2c14e"/>'.repeat(a ? 1 : 0)}`);
+    case 'boots': return S2(`<path d="M12 8 L22 8 L22 32 L36 34 Q40 36 38 40 L12 40 Z" fill="${c([0x6b4a2d, 0xd9cbb0, 0x8a6a4a, 0x7fd3f0][a] || 0x6b4a2d)}" stroke="#1d2128" stroke-width="1.5"/><path d="M12 14 L22 14" stroke="#fff" stroke-width="3"/>`);
+    case 'pick': return S2(`<rect x="22" y="12" width="4" height="30" fill="#8a5a36"/><path d="M8 14 Q24 2 40 14 L36 16 Q24 8 12 16 Z" fill="#7fd3f0" stroke="#1d2128" stroke-width="1.5"/>`);
+    case 'charm': return S2(`<path d="M16 6 Q24 18 32 6" stroke="#c9a24a" stroke-width="2" fill="none"/><circle cx="24" cy="28" r="11" fill="#3f8a5a" stroke="#f2c14e" stroke-width="2.5"/><path d="M19 30 q2 -6 5 -2 q3 -4 5 2 q-5 5 -10 0" fill="#e9f7ee"/>`);
+    case 'pet': return S2(`<ellipse cx="24" cy="31" rx="9" ry="7" fill="${c(a)}"/><circle cx="13" cy="21" r="4" fill="${c(a)}"/><circle cx="20" cy="14" r="4" fill="${c(a)}"/><circle cx="28" cy="14" r="4" fill="${c(a)}"/><circle cx="35" cy="21" r="4" fill="${c(a)}"/>`);
+    case 'medkit': return S2(`<rect x="8" y="14" width="32" height="24" rx="4" fill="#f4f1ea" stroke="#1d2128" stroke-width="1.5"/><rect x="21" y="18" width="6" height="16" fill="#d9524b"/><rect x="16" y="23" width="16" height="6" fill="#d9524b"/><rect x="18" y="9" width="12" height="6" rx="2" fill="none" stroke="#1d2128" stroke-width="2"/>`);
+  }
+  return '';
+}
+let heroTab = 'gear', heroPick = null;
+const PET_COL = { rabbit: '#f3f1ec', eagle: '#8a5a36', wolf: '#8d97a4', bear: '#6b4a33', tiger: '#e8a85a', dragon: '#8fc3e6' };
+function heroItems() {
+  const W = S.wardrobe || { helm: [0], cape: [0] }, wear = S.wear || {}, axeName = S.weapon >= 0 ? WEAPONS[S.weapon].n : (S.axe >= 2 ? 'Twin axes' : 'Camp axe');
+  const slots = {
+    head: { label: 'Head', svg: icon('helm', wear.helm || 0), empty: !wear.helm, name: LOOKS.helm[wear.helm || 0], info: 'Purely for looks. Find helmets in treasure chests.' },
+    body: { label: 'Body', svg: icon('armor', S.armorLv >= 0 ? ARMOR_COL[S.armorLv] : 0x666666, S.armorLv >= 2), empty: S.armorLv < 0, name: S.armorLv >= 0 ? ARMORS[S.armorLv].n : 'No armour', info: S.armorLv >= 0 ? 'Takes ' + Math.round(ARMORS[S.armorLv].a * 100) + '% less damage. Better armour comes from treasure.' : 'Find armour in treasure chests.' },
+    main: { label: 'Weapon', svg: icon('axe', WEAPON_COL[S.weapon + 1] || WEAPON_COL[0], S.axe >= 2), name: axeName + (S.axe > 1 ? ' (axe ' + ['', 'I', 'II', 'III', 'IV'][S.axe] + ')' : ''), info: (AXE[S.axe].dmg * heroDmg()).toFixed(1) + ' damage per hit, ' + AXE[S.axe].max + ' targets, ' + AXE[S.axe].range + ' m reach. Upgrade axes at the blacksmith; weapons drop from treasure.' },
+    ranged: { label: 'Ranged', svg: icon('ranged', Math.max(0, S.rangedOn)), empty: S.rangedOn < 0, name: S.rangedOn >= 0 ? RANGED[S.rangedOn].n : 'None', info: S.rangedOn >= 0 ? (RANGED[S.rangedOn].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[S.rangedOn].rng + ' m range. Fires on its own.' : 'Forge a bow at the blacksmith, or find a staff in treasure.' },
+    boots: { label: 'Boots', svg: icon('boots', S.runLv || 0), empty: !S.runLv, name: ['Plain boots', 'Fur Boots', 'Runner Boots', 'Windwalkers'][S.runLv || 0], info: '+' + Math.round(((S.runLv || 0) * 0.12 + S.boots * 0.15 + S.speedBonus) * 100) + '% speed. Better boots at the blacksmith.' },
+    back: { label: 'Back', svg: icon('cape', wear.cape || 0), empty: !wear.cape, name: LOOKS.cape[wear.cape || 0], info: 'Purely for looks. Find capes in treasure chests.' },
+    pack: { label: 'Pack', svg: icon('pack', S.bag), name: 'Pack (' + cap() + ' items)', info: 'Holds ' + cap() + ' resources. Bigger packs at the blacksmith.' },
+    tool: { label: 'Tool', svg: icon('pick'), empty: !S.pick, name: S.pick ? 'Crystal Pick' : 'No pick', info: S.pick ? 'Mines crystal veins in the far wilds.' : 'Forge a crystal pick at the blacksmith (Town Hall II).' },
+    charm: { label: 'Charm', svg: icon('charm'), empty: !S.tamer, name: S.tamer ? 'Beast Charm' : 'No charm', info: S.tamer ? 'Lets you tame weakened creatures.' : 'Slay a quest legend, reach level 10 or find one in treasure.' },
+    pet: { label: 'Pet', svg: icon('pet', S.pet ? PET_COL[S.pet.type] : '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : 'Tame one with a Beast Charm.' },
+  };
+  const inv = [];
+  (S.rangedOwn || []).forEach(i => inv.push({ svg: icon('ranged', i), name: RANGED[i].n, on: S.rangedOn === i, act: 'ranged:' + i, info: (RANGED[i].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[i].rng + ' m range. Tap to carry.' }));
+  ['helm', 'cape'].forEach(sl => (W[sl] || []).filter(i => i).forEach(i => inv.push({ svg: icon(sl, i), name: LOOKS[sl][i], on: (wear[sl] || 0) === i, act: 'wear:' + sl + ':' + i, info: 'Tap to wear (tap again to take off).' })));
+  if (S.medkits) inv.push({ svg: icon('medkit'), name: 'Med kit', count: S.medkits, info: 'Stand by a downed teammate to revive them.' });
+  return { slots, inv };
+}
+function drawPortrait() {
+  const cv = $('heroCv'); if (!cv) return; const r = devicePixelRatio || 1, w = cv.clientWidth || 150, h = cv.clientHeight || 200;
+  cv.width = w * r; cv.height = h * r; const c = cv.getContext('2d');
+  const g = c.createRadialGradient(cv.width / 2, cv.height * 0.55, 10, cv.width / 2, cv.height * 0.55, cv.width * 0.7); g.addColorStop(0, '#41527a'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(0, 0, cv.width, cv.height);
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cv.width / 2, cv.height * 0.9, cv.width * 0.3, cv.height * 0.05, 0, 0, TAU); c.fill();
+  drawHero(c, cv.width / 2, cv.height * 0.9, cv.height * 0.42, 1, -1);
+}
 function showStats() {
+  if (heroTab !== 'stats' && heroTab !== 'town' && heroTab !== 'relics') return showHero();
+  return showStatsOld();
+}
+function showHero() {
+  const { slots, inv } = heroItems(), sl = k => { const it = slots[k]; return `<button type="button" class="slot${it.empty ? ' empty' : ''}${heroPick === 'slot:' + k ? ' on' : ''}" data-pick="slot:${k}">${it.svg}<i>${it.label}</i></button>`; };
+  const picked = heroPick && heroPick.startsWith('slot:') ? slots[heroPick.slice(5)] : heroPick ? inv.find(x => x.act === heroPick || 'inv:' + x.name === heroPick) : null;
+  const card = picked ? `<b>${picked.name}</b>${picked.info}` : '<b>' + (PROFILE.name || 'Your hero') + '</b>Tap a slot or an item to see what it does. Tap an item to equip it.';
+  $('statsBody').innerHTML = tabsHtml() + `<div class="rpg"><div class="col">${sl('head')}${sl('body')}${sl('main')}${sl('ranged')}${sl('boots')}</div>
+    <div class="portrait"><canvas id="heroCv"></canvas><span class="nm">${PROFILE.name || 'Hero'}</span><span class="lv">Level ${S.lvl} · ${Math.round(S.hp)}/${Math.round(heroMax())} HP</span><span class="hpb"><i style="width:${Math.max(0, Math.min(100, S.hp / heroMax() * 100))}%"></i></span></div>
+    <div class="col">${sl('back')}${sl('pack')}${sl('tool')}${sl('charm')}${sl('pet')}</div></div>
+    <div class="icard">${card}</div><h3>Inventory</h3>` + (inv.length ? `<div class="inv">${inv.map(it => `<button type="button" class="slot${it.on ? ' on' : ''}" data-pick="${it.act || 'inv:' + it.name}">${it.svg}${it.count ? '<b>' + it.count + '</b>' : ''}<i>${it.name}</i></button>`).join('')}</div>` : '<p class="none">Nothing yet: treasure chests, quests, dungeons and the blacksmith fill this up.</p>');
+  $('stats').hidden = false; requestAnimationFrame(drawPortrait);
+}
+function tabsHtml() { return '<div class="rtabs">' + [['gear', 'Gear'], ['stats', 'Stats'], ['town', 'Town'], ['relics', 'Relics']].map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${heroTab === k}">${n}</button>`).join('') + '</div>'; }
+function showStatsOld() {
   const pct = v => (v >= 0 ? '+' : '') + Math.round(v * 100) + '%';
   const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
   const A = AXE[S.axe];
@@ -3267,7 +3346,7 @@ function showStats() {
     row('Weapon', S.weapon >= 0 ? `${WEAPONS[S.weapon].n} (${pct(WEAPONS[S.weapon].m - 1)})` : (S.axe >= 2 ? 'Twin axes' : 'Camp axe')),
     row('Armour', S.armorLv >= 0 ? `${ARMORS[S.armorLv].n} (${Math.round(ARMORS[S.armorLv].a * 100)}% less damage)` : 'None'),
     row('Damage bonus', pct(S.bonusDmg + (S.lvl - 1) * 0.1)),
-    row('Speed bonus', pct(S.boots * 0.15 + S.speedBonus + (S.lvl - 1) * 0.02)),
+    row('Speed bonus', pct(S.boots * 0.15 + S.speedBonus + (S.lvl - 1) * 0.02 + (S.runLv || 0) * 0.12)),
     row('Swing / reach', `${A.int}s · ${A.max} targets · ${A.range}m`),
     row('Pack', cap()),
     row('Med kits', S.medkits),
@@ -3289,12 +3368,19 @@ function showStats() {
   const petRow = `<div class="ward"><b>Pet</b>${S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() + ' · ' + Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : S.tamer ? 'None yet: weaken a creature, then tap Tame' : 'Locked: needs a Beast Charm (slay a quest legend, reach hero level 10, or find one in treasure)'}</div>`;
   const ownR = S.rangedOwn || [], rangedRow = `<div class="ward"><b>Ranged</b><button type="button" data-ranged="-1" aria-pressed="${S.rangedOn < 0}">None</button>` + ownR.map(i => `<button type="button" data-ranged="${i}" aria-pressed="${S.rangedOn === i}">${RANGED[i].n}</button>`).join('') + '</div>';
   const ward = petRow + rangedRow + ['helm', 'cape'].map(slot => `<div class="ward"><b>${slot === 'helm' ? 'Head' : 'Back'}</b>` + (W[slot] || [0]).map(i => `<button type="button" data-wear="${slot}:${i}" aria-pressed="${(wear[slot] || 0) === i}">${LOOKS[slot][i]}</button>`).join('') + '</div>').join('');
-  $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Forge bows and rifles at the blacksmith; magic staffs come from treasure. Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
+  if (heroTab === 'stats') $('statsBody').innerHTML = tabsHtml() + `<dl>${hero}</dl>`; else if (heroTab === 'town') $('statsBody').innerHTML = tabsHtml() + `<dl>${town}</dl>`; else $('statsBody').innerHTML = tabsHtml() + relics;
+  if (false) $('statsBody').innerHTML = `<h3>Hero</h3><dl>${hero}</dl><h3>Wardrobe</h3>${ward}<p class="none">Forge bows and rifles at the blacksmith; magic staffs come from treasure. Find helmets and capes in treasure chests. Weapons and armour show on your hero too.</p><h3>Town</h3><dl>${town}</dl><h3>Treasures found</h3>${relics}`;
   $('stats').hidden = false;
 }
-$('statsBtn').addEventListener('click', e => { e.stopPropagation(); showStats(); });
+$('statsBtn').addEventListener('click', e => { e.stopPropagation(); heroTab = 'gear'; heroPick = null; showStats(); });
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
-$('statsBody').addEventListener('click', e => { const r = e.target.closest('[data-ranged]'); if (r) { e.stopPropagation(); S.rangedOn = +r.dataset.ranged; applyMyLook(); showStats(); return; } const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
+$('statsBody').addEventListener('click', e => {
+  const tb = e.target.closest('[data-tab]'); if (tb) { e.stopPropagation(); heroTab = tb.dataset.tab; heroPick = null; showStats(); return; }
+  const pk = e.target.closest('[data-pick]'); if (pk) { e.stopPropagation(); const v = pk.dataset.pick;
+    if (v.startsWith('ranged:')) { S.rangedOn = +v.slice(7); applyMyLook(); play('pay'); }
+    else if (v.startsWith('wear:')) { const [, slot, i] = v.split(':'); (S.wear = S.wear || {})[slot] = S.wear[slot] === +i ? 0 : +i; applyMyLook(); play('pay'); }
+    heroPick = v; showHero(); return; }
+  const r = e.target.closest('[data-ranged]'); if (r) { e.stopPropagation(); S.rangedOn = +r.dataset.ranged; applyMyLook(); showStats(); return; } const b = e.target.closest('[data-wear]'); if (!b) return; e.stopPropagation(); const [slot, i] = b.dataset.wear.split(':'); (S.wear = S.wear || {})[slot] = +i; applyMyLook(); showStats(); });
 function openTreasure(camp) {
   if (camp.guards && camp.guards.length && !camp.questReward) questEvent('clear', 1);
   camp.open = true; scene.remove(camp.g); camp.tag.remove();
@@ -3950,7 +4036,7 @@ $('coop').addEventListener('click', e => {
 
 /* ================= save / load (this browser only) ================= */
 const SAVE_KEY = 'frosthold-save-v6';
-const WORKER_HOME = { hauler: [0, 17], mender: [-3, 9.4], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
+const WORKER_HOME = { hauler: [0, 17], mender: [8.2, 9], logger: [6, 18.5], hunter: [16.5, 16.3], stonecutter: [-16.5, 25.4], miner: [-25.5, -10] };
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 const HERO_KEYS = ['runLv', 'tamer', 'pet', 'rangedOwn', 'rangedOn', 'wardrobe', 'wear', 'axe', 'bag', 'pick', 'weapon', 'armorLv', 'bonusHp', 'bonusDmg', 'speedBonus', 'medkits', 'relics', 'xp', 'lvl'];
 let heroReady = false;   // only save the hero once it has been loaded, so a rejoin in progress never overwrites it
