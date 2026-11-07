@@ -214,6 +214,10 @@
     {
       "id": "boar",
       "prompt": "wild boar with tusks and bristly brown fur, standing"
+    },
+    {
+      "id": "eagle",
+      "prompt": "golden eagle with wings spread wide, flying pose"
     }
   ]
 }

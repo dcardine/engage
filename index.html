@@ -272,7 +272,7 @@ function skin(g, id, size, opts) { const e = Object.assign({ g, id, size }, opts
 function loadModels() {
   if (!THREE.GLTFLoader) return;
   const loader = new THREE.GLTFLoader();
-  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine', 'raptor', 'sabre_tiger', 'mammoth', 'trex', 'dragon', 'spider', 'goblin', 'bear', 'troll', 'wraith', 'golem', 'yeti', 'deer', 'rabbit', 'boar'].forEach(id =>
+  ['house', 'town_hall', 'watchtower', 'blacksmith', 'gate', 'wall_section', 'pine_tree', 'snowball_tree', 'stone_deposit', 'crystal_vein', 'yak', 'wolf', 'hero', 'villager', 'teepee_tent', 'treasure_chest', 'ruin_stones', 'ruin_cabin', 'ruin_tower', 'cliff_boulder', 'snowdrift', 'frozen_pond', 'snowy_bush', 'rock_small', 'ice_crystals', 'dead_tree', 'logger_lodge', 'hunter_lodge', 'quarry_lodge', 'miner_camp', 'barracks', 'warehouse', 'fishery', 'med_center', 'treasury', 'carpenter', 'crystal_mine', 'raptor', 'sabre_tiger', 'mammoth', 'trex', 'dragon', 'spider', 'goblin', 'bear', 'troll', 'wraith', 'golem', 'yeti', 'deer', 'rabbit', 'boar', 'eagle'].forEach(id =>
     loader.load('assets/game/' + id + '.json', g => {
       g.scene.traverse(o => { if (!o.isMesh) return; o.castShadow = true; o.receiveShadow = true;
         const mt = o.material; if (mt.map) mt.map.encoding = THREE.LinearEncoding; if ('metalness' in mt) { mt.metalness = 0; mt.roughness = 0.95; } });
@@ -1862,6 +1862,7 @@ function makeEagle(size) {
   const head = mk(new THREE.SphereGeometry(0.13, 10, 8), 0xf1ede4); head.position.set(0, 0.5, 0.42); g.add(head);
   const beak = mk(Cone(0.05, 0.14, 6), 0xf2c14e); beak.rotation.x = Math.PI / 2; beak.position.set(0, 0.48, 0.58); g.add(beak);
   const wings = [-1, 1].map(k => { const w = mk(Box(0.9, 0.04, 0.38), 0x4e3424); w.geometry.translate(k * 0.45, 0, 0); w.position.set(k * 0.12, 0.45, 0); g.add(w); return w; });
+  skin(g, 'eagle', 1.6, { parts: g.children.slice() });
   g.scale.setScalar(size / 1.6); return { g, legs: [wings[0], wings[1], wings[0], wings[1]], wings };
 }
 function makeYak(model = 'yak', size = 2.0) {

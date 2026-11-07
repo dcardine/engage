@@ -313,7 +313,8 @@
   },
   "troll": {
     "hash": "4162b18cc76b4886",
-    "preview": "01a1b3a3-d0e0-7357-bc17-09c84a90c0a9"
+    "preview": "01a1b3a3-d0e0-7357-bc17-09c84a90c0a9",
+    "refine": "01a1b63b-9f25-7015-a4e3-118b8f8d5fe4"
   },
   "villager": {
     "file": "assets/models/villager.glb",
