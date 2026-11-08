@@ -65,7 +65,7 @@ Rabbits (1 food, one hit) and deer (2–3 food, quick to bolt) graze in large nu
 Crystal veins only appear far out in the wilds and need a **Crystal Pick** (Blacksmith research at Town Hall II, or a rare treasure) to mine.
 
 ## HUD
-- The minimap (right) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
+- The minimap (drag it to move it anywhere on screen) shows trees, rocks, yaks, piles, camps, raiders, other players and you.
 - Tap a resource counter to **drop** what you carry of it (all, or 10 at a time) or to **stop collecting** it: you still chop, mine and hunt, but nothing of that kind goes into your pack until you turn it back on. Dropped piles wait until you walk away and come back.
 - The **cog** (bottom left) holds Co-op, Hero, Pause, Sound and New game, and lets you hide the goal, town gauges, resources or minimap.
 - **Loggers: pile/stall** switches where loggers deliver. Hunters always deliver to the cookhouse once it is built.

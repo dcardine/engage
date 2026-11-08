@@ -4337,6 +4337,18 @@ const HUD_SHOW = (() => { try { return JSON.parse(localStorage.getItem('frosthol
 function applyHud() { document.querySelectorAll('.mshow input').forEach(cb => { const k = cb.dataset.hud, on = HUD_SHOW[k] !== false; cb.checked = on; $(k).classList.toggle('hud-off', !on); }); }
 document.querySelectorAll('.mshow input').forEach(cb => cb.addEventListener('change', () => { HUD_SHOW[cb.dataset.hud] = cb.checked; try { localStorage.setItem('frosthold-hud', JSON.stringify(HUD_SHOW)); } catch (e) {} applyHud(); }));
 applyHud();
+// the minimap can be dragged anywhere on screen; its spot is remembered on this device
+(() => { const m = $('mini'); m.style.pointerEvents = 'auto'; m.style.touchAction = 'none'; m.style.cursor = 'grab';
+  const place = (x, y) => { const r = m.getBoundingClientRect(); x = Math.max(0, Math.min(innerWidth - r.width, x)); y = Math.max(0, Math.min(innerHeight - r.height, y)); m.style.left = x + 'px'; m.style.top = y + 'px'; m.style.right = 'auto'; return [x, y]; };
+  try { const v = JSON.parse(localStorage.getItem('frosthold-mini')); if (v) requestAnimationFrame(() => place(v[0], v[1])); } catch (e) {}
+  let d = null;
+  m.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); const r = m.getBoundingClientRect(); d = [e.clientX - r.left, e.clientY - r.top]; m.setPointerCapture(e.pointerId); });
+  m.addEventListener('pointermove', e => { if (!d) return; e.stopPropagation(); place(e.clientX - d[0], e.clientY - d[1]); });
+  const up = e => { if (!d) return; d = null; const r = m.getBoundingClientRect(); try { localStorage.setItem('frosthold-mini', JSON.stringify([r.left, r.top])); } catch (er) {} };
+  m.addEventListener('pointerup', up); m.addEventListener('pointercancel', up);
+  ['touchstart', 'mousedown'].forEach(ev => m.addEventListener(ev, e => e.stopPropagation()));
+  addEventListener('resize', () => { if (m.style.left) place(parseFloat(m.style.left), parseFloat(m.style.top)); });
+})();
 SND_CATS.forEach(([k, label]) => { const l = document.createElement('label'); l.innerHTML = '<input type="checkbox"> ' + label; const cb = l.firstChild; cb.checked = SND_ON[k] !== false;
   cb.addEventListener('change', () => { SND_ON[k] = cb.checked; try { localStorage.setItem('frosthold-sfx', JSON.stringify(SND_ON)); } catch (e) {} if (cb.checked) { unlockAudio(); } }); $('sndList').appendChild(l); });
 $('paused').addEventListener('click', () => setPaused(false));
