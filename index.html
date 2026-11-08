@@ -103,7 +103,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
 #chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
 #chipMenu button.drop{background:#b8452e}
-#logdest,#statsBtn,#inviteBtn,#coop,#newg,#pause,#mute,#tutBtn{pointer-events:auto;
+#logdest,#statsBtn,#inviteBtn,#coop,#newg,#pause,#mute,#tutBtn,#helpBtn{pointer-events:auto;
   border:1px solid var(--panel-line);background:var(--panel);color:#fff;font:13px/1 var(--display);letter-spacing:.06em;padding:9px 12px;border-radius:12px;cursor:pointer}
 #newg.confirm{background:#b8452e}
 #paused{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(16,26,44,.45);color:#fff;font:40px/1 var(--display);pointer-events:auto;z-index:15}
@@ -126,6 +126,15 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #lobby input{width:90px;font:20px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:8px;border:2px solid #b8c6da;border-radius:10px;background:#fff;color:var(--ink);-webkit-user-select:text;user-select:text}
 #lobby #joinBtn{background:#2b4a74}
 #lobby button:focus-visible,#lobby input:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
+#help{position:fixed;inset:0;z-index:23;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
+#help .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:16px;width:min(420px,100%);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#help h2{margin:0 0 8px;font:24px/1 var(--display);color:#2b4a74;text-align:center}
+#helpQ{font:800 15px var(--body);padding:9px 11px;border:2px solid #c9d6e8;border-radius:10px;margin-bottom:8px}
+#helpBody{overflow-y:auto;font:600 14px/1.45 var(--body)}
+#helpBody details{border-bottom:1px solid #dfe6f0;padding:6px 0}#helpBody summary{cursor:pointer;font:16px/1.3 var(--display);color:#2b4a74;letter-spacing:.02em}
+#helpBody h4{margin:8px 0 2px;font:14px var(--display);color:var(--ember)}#helpBody ul{margin:4px 0;padding-left:18px}#helpBody p{margin:6px 0}
+#helpBody table{border-collapse:collapse;font-size:12px;margin:6px 0}#helpBody td,#helpBody th{border:1px solid #dfe6f0;padding:3px 5px;text-align:left}
+#closeHelp{margin-top:10px;border:0;background:#2b4a74;color:#fff;font:15px var(--display);padding:11px;border-radius:12px;cursor:pointer}
 #stats{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.72);padding:0 16px}
 #stats .box{background:#f4f7fc;color:var(--ink);border-radius:18px;padding:18px 18px 14px;width:min(380px,100%);max-height:86vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.35)}
 #stats h2{margin:0 0 8px;font:26px/1 var(--display);color:#2b4a74;text-align:center}
@@ -223,7 +232,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="cog" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button><span id="netTxt" hidden></span></div>
 <div id="menu" hidden><div class="box"><h2>Menu</h2>
-<div class="mgrid"><button id="tutBtn" type="button">Tutorial</button><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
+<div class="mgrid"><button id="helpBtn" type="button">Help</button><button id="tutBtn" type="button">Tutorial</button><button id="coop" type="button">Co-op</button><button id="inviteBtn" type="button" hidden>Invite</button><button id="statsBtn" type="button">Hero</button><button id="pause" type="button">Pause</button><button id="mute" type="button">Sound: on</button><button id="newg" type="button">New game</button></div>
 <h3>Show on screen</h3>
 <div class="mshow"><label><input type="checkbox" data-hud="quest" checked> Goal</label><label><input type="checkbox" data-hud="qcard" checked> Quest</label><label><input type="checkbox" data-hud="town" checked> Town gauges</label><label><input type="checkbox" data-hud="res" checked> Resources</label><label><input type="checkbox" data-hud="mini" checked> Minimap</label></div>
 <h3>Sounds</h3><div class="mshow" id="sndList"></div>
@@ -233,6 +242,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <button id="hostBtn" type="button">Host a game</button>
 <div class="joinrow"><label for="codeIn">Room code</label><input id="codeIn" maxlength="6" autocomplete="off" inputmode="text" placeholder="e.g. K7Q2"><button id="joinBtn" type="button">Join</button></div>
 <p id="lobbyMsg" class="fine"></p><button id="closeLobby" type="button" class="ghost">Cancel</button></div></div>
+<div id="help" hidden><div class="box"><h2>How to play</h2><input id="helpQ" type="search" placeholder="Search help (e.g. pets, raids, castle)"><div id="helpBody">Loading…</div><button id="closeHelp" type="button">Close</button></div></div>
 <div id="stats" hidden><div class="box"><h2>Hero</h2><div id="statsBody"></div><h3>Name and coat colour</h3><div class="prof"></div><button id="closeStats" type="button">Close</button></div></div>
 <div id="over" hidden><div class="box"><h2 id="overHead">Frosthold has fallen</h2><p id="overTxt"></p><button id="again" type="button">Rebuild</button></div></div>
 
@@ -2141,8 +2151,8 @@ const TUT = [
   { t: 'Build the walls', p: 'Raiders will come. Glowing build spaces show what they cost. Stand on one and you pay with what you carry: fix the broken palisade first.', task: 'Build a wall section', start: () => rings[0].segs.filter(sg => sg.built).length, done: b => rings[0].segs.filter(sg => sg.built).length > b || rings[0].complete },
   { t: 'Warmth and food', p: 'These gauges show warmth and, once you build the cookhouse, food. If either reaches zero, villagers die. Hunt rabbits and deer near the camp for meat and sell it at the cookhouse.', hi: 'town' },
   { t: 'Grow your town', p: 'Build houses, a blacksmith for better gear, and lodges to hire workers who gather on their own. Upgrade the Town Hall to unlock a bigger ring of walls.' },
-  { t: 'Raids and danger', p: 'Raids grow every day. Watchtowers and guards help, and the minimap (right) shows raiders in red. The farther you explore, the tougher the monsters and the better the treasure.', hi: 'mini' },
-  { t: 'Menu and more', p: 'The cog holds Co-op, your Hero (gear, pets, wardrobe), pause, sound options and this tutorial. Quests, fishing at lakes, legendary beasts and taming await. Good luck!', hi: 'cog' },
+  { t: 'Raids and danger', p: 'A raid comes every night at nightfall, and each day is harder. Watchtowers and guards help, and the minimap shows raiders in red (drag it to move it). The farther you explore, the tougher the monsters and the better the treasure.', hi: 'mini' },
+  { t: 'Menu and more', p: 'The cog holds Help (everything about the game), this tutorial, Co-op, your Hero (gear, pets), pause and sound options. Quests, fishing, dungeons, pets and castles await. Good luck!', hi: 'cog' },
 ];
 let tut = null;
 function tutorialDone() { try { return localStorage.getItem('frosthold-tutorial') === 'done'; } catch (e) { return false; } }
@@ -2169,6 +2179,37 @@ function updateTutorial() {
 $('tutNext').addEventListener('click', e => { e.stopPropagation(); nextTut(); });
 $('tutSkip').addEventListener('click', e => { e.stopPropagation(); endTutorial(true); note('Tutorial skipped: replay it from the menu'); });
 ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('tut').addEventListener(ev, e => e.stopPropagation()));
+// ---- Help: rendered from README.md, the one guide that is kept up to date with every change ----
+let helpMd = null;
+const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const inl = t => esc(t).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>');
+function mdSections(md) {
+  const out = []; let cur = null, list = false, tbl = false;
+  const close = () => { if (cur) { if (list) cur.h += '</ul>'; if (tbl) cur.h += '</table>'; } list = tbl = false; };
+  for (const line of md.split('\n')) {
+    if (/^## /.test(line)) { close(); cur = { t: line.slice(3).trim(), h: '' }; out.push(cur); continue; }
+    if (!cur) { if (line.trim() && !/^# /.test(line)) { cur = { t: 'About Frosthold', h: '' }; out.push(cur); } else continue; }
+    if (/^\s*[-*] /.test(line)) { if (tbl) { cur.h += '</table>'; tbl = false; } if (!list) { cur.h += '<ul>'; list = true; } cur.h += '<li>' + inl(line.replace(/^\s*[-*] /, '')) + '</li>'; continue; }
+    if (/^\|/.test(line)) { if (/^\|[-| ]+\|$/.test(line.trim())) continue; if (!tbl) { cur.h += '<table>'; tbl = true; } cur.h += '<tr>' + line.trim().slice(1, -1).split('|').map(c => '<td>' + inl(c.trim()) + '</td>').join('') + '</tr>'; continue; }
+    if (/^### /.test(line)) { close(); cur.h += '<h4>' + inl(line.slice(4)) + '</h4>'; continue; }
+    close(); if (line.trim() && !/index\.html|README/.test(line)) cur.h += '<p>' + inl(line) + '</p>';
+  }
+  close(); return out.filter(x => x.t !== 'Art');
+}
+function renderHelp() {
+  const q = $('helpQ').value.trim().toLowerCase(), secs = mdSections(helpMd || '');
+  const shown = secs.filter(x => !q || (x.t + x.h).toLowerCase().includes(q));
+  $('helpBody').innerHTML = shown.length ? shown.map(x => `<details${q ? ' open' : ''}><summary>${esc(x.t)}</summary>${x.h}</details>`).join('') : '<p>Nothing matches. Try another word.</p>';
+}
+async function openHelp() {
+  closeMenu(); $('help').hidden = false;
+  if (!helpMd) { try { const r = await fetch('README.md', { cache: 'no-cache' }); if (!r.ok) throw 0; helpMd = await r.text(); } catch (e) { $('helpBody').innerHTML = '<p>Help could not load. Check your connection and try again.</p>'; return; } }
+  renderHelp();
+}
+$('helpBtn').addEventListener('click', e => { e.stopPropagation(); openHelp(); });
+$('closeHelp').addEventListener('click', e => { e.stopPropagation(); $('help').hidden = true; });
+$('helpQ').addEventListener('input', renderHelp);
+['pointerdown', 'touchstart', 'mousedown', 'keydown'].forEach(ev => $('help').addEventListener(ev, e => e.stopPropagation()));
 $('tutBtn').addEventListener('click', e => { e.stopPropagation(); closeMenu(); startTutorial(); });
 /* ---- co-op: hand gold, resources and spare gear to a teammate standing next to you ---- */
 let giveTo = null;
