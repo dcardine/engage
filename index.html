@@ -2550,7 +2550,10 @@ function tameIt(c) {
   if (c.kind === 'yak') setTimeout(() => { if (!isGuest()) spawnYak(undefined, undefined, undefined, c.sp); }, 20000);
   if (pet) dropPet();
   const sc0 = c.wild0 || ((c.big || 1) * (c.type === 'troll' ? 1.7 : c.type === 'goblin' ? 0.78 : 1) * (c.sc || 1));
-  S.pet = { sc: 0.8 * sc0, type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: T.hp * (1 + (S.lvl - 1) * 0.08), max: T.hp * (1 + (S.lvl - 1) * 0.08) };
+  // a tamed creature keeps most of its wild strength: 70% of its health and damage, never less than the base pet
+  const wildHp = c.max || 0, wildDmg = c.kind === 'wild' ? c.T.dmg * 1.7 * (1 + S.th * 0.25) * (c.dm || 1) : c.dmgUnit || 0;
+  const hp0 = Math.max(T.hp * (1 + (S.lvl - 1) * 0.08), wildHp * 0.7), dmg0 = Math.max(T.dmg, wildDmg * 0.7);
+  S.pet = { sc: 0.8 * sc0, type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: hp0, max: hp0, dmg: dmg0 };
   setTimeout(() => { const n = prompt('Name your ' + T.n.toLowerCase() + ':', S.pet.name); if (n && n.trim() && S.pet) { S.pet.name = n.trim().slice(0, 14); if (pet) pet.tag.textContent = S.pet.name; } }, 300);
   spawnPet(); banner(S.pet.name + ' the ' + T.n.toLowerCase() + ' joins you!', true, 'Pets fight beside you; if they fall, they are gone for good'); play('revive'); gainXP(20);
 }
@@ -2562,7 +2565,7 @@ function spawnPet() {
 function dropPet() { if (!pet) return; scene.remove(pet.g); pet.bar.remove(); pet.tag.remove(); pet = null; }
 function petXP(n) {
   const P = S.pet; if (!P) return; P.lvl = P.lvl || 1; P.xp = (P.xp || 0) + n;
-  while (P.xp >= 15 + P.lvl * 12) { P.xp -= 15 + P.lvl * 12; P.lvl++; const add = TAME[P.type].hp * 0.15; P.max += add; P.hp = P.max;
+  while (P.xp >= 15 + P.lvl * 12) { P.xp -= 15 + P.lvl * 12; P.lvl++; const add = P.max * 0.1; P.max += add; P.hp = P.max;
     banner(P.name + ' is now level ' + P.lvl + '!', true, '+15% damage and more health'); play('levelup'); if (pet) burst(pet.x, 1.5, pet.z, 0xf2c14e, 14, 3); }
 }
 function hurtPet(dmg) {
@@ -2580,7 +2583,7 @@ function updatePet(dt) {
   if (d2(pet.x, pet.z, player.x, player.z) > 45 * 45) { pet.x = player.x - 1; pet.z = player.z - 1; }
   else if (d > (t ? reach : 0.6)) { const sp = T.speed * 1.5 * (t ? 1 : Math.min(1.4, d / 2.5)); pet.x += (tx - pet.x) / d * sp * dt; pet.z += (tz - pet.z) / d * sp * dt; moving = true; pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.25); }
   else if (t) { pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.3); pet.atk -= dt;
-    if (pet.atk <= 0) { pet.atk = 1; const dmg = T.dmg * (1 + (S.lvl - 1) * 0.08) * (1 + ((S.pet.lvl || 1) - 1) * 0.15), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
+    if (pet.atk <= 0) { pet.atk = 1; const dmg = (S.pet.dmg || T.dmg * (1 + (S.lvl - 1) * 0.08)) * (1 + ((S.pet.lvl || 1) - 1) * 0.15), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
       hitTarget(k, t, dmg); if (!t.alive || t.hp <= 0) petXP(12 + (t.T ? t.T.xp : t.xp || 6)); else petXP(2); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
   if (!t && (pet.hurtT = (pet.hurtT || 0) - dt) <= 0) P.hp = Math.min(P.max, P.hp + P.max * 0.02 * dt);
   if (moving) pet.walkT += dt;
@@ -4363,6 +4366,6 @@ function frame(now) {
 }
 requestAnimationFrame(t => { last = t; frame(t); });
 
-window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, padCastle, padTH, raidPack, maxGuards, guards, towers, stalls: stalls, enterDungeon, dunKeys, dun: () => DUN, dstep: dt => dungeonStep(dt), mshots: () => mshots, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
+window.__frost = { renderer, scene, hurtHero, wilds, wildCamps, openTreasure, NET, liveSize: () => JSON.stringify(liveState()).length, piles, saveGame, waypoint, give: (t, n) => { for (let i = 0; i < n; i++) addToStack(t); }, S, player, carry, stalls, pads, trees, yaks, enemies, workers, guards, rocks, rings, B, goal, pallets, walkers, checkRings, setSegBuilt, padTH, RUINS, SCENERY, LAKES, DUNGEONS, padCastle, padTH, raidPack, maxGuards, guards, towers, tameIt: c => tameIt(c), getPet: () => pet, stalls: stalls, enterDungeon, dunKeys, dun: () => DUN, dstep: dt => dungeonStep(dt), mshots: () => mshots, applySeason, sim: secs => { for (let t = 0; t < secs; t += 0.04) update(0.04); }, ringSecure, padHomes, roleCount, maxWorkers, housing, pop, dayNo, makeRemote, remoteExtras, PROFILE, applyCoat, P0 };
 })();
 </script>
