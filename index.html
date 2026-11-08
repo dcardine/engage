@@ -2643,7 +2643,7 @@ function spawnPet() {
 }
 function dropPet() { if (!pet) return; scene.remove(pet.g); pet.bar.remove(); pet.tag.remove(); pet = null; }
 function petXP(n) {
-  const P = S.pet; if (!P) return; P.lvl = P.lvl || 1; P.xp = (P.xp || 0) + n;
+  const P = S.pet; if (!P) return; P.lvl = P.lvl || 1; P.xp = (P.xp || 0) + n; if (!P.since) P.since = dayNo();
   while (P.xp >= 15 + P.lvl * 12) { P.xp -= 15 + P.lvl * 12; P.lvl++; const add = P.max * 0.1; P.max += add; P.hp = P.max;
     banner(P.name + ' is now level ' + P.lvl + '!', true, '+15% damage and more health'); play('levelup'); if (pet) burst(pet.x, 1.5, pet.z, 0xf2c14e, 14, 3); }
 }
@@ -2663,7 +2663,7 @@ function updatePet(dt) {
   else if (d > (t ? reach : 0.6)) { const sp = T.speed * 1.5 * (t ? 1 : Math.min(1.4, d / 2.5)); pet.x += (tx - pet.x) / d * sp * dt; pet.z += (tz - pet.z) / d * sp * dt; moving = true; pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.25); }
   else if (t) { pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.3); pet.atk -= dt;
     if (pet.atk <= 0) { pet.atk = 1; const dmg = (S.pet.dmg || T.dmg * (1 + (S.lvl - 1) * 0.08)) * (1 + ((S.pet.lvl || 1) - 1) * 0.15), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
-      hitTarget(k, t, dmg); if (!t.alive || t.hp <= 0) petXP(12 + (t.T ? t.T.xp : t.xp || 6)); else petXP(2); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
+      S.pet.dealt = (S.pet.dealt || 0) + dmg; hitTarget(k, t, dmg); if (!t.alive || t.hp <= 0) { petXP(12 + (t.T ? t.T.xp : t.xp || 6)); const P = S.pet; if (P) { P.kills = (P.kills || 0) + 1; if (t.kind === 'yak') P.hunts = (P.hunts || 0) + 1; if (t.kind === 'enemy') P.raiders = (P.raiders || 0) + 1; } } else petXP(2); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
   if (!t && (pet.hurtT = (pet.hurtT || 0) - dt) <= 0) P.hp = Math.min(P.max, P.hp + P.max * 0.02 * dt);
   if (moving) pet.walkT += dt;
   pet.g.position.set(pet.x, T.fly ? 2.2 + Math.sin(time * 2) * 0.3 : 0, pet.z); pet.g.rotation.y = pet.rot;
@@ -3580,6 +3580,7 @@ function drawPortrait() {
   drawHero(c, cv.width / 2, cv.height * 0.9, cv.height * 0.42, 1, -1);
 }
 function showStats() {
+  if (heroTab === 'pet') return showPet();
   if (heroTab !== 'stats' && heroTab !== 'town' && heroTab !== 'relics') return showHero();
   return showStatsOld();
 }
@@ -3595,7 +3596,24 @@ function showHero() {
   if (hvInit()) { syncHeroModel(); $('heroView').appendChild(HV.r.domElement); HV.r.domElement.style.width = '100%'; HV.r.domElement.style.height = 'auto'; if (!HV.raf) HV.raf = requestAnimationFrame(heroLoop); }
   else { $('heroView').innerHTML = '<canvas id="heroCv"></canvas>'; requestAnimationFrame(drawPortrait); }
 }
-function tabsHtml() { return '<div class="rtabs">' + [['gear', 'Gear'], ['stats', 'Stats'], ['town', 'Town'], ['relics', 'Relics']].map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${heroTab === k}">${n}</button>`).join('') + '</div>'; }
+function showPet() {
+  const P = S.pet; let h = tabsHtml();
+  if (!P) h += `<p class="none" style="margin:12px 0">${S.tamer ? 'No pet yet. Weaken a rabbit, eagle, wolf, bear, raptor, sabre tiger or ice dragon, then tap Tame.' : 'You need a Beast Charm to tame a pet: slay a quest legend, reach hero level 10, or find one in treasure.'}</p>`;
+  else {
+    const T = TAME[P.type], lv = P.lvl || 1, need = 15 + lv * 12, dmg = (P.dmg || T.dmg * (1 + (S.lvl - 1) * 0.08)) * (1 + (lv - 1) * 0.15), u = icon3d('pet', 0);
+    const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+    h += `<div class="rpg" style="grid-template-columns:1fr;justify-items:center">${u ? `<img src="${u}" alt="" style="width:150px;height:150px">` : ''}<span style="font:22px var(--display);color:#ffd9a0">${esc(P.name)}</span>
+      <span style="font:800 13px var(--body);color:#c9d6e8">Level ${lv} ${T.n}</span>
+      <span style="width:80%;height:8px;border-radius:5px;background:#3a2a2a;overflow:hidden;margin-top:6px"><i style="display:block;height:100%;width:${Math.min(100, P.hp / P.max * 100)}%;background:#e2483f"></i></span>
+      <span style="font:800 11px var(--body);color:#c9d6e8;margin-top:4px">Experience ${Math.round(P.xp || 0)} / ${need}</span>
+      <span style="width:80%;height:6px;border-radius:5px;background:#2a3348;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100, (P.xp || 0) / need * 100)}%;background:#f2c14e"></i></span></div>
+      <dl style="margin-top:10px">${row('Health', Math.round(P.hp) + ' / ' + Math.round(P.max))}${row('Damage per bite', Math.round(dmg) + (T.breath ? ' + frost breath' : ''))}${row('Speed', (T.speed * 1.5).toFixed(1) + ' m/s' + (T.fly ? ', flies' : ''))}
+      ${row('Total kills', P.kills || 0)}${row('Raiders defeated', P.raiders || 0)}${row('Animals hunted', P.hunts || 0)}${row('Damage dealt', Math.round(P.dealt || 0))}${row('Companion since', P.since ? 'day ' + P.since : '—')}</dl>
+      <button type="button" data-rename="1" style="margin-top:10px;width:100%;padding:10px;border-radius:10px;border:2px solid #c9d6e8;background:#fff;font:15px var(--display);color:#2b4a74">Rename ${esc(P.name)}</button>`;
+  }
+  $('statsBody').innerHTML = h; $('stats').hidden = false;
+}
+function tabsHtml() { return '<div class="rtabs">' + [['gear', 'Gear'], ['pet', 'Pet'], ['stats', 'Stats'], ['town', 'Town'], ['relics', 'Relics']].map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${heroTab === k}">${n}</button>`).join('') + '</div>'; }
 function showStatsOld() {
   const pct = v => (v >= 0 ? '+' : '') + Math.round(v * 100) + '%';
   const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
@@ -3636,7 +3654,7 @@ function showStatsOld() {
 $('statsBtn').addEventListener('click', e => { e.stopPropagation(); heroTab = 'gear'; heroPick = null; showStats(); });
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
 $('statsBody').addEventListener('click', e => {
-  if (e.target.closest('[data-rename]') && S.pet) { e.stopPropagation(); const n = prompt('Rename your pet:', S.pet.name); if (n && n.trim()) S.pet.name = n.trim().slice(0, 14); showHero(); return; }
+  if (e.target.closest('[data-rename]') && S.pet) { e.stopPropagation(); const n = prompt('Rename your pet:', S.pet.name); if (n && n.trim()) S.pet.name = n.trim().slice(0, 14); showStats(); return; }
   const tb = e.target.closest('[data-tab]'); if (tb) { e.stopPropagation(); heroTab = tb.dataset.tab; heroPick = null; showStats(); return; }
   const pk = e.target.closest('[data-pick]'); if (pk) { e.stopPropagation(); const v = pk.dataset.pick;
     if (v.startsWith('ranged:')) { S.rangedOn = +v.slice(7); applyMyLook(); play('pay'); }

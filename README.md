@@ -92,6 +92,7 @@ A ranged weapon fires on its own at the nearest threat in range, alongside your 
 - Stand still beside it for two seconds. A failed attempt lets it recover some health.
 - Name your pet when you tame it, and rename it from the Hero screen.
 - A pet keeps 70% of its wild health and damage and is 80% of its wild size. It follows you, fights threats, hunts nearby animals when it's quiet, heals between fights, and **levels up** (+15% damage and more health each level).
+- The **Pet** tab in the Hero screen shows your pet in 3D with its level, experience, health, damage, speed, total kills, raiders defeated, animals hunted, damage dealt and the day you tamed it.
 - You keep one pet at a time. A pet that falls is gone for good.
 
 ## The wilds
