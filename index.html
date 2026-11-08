@@ -4171,7 +4171,7 @@ $('copyLink').addEventListener('click', () => {
 function selectInvite() { const r = document.createRange(); r.selectNodeContents($('inviteUrl')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
 function becomeHost() {
   NET.mode = 'host'; NET.presT = 0; NET.worldT = 0;
-  if (!ON_CLAUDE) $('netTxt').title = 'Room ' + ROOM_CODE;
+  if (!ON_CLAUDE) { $('netTxt').title = 'Room ' + ROOM_CODE; try { sessionStorage.setItem('frost-host', ROOM_CODE); } catch (e) {} }
   $('coop').textContent = 'Leave co-op'; $('inviteBtn').hidden = false; showInvite();
   banner('Co-op open!', true, 'Anyone who opens this page and taps Co-op joins your town');
 }
@@ -4236,7 +4236,7 @@ function peerRoom(code, asHost) {
     });
   });
 }
-async function startCoop(auto, code, asHost) {
+async function startCoop(auto, code, asHost, resumeHost) {
   const btn = $('coop'); btn.disabled = true; btn.textContent = 'Connecting…';
   const fail = msg => { if (auto && !asHost) loadGame(); btn.disabled = false; btn.textContent = 'Co-op'; banner('Co-op unavailable', false, msg); };
   if (ON_CLAUDE) {
@@ -4248,8 +4248,9 @@ async function startCoop(auto, code, asHost) {
       try { NET.room = await peerRoom(code, asHost); break; }
       catch (e) {
         NET.room = null;
+        if (asHost && String(e && e.type) === 'unavailable-id' && resumeHost && attempt < 12) { btn.textContent = 'Reopening room…'; await sleep(2500); continue; }   // the old room name is still being released
         if (asHost && String(e && e.type) === 'unavailable-id' && attempt < 3) { code = newCode(); continue; }
-        if (!asHost && auto && attempt < 8) { btn.textContent = 'Reconnecting…'; await sleep(3000); continue; }
+        if (!asHost && auto && attempt < 20) { btn.textContent = 'Reconnecting…'; await sleep(3000); continue; }
         if (!asHost && String(e && e.type) === 'peer-unavailable') return fail('No game is running with code ' + code);
         return fail(asHost ? 'Could not open a room. Check your connection.' : 'Could not join ' + code + '. Check the code and your connection.');
       }
@@ -4271,7 +4272,7 @@ async function startCoop(auto, code, asHost) {
   } else if (!ON_CLAUDE && !asHost) {
     NET.room.leave().catch(() => {}); NET.room = null;
     let tries = 0; try { tries = +sessionStorage.getItem('frost-tries') || 0; } catch (e) {}
-    if (auto && tries < 4) { try { sessionStorage.setItem('frost-tries', tries + 1); sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', code); } catch (e) {} btn.textContent = 'Reconnecting…'; setTimeout(() => location.reload(), 2500); return; }
+    if (auto && tries < 10) { try { sessionStorage.setItem('frost-tries', tries + 1); sessionStorage.setItem('frost-coop', 'join'); sessionStorage.setItem('frost-code', code); } catch (e) {} btn.textContent = 'Reconnecting…'; setTimeout(() => location.reload(), 2500); return; }
     try { sessionStorage.removeItem('frost-tries'); } catch (e) {}
     return fail('No game is running with code ' + code);
   } else {
@@ -4292,6 +4293,7 @@ $('coop').addEventListener('click', e => {
   if (NET.mode === 'solo') { if (NET.room) return; if (ON_CLAUDE) startCoop(false); else { $('lobbyMsg').textContent = ''; $('lobby').hidden = false; } return; }
   if (isGuest()) { location.reload(); return; }
   NET.room.leave().catch(() => {}); NET.room = null; NET.mode = 'solo'; for (const k in NET.remotes) dropRemote(k);
+  try { sessionStorage.removeItem('frost-host'); } catch (e) {}
   $('coop').textContent = 'Co-op'; $('netTxt').hidden = true; $('inviteBtn').hidden = true; banner('Co-op closed', true);
 });
 
@@ -4388,7 +4390,9 @@ const hashJoin = (location.hash.match(/^#join-([A-Za-z0-9]{4,6})$/) || [])[1];
 let firstGame = true; try { firstGame = !localStorage.getItem(SAVE_KEY); } catch (e) {}
 loadModels();
 if (!tutorialDone() && firstGame && coopBoot !== 'join' && !hashJoin) setTimeout(startTutorial, 1500);
+let hostBoot = ''; try { hostBoot = sessionStorage.getItem('frost-host') || ''; } catch (e) {}
 if (coopBoot === 'join') startCoop(true, bootCode, false);
+else if (hostBoot && !ON_CLAUDE) { loadGame(); setTimeout(() => { banner('Reopening your co-op room', true, 'Room ' + hostBoot); startCoop(false, hostBoot, true, true); }, 800); }
 else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);
 let hiddenAt = 0;
