@@ -98,6 +98,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #dun .dpad{left:16px}#dun .dact{right:16px}
 #dun .dpad button,#dun .dact button{width:72px;height:72px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.16);color:#fff;font:28px/1 sans-serif;touch-action:none}
 #dun #dunJ{background:rgba(120,200,255,.3)}#dun #dunA{background:rgba(255,120,80,.3)}
+#tameNo{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(140px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#b8452e;color:#fff;font:15px/1 var(--display);padding:10px 16px;border-radius:12px;cursor:pointer}
 #tameBtn{position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(78px + env(safe-area-inset-bottom,0px));border:2px solid #fff;background:#3f8a5a;color:#fff;font:17px/1 var(--display);letter-spacing:.04em;padding:14px 20px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
 #chipMenu{position:fixed;z-index:9;display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--panel-line);border-radius:12px;padding:7px}
 #chipMenu button{border:0;border-radius:9px;padding:10px 12px;font:14px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.14);cursor:pointer;white-space:nowrap;text-align:left}
@@ -210,7 +211,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 </div>
 
 <div id="banner" class="hud"></div>
-<button id="tameBtn" type="button" hidden></button>
+<button id="tameBtn" type="button" hidden></button><button id="tameNo" type="button" hidden>Fight on</button>
 <button id="giveBtn" type="button" hidden></button>
 <button id="dunBtn" type="button" hidden></button>
 <div id="dun" hidden><canvas id="dunCv"></canvas><button id="dunLeave" type="button">Leave dungeon</button>
@@ -1939,7 +1940,7 @@ function findWork(w) {
   const taken = new Set(workers.filter(o => o !== w && o.tgt).map(o => o.tgt));
   let list;
   if (w.role === 'logger') list = trees.filter(t => t.alive && !t.gone && t.choppable);
-  else if (w.role === 'hunter') list = yaks.filter(y => y.alive);
+  else if (w.role === 'hunter') { list = yaks.filter(y => y.alive && (y.sp === 'rabbit' || y.sp === 'deer') && Math.hypot(y.x - C.x, y.z - C.z) < 95); if (!list.length) list = yaks.filter(y => y.alive && Math.hypot(y.x - C.x, y.z - C.z) < 95); }
   else if (w.role === 'stonecutter') list = rocks.filter(r => r.alive && r.kind === 'stone');
   else list = rocks.filter(r => r.alive && !r.hidden && r.kind === 'gold');
   let b = null, bd = 1e9;
@@ -2174,8 +2175,11 @@ function spawnGuard(x, z) {
   burst(x, 1, z, 0x4a5f86, 10); floatText('Guard ready', x, 2.6, z, 'xp');
 }
 function guardPost(g) {
-  const r = outerRing(), k = g.idx % 6, side = k % 2 ? 1 : -1, row = Math.floor(k / 2);
-  return { x: side * (3.5 + row * 2.2), z: r.zN + 2.6 + row * 0.6 };
+  const r = outerRing(), gate = g.idx % 4, k = Math.floor(g.idx / 4), side = k % 2 ? 1 : -1, off = side * (3.2 + Math.floor(k / 2) * 1.8), inset = 2.6;
+  if (gate === 0) return { x: C.x + off, z: r.zN + inset };          // north
+  if (gate === 1) return { x: C.x + off, z: r.zS - inset };          // south
+  if (gate === 2) return { x: C.x + r.h - inset, z: C.z + off };     // east
+  return { x: C.x - r.h + inset, z: C.z + off };                     // west
 }
 
 /* ================= yaks ================= */
@@ -2468,7 +2472,7 @@ const TAME = {
 };
 const PET_NAMES = ['Ember', 'Frost', 'Ash', 'Pip', 'Nova', 'Bramble', 'Sleet', 'Kodi', 'Rune', 'Thistle', 'Blizz', 'Juniper'];
 function tameKind(e) { const k = e.sp || e.type; return TAME[k] ? k : null; }
-function isWeakTame(e) { const k = tameKind(e); return !!(S.tamer && k && e.alive && e.hp > 0 && e.hp / e.max <= TAME[k].at); }
+function isWeakTame(e) { const k = tameKind(e); return !!(S.tamer && k && !e.noTame && e.alive && e.hp > 0 && e.hp / e.max <= TAME[k].at); }
 function grantCharm(why) { if (S.tamer) return; S.tamer = true; banner('Beast Charm!', true, (why ? why + ': ' : '') + 'weaken a rabbit, wolf, bear, tiger, eagle or dragon, then tap Tame'); play('treasure'); }
 let tameTgt = null, taming = 0, pet = null;
 function tameCandidate() {
@@ -2478,6 +2482,7 @@ function tameCandidate() {
 }
 function updateTaming(dt) {
   const btn = $('tameBtn'), c = taming > 0 ? tameTgt : tameCandidate();
+  $('tameNo').hidden = !c || !c.alive || taming > 0; $('tameNo').onclick = e => { e.stopPropagation(); if (c) c.noTame = true; };
   if (!c || !c.alive) { btn.hidden = true; taming = 0; tameTgt = null; return; }
   const T = TAME[tameKind(c)]; btn.hidden = false;
   if (taming > 0) {
@@ -2495,6 +2500,7 @@ function tameIt(c) {
   if (c.kind === 'yak') setTimeout(() => { if (!isGuest()) spawnYak(undefined, undefined, undefined, c.sp); }, 20000);
   if (pet) dropPet();
   S.pet = { type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: T.hp * (1 + (S.lvl - 1) * 0.08), max: T.hp * (1 + (S.lvl - 1) * 0.08) };
+  setTimeout(() => { const n = prompt('Name your ' + T.n.toLowerCase() + ':', S.pet.name); if (n && n.trim() && S.pet) { S.pet.name = n.trim().slice(0, 14); if (pet) pet.tag.textContent = S.pet.name; } }, 300);
   spawnPet(); banner(S.pet.name + ' the ' + T.n.toLowerCase() + ' joins you!', true, 'Pets fight beside you; if they fall, they are gone for good'); play('revive'); gainXP(20);
 }
 function spawnPet() {
@@ -2528,7 +2534,7 @@ function updatePet(dt) {
   pet.tag.hidden = d2(pet.x, pet.z, player.x, player.z) > 30 * 30; if (!pet.tag.hidden) { pet.tag.textContent = P.name; place(pet.tag, pet.x, 1.9 + T.size + (T.fly ? 2.2 : 0), pet.z); }
 }
 $('tameBtn').addEventListener('click', e => { e.stopPropagation(); if (!taming) { tameTgt = tameCandidate(); if (tameTgt) { taming = 0.001; play('spell'); } } });
-['pointerdown', 'touchstart', 'mousedown'].forEach(ev => $('tameBtn').addEventListener(ev, e => e.stopPropagation()));
+['pointerdown', 'touchstart', 'mousedown'].forEach(ev => { $('tameBtn').addEventListener(ev, e => e.stopPropagation()); $('tameNo').addEventListener(ev, e => e.stopPropagation()); });
 function playerAttack() {
   const A = AXE[S.axe], R2 = A.range * A.range, cands = [], dmg = A.dmg * heroDmg();
   for (const e of enemies) if (e.alive && !isWeakTame(e) && d2(e.x, e.z, player.x, player.z) < R2 * (e.type === 'yeti' ? 1.6 : 1.1)) cands.push([0, e]);
@@ -3415,7 +3421,7 @@ function heroItems() {
     pack: { label: 'Pack', svg: pic('pack', S.bag, icon('pack', S.bag)), name: 'Pack (' + cap() + ' items)', info: 'Holds ' + cap() + ' resources. Bigger packs at the blacksmith.' },
     tool: { label: 'Tool', svg: pic('pick', 0, icon('pick')), empty: !S.pick, name: S.pick ? 'Crystal Pick' : 'No pick', info: S.pick ? 'Mines crystal veins in the far wilds.' : 'Forge a crystal pick at the blacksmith (Town Hall II).' },
     charm: { label: 'Charm', svg: pic('charm', 0, icon('charm')), empty: !S.tamer, name: S.tamer ? 'Beast Charm' : 'No charm', info: S.tamer ? 'Lets you tame weakened creatures.' : 'Slay a quest legend, reach level 10 or find one in treasure.' },
-    pet: { label: 'Pet', svg: S.pet ? pic('pet', 0, icon('pet', PET_COL[S.pet.type])) : icon('pet', '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health' : 'Tame one with a Beast Charm.' },
+    pet: { label: 'Pet', svg: S.pet ? pic('pet', 0, icon('pet', PET_COL[S.pet.type])) : icon('pet', '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health. <button type="button" data-rename="1">Rename</button>' : 'Tame one with a Beast Charm.' },
   };
   const inv = [];
   (S.rangedOwn || []).forEach(i => inv.push({ svg: pic('ranged', i, icon('ranged', i)), name: RANGED[i].n, on: S.rangedOn === i, act: 'ranged:' + i, info: (RANGED[i].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[i].rng + ' m range. Tap to carry.' }));
@@ -3487,6 +3493,7 @@ function showStatsOld() {
 $('statsBtn').addEventListener('click', e => { e.stopPropagation(); heroTab = 'gear'; heroPick = null; showStats(); });
 $('closeStats').addEventListener('click', () => { $('stats').hidden = true; });
 $('statsBody').addEventListener('click', e => {
+  if (e.target.closest('[data-rename]') && S.pet) { e.stopPropagation(); const n = prompt('Rename your pet:', S.pet.name); if (n && n.trim()) S.pet.name = n.trim().slice(0, 14); showHero(); return; }
   const tb = e.target.closest('[data-tab]'); if (tb) { e.stopPropagation(); heroTab = tb.dataset.tab; heroPick = null; showStats(); return; }
   const pk = e.target.closest('[data-pick]'); if (pk) { e.stopPropagation(); const v = pk.dataset.pick;
     if (v.startsWith('ranged:')) { S.rangedOn = +v.slice(7); applyMyLook(); play('pay'); }

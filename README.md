@@ -124,6 +124,6 @@ Finishing a new wall ring tears down the old one and clears the forest inside it
 - Workers have health. Raiders and camp monsters go after workers caught outside the walls first, and a worker who dies drops what they carried.
 - Every corner of every wall ring has a watchtower spot.
 - **Tower range** (Blacksmith): Spyglasses, High Perches and Eagle Eyes add +4 m range to every tower per level.
-- **Guards** hold the north gate and fight raiders nearby. **Watchtowers** shoot anything in range.
+- **Guards** spread across all four gates (north, south, east, west in turn) and fight raiders nearby. **Watchtowers** shoot anything in range.
 - **Raids** come once a night, at nightfall, and grow every night. Raiders are a mix: wolves and goblins at first, then spiders and bears, then trolls, yetis and wraiths. Raiders who can't break through give up after 3 minutes, and yetis join from wave 4. Raiders chew through walls; broken sections show a cheaper rebuild pad. Your hero can be knocked out, which spills the pack on the ground.
 - **Hero levels** come from gathering, building, selling and fighting, and add damage and health.
