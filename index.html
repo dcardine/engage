@@ -4176,7 +4176,7 @@ function becomeHost() {
   banner('Co-op open!', true, 'Anyone who opens this page and taps Co-op joins your town');
 }
 function becomeGuest(peer) {
-  NET.mode = 'guest'; NET.host = peer; NET.hostSeen = time; S.step = 3; loadPersonal();
+  NET.mode = 'guest'; NET.host = peer; NET.hostSeen = time; S.step = 3; loadPersonal(); restoreGuest();
   yaks.forEach(y => { scene.remove(y.g); y.bar.remove(); }); yaks.length = 0;
   $('coop').textContent = 'Leave co-op';
   banner('Joined co-op!', true, 'You are playing in the host’s town');
@@ -4293,7 +4293,7 @@ $('coop').addEventListener('click', e => {
   if (NET.mode === 'solo') { if (NET.room) return; if (ON_CLAUDE) startCoop(false); else { $('lobbyMsg').textContent = ''; $('lobby').hidden = false; } return; }
   if (isGuest()) { location.reload(); return; }
   NET.room.leave().catch(() => {}); NET.room = null; NET.mode = 'solo'; for (const k in NET.remotes) dropRemote(k);
-  try { sessionStorage.removeItem('frost-host'); } catch (e) {}
+  try { sessionStorage.removeItem('frost-host'); sessionStorage.removeItem('frost-guest'); } catch (e) {}
   $('coop').textContent = 'Co-op'; $('netTxt').hidden = true; $('inviteBtn').hidden = true; banner('Co-op closed', true);
 });
 
@@ -4306,6 +4306,15 @@ let heroReady = false;   // only save the hero once it has been loaded, so a rej
 function savePersonal() {
   if (loading || !heroReady) return; const h = { lv: { axe: padAxe.level, bag: padBag.level, ranged: padRanged.level, run: padRun.level }, pickB: !!B.pick }; HERO_KEYS.forEach(k => { h[k] = S[k]; });
   try { localStorage.setItem('frosthold-hero', JSON.stringify(h)); } catch (e) {}
+  // a guest also keeps their gold, pack, health and spot for this room, so a rejoin puts them back where they were
+  if (isGuest()) try { sessionStorage.setItem('frost-guest', JSON.stringify({ room: ROOM_CODE || 'claude', wallet: S.wallet, hp: S.hp, x: player.x, z: player.z, carry: { log: carry.log.length, meat: carry.meat.length, stone: carry.stone.length, ore: carry.ore.length } })); } catch (e) {}
+}
+function restoreGuest() {
+  let g = null; try { g = JSON.parse(sessionStorage.getItem('frost-guest')); } catch (e) {}
+  if (!g || g.room !== (ROOM_CODE || 'claude')) return;
+  S.wallet = g.wallet || 0; S.hp = Math.max(1, g.hp || heroMax()); player.x = g.x; player.z = g.z;
+  for (const t in g.carry) for (let i = 0; i < g.carry[t]; i++) addToStack(t);
+  banner('Welcome back!', true, 'Your gold, pack and gear are just as you left them');
 }
 function loadPersonal() {
   heroReady = true; let h = null; try { h = JSON.parse(localStorage.getItem('frosthold-hero')); } catch (e) {} if (!h) return;
@@ -4395,6 +4404,7 @@ if (coopBoot === 'join') startCoop(true, bootCode, false);
 else if (hostBoot && !ON_CLAUDE) { loadGame(); setTimeout(() => { banner('Reopening your co-op room', true, 'Room ' + hostBoot); startCoop(false, hostBoot, true, true); }, 800); }
 else { loadGame(); if (hashJoin && !ON_CLAUDE) { history.replaceState(null, '', location.pathname); setTimeout(() => startCoop(false, hashJoin.toUpperCase(), false), 600); } }
 setInterval(saveGame, 8000);
+addEventListener('pagehide', () => savePersonal());
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { saveGame(); hiddenAt = Date.now(); return; }
