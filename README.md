@@ -5,6 +5,8 @@ An original survival and town-building game for phones and desktop browsers. Lea
 Open `index.html` in a browser. There is no build step; three.js r128 loads from cdnjs. This file is also the in-game **Help** (cog menu), so keep it up to date with every change.
 
 ## Getting started
+![The camp at the start](assets/help/start.jpg)
+![Chopping: logs stack on your back](assets/help/chop.jpg)
 - **Move:** drag anywhere on the screen for a floating joystick, or use WASD / arrow keys.
 - **Gather:** your axe swings on its own at trees, rocks, animals and enemies in reach. What you gather stacks on your back.
 - **Build and buy:** stand on a glowing build space to pay for it with what you carry and your gold.
@@ -13,6 +15,7 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 - A new game starts with a short **Tutorial**; **Skip tutorial** closes it, and **Tutorial** in the cog menu replays it.
 
 ## Survival
+![Handing logs to the firewood stall](assets/help/stall.jpg)
 - **Warmth:** every villager burns firewood. Sell logs at the firewood stall to keep the warmth meter up. Each log gives 1 warmth at Town Hall I, 2 at II and 3 at III, and bigger towns buy faster. Blizzards (winter, from Town Hall II) burn firewood 2.5× faster.
 - **Food:** once the cookhouse is built, villagers also eat. Sell meat, fish and veggies there; each food item lasts three times as long as a log.
 - If either meter hits zero, villagers start dying. Lose them all and Frosthold falls.
@@ -26,6 +29,7 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 - **Fishery** (Town Hall II) and **fishing** (see below).
 
 ## Fishing
+![Fishing at a lake](assets/help/fishing.jpg)
 Stand still at a lake's edge (or out on the ice in winter, where you cut a hole) and you cast automatically. After a few seconds you catch 2–4 fish, more at far lakes. Now and then you reel in a sunken treasure chest. Fishing stops if raiders are close.
 
 ## Days, nights and seasons
@@ -42,6 +46,7 @@ Stand still at a lake's edge (or out on the ice in winter, where you cut a hole)
 - **Guards** (Barracks, Town Hall II) post at all four gates, north, south, east and west in turn, and fight raiders nearby.
 
 ## Building the town
+![A growing town with workers and piles](assets/help/town.jpg)
 | Tier | Goal | Unlocks |
 |---|---|---|
 | Camp (Town Hall I) | Rebuild the camp palisade | Cookhouse, garden, houses, watchtowers, blacksmith, logger lodge |
@@ -51,6 +56,7 @@ Stand still at a lake's edge (or out on the ice in winter, where you cut a hole)
 Finishing a new wall ring tears down the old one and clears the forest inside it. Town Hall upgrades need the current ring fully secured.
 
 ## Castle and the final battles
+![A castle keep: stone walls and cobbled ground](assets/help/castle.jpg)
 After Town Hall III and the citadel wall, the Town Hall space offers **Castle I, II and III**. Each level:
 - turns the hall into a bigger stone keep, every wall into brick stone with battlements, towers into round stone towers, gates into stone gatehouses, and paves the keep with cobblestones;
 - makes walls, towers and guards much stronger, adds housing, and allows two more **guard battalions** (Train Battalion raises three guards at once);
@@ -70,6 +76,7 @@ At **Castle III** the final battles begin: each night brings a **dragon siege** 
 Three gold-only upgrade spaces sit around the plaza: comfort (supplies last longer), trade (more income) and folk (hero, workers and towers). Later upgrades wait for Town Hall II and III.
 
 ## Your hero
+![The Hero screen](assets/help/hero.jpg)
 - **Hero levels** come from gathering, building, selling and fighting, and add damage and health.
 - **Personal blacksmith upgrades:** axes (Twin Axes, Axe III, IV), packs (100, 200, 400), the **Crystal Pick** (to mine crystal), **boots** (Fur Boots, Runner Boots, Windwalkers: +12% speed each) and **ranged weapons** (below). In co-op each player buys their own.
 - **The Hero screen** (cog → Hero): your 3D hero in their gear, equipment slots, an inventory of everything you own (tap an item to see it or equip it), plus Stats, Town and Relics tabs, and your name and coat colour.
@@ -79,6 +86,7 @@ Three gold-only upgrade spaces sit around the plaza: comfort (supplies last long
 A ranged weapon fires on its own at the nearest threat in range, alongside your axes. **Hunting Bow** (12 m), **Crossbow** (Town Hall II) and **Rifle** (Town Hall III) are forged at the blacksmith. Magic staffs come from treasure: the **Frost Staff** slows, the **Fire Staff** explodes, and the **Storm Staff** throws lightning that jumps to two more foes.
 
 ## Pets
+![A pet wolf following you](assets/help/pet.jpg)
 - Only a hero with a **Beast Charm** can tame. Earn one by slaying a quest legend, reaching hero level 10, or (rarely) from a treasure chest.
 - Weaken a rabbit, eagle, wolf, bear, raptor, sabre tiger or ice dragon. When it's weak enough, a **Tame** button appears (with your odds) and a **Fight on** button lets you finish it off instead.
 - Stand still beside it for two seconds. A failed attempt lets it recover some health.
@@ -87,6 +95,7 @@ A ranged weapon fires on its own at the nearest threat in range, alongside your 
 - You keep one pet at a time. A pet that falls is gone for good.
 
 ## The wilds
+![Ice spires and beast lairs in the far wilds](assets/help/beast.jpg)
 - The valley spans about 690 m. The minimap starts dark and reveals what you and teammates explore; drag it to move it anywhere on screen.
 - **Monster camps** guard treasure chests (orange easy, red medium, purple dangerous, gold once cleared). Spiders, goblins and wolves near the fort; bears and trolls farther out; wraiths and golems at the edges. Goblins throw spears, trolls hurl rocks and wraiths cast chilling frost orbs: keep moving to dodge.
 - **Beast lairs** past 250 m: raptors and sabre tigers, then mammoths, T-rexes and giant ice dragons past 300 m. They prowl and spot you from far away, but give the best loot.
@@ -101,6 +110,8 @@ Chests give weapons (Frostbite Axe up to Dragonbone Axe), armour (Fur Jerkin up 
 The Town Hall offers one quest at a time (the Quest card): hunt animals, collect resources, defeat a kind of monster, clear camps, or slay a named **legend** marked with a gold **!** on the minimap. Rewards: gold, XP and a reward chest.
 
 ## Dungeons
+![A dungeon entrance](assets/help/dungeon_door.jpg)
+![Inside a dungeon](assets/help/dungeon.jpg)
 Twelve cave entrances lie 200–315 m out (purple squares on the minimap). Tap **Enter dungeon** to play a 2D side-scrolling level: run, jump over pits and ice spikes, stomp or axe slimes, skeletons and bats, and reach the chest at the end. Your health, gear and looks come with you. Controls: on-screen arrows, attack and jump buttons (or A/D, W/Space, J). Win for a treasure chest; fall in battle and you're back at the entrance. A cleared dungeon refills after two days.
 
 ## Knockouts and revives
@@ -109,6 +120,7 @@ Twelve cave entrances lie 200–315 m out (purple squares on the minimap). Tap *
 - **Med kits** (Med Center, or treasure): stand next to a downed teammate for two seconds to revive them.
 
 ## Screen and menu
+![The cog menu](assets/help/menu.jpg)
 - Tap a resource counter to **drop** it (all or 10) or **stop collecting** it. While collecting is off you still chop, mine and hunt, but nothing of that kind goes into your pack, and you can't load it from piles.
 - The **cog** (bottom left) holds Help, Tutorial, Co-op, Hero, Pause, Sound and New game, switches to hide the goal, quest, town gauges, resources or minimap, and a switch for each kind of sound.
 

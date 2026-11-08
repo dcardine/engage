@@ -132,6 +132,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #helpQ{font:800 15px var(--body);padding:9px 11px;border:2px solid #c9d6e8;border-radius:10px;margin-bottom:8px}
 #helpBody{overflow-y:auto;font:600 14px/1.45 var(--body)}
 #helpBody details{border-bottom:1px solid #dfe6f0;padding:6px 0}#helpBody summary{cursor:pointer;font:16px/1.3 var(--display);color:#2b4a74;letter-spacing:.02em}
+#helpBody figure{margin:8px 0;text-align:center}#helpBody figure img{width:auto;max-width:100%;max-height:240px;border-radius:12px;border:2px solid #c9d6e8;box-shadow:0 4px 12px rgba(0,0,0,.15)}#helpBody figcaption{font:700 12px var(--body);color:#5a6a80;margin-top:3px}
 #helpBody h4{margin:8px 0 2px;font:14px var(--display);color:var(--ember)}#helpBody ul{margin:4px 0;padding-left:18px}#helpBody p{margin:6px 0}
 #helpBody table{border-collapse:collapse;font-size:12px;margin:6px 0}#helpBody td,#helpBody th{border:1px solid #dfe6f0;padding:3px 5px;text-align:left}
 #closeHelp{margin-top:10px;border:0;background:#2b4a74;color:#fff;font:15px var(--display);padding:11px;border-radius:12px;cursor:pointer}
@@ -2191,6 +2192,7 @@ function mdSections(md) {
     if (!cur) { if (line.trim() && !/^# /.test(line)) { cur = { t: 'About Frosthold', h: '' }; out.push(cur); } else continue; }
     if (/^\s*[-*] /.test(line)) { if (tbl) { cur.h += '</table>'; tbl = false; } if (!list) { cur.h += '<ul>'; list = true; } cur.h += '<li>' + inl(line.replace(/^\s*[-*] /, '')) + '</li>'; continue; }
     if (/^\|/.test(line)) { if (/^\|[-| ]+\|$/.test(line.trim())) continue; if (!tbl) { cur.h += '<table>'; tbl = true; } cur.h += '<tr>' + line.trim().slice(1, -1).split('|').map(c => '<td>' + inl(c.trim()) + '</td>').join('') + '</tr>'; continue; }
+    const im = line.match(/^!\[(.*?)\]\((.+?)\)$/); if (im) { close(); cur.h += `<figure><img src="${esc(im[2])}" alt="${esc(im[1])}" loading="lazy"><figcaption>${esc(im[1])}</figcaption></figure>`; continue; }
     if (/^### /.test(line)) { close(); cur.h += '<h4>' + inl(line.slice(4)) + '</h4>'; continue; }
     close(); if (line.trim() && !/index\.html|README/.test(line)) cur.h += '<p>' + inl(line) + '</p>';
   }
