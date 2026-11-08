@@ -1498,7 +1498,7 @@ function genLevel(d) {
       }
     }
     if (x > 10 && x < W - 10 && rnd() < 0.55) {   // a floating ledge with coins
-      const px = x - 3 - (rnd() * 3 | 0), py = ground - 3 - (rnd() * 2 | 0), len = 3 + (rnd() * 3 | 0);
+      const px = x - 3 - (rnd() * 3 | 0), py = ground - 3, len = 3 + (rnd() * 3 | 0);
       for (let k = 0; k < len; k++) { set(px + k, py, 1); if (rnd() < 0.6) coins.push({ x: px + k + 0.5, y: py - 1 }); }
     }
   }
@@ -1555,7 +1555,7 @@ function dungeonStep(dt) {
   const want = (dunKeys.r || keys['d'] || keys['arrowright'] ? 1 : 0) - (dunKeys.l || keys['a'] || keys['arrowleft'] ? 1 : 0);
   const speed = 7 * (1 + S.speedBonus * 0.5 + (S.runLv || 0) * 0.08);
   D.vx += (want * speed - D.vx) * Math.min(1, dt * (D.ground ? 14 : 6)); if (want) D.face = want;
-  if ((dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.ground) { D.vy = -15.5; D.ground = false; play('cast'); }
+  if ((dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.ground) { D.vy = -18.5; D.ground = false; play('cast'); }
   if (!(dunKeys.jump || keys['w'] || keys[' '] || keys['arrowup']) && D.vy < -6) D.vy = -6;   // short hop on a tap
   D.vy = Math.min(22, D.vy + 42 * dt);
   // move with tile collision, one axis at a time
@@ -1569,7 +1569,7 @@ function dungeonStep(dt) {
   D.y = ny;
   if (solidAt(L, D.x, D.y - 0.2) === 2) hurtDun(L.dmg);
   if (!DUN) return;
-  if (D.y > L.H + 2) { hurtDun(L.dmg * 1.5); if (!DUN) return; D.x = D.safeX - D.face * 1.5; D.y = 2; D.vy = 0; D.inv = 1.5; }   // fell into a pit
+  if (D.y > L.H + 2) { hurtDun(L.dmg * 1.5); if (!DUN) return; D.x = D.safeX - D.face * 0.6; D.y = 2; D.vy = 0; D.vx = 0; D.inv = 1.5; }   // fell into a pit: back on the last solid ground
   D.inv -= dt; D.atk -= dt; D.swing -= dt; D.rcd -= dt;
   // axe swing
   if ((dunKeys.atk || keys['j'] || keys['k'] || keys['x']) && D.atk <= 0) {
@@ -1637,6 +1637,25 @@ function drawHero(c, x, y, T, face, swing) {
   c.fillStyle = '#8a5a36'; c.fillRect(-T * 0.04, -T * 0.55, T * 0.08, T * 0.6); c.fillStyle = css(WEAPON_COL[S.weapon + 1] || WEAPON_COL[0]); c.fillRect(-T * 0.02, -T * 0.6, T * 0.3, T * 0.24); c.restore();
   c.restore();
 }
+// the dungeon hero as a pixel sprite: every part is a block on a 1-pixel grid (16 px = one tile)
+function drawBlockHero(c, x, y, face, swing, run, t) {
+  const look = myLook(), coat = css(PROFILE.color), P = (dx, dy, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x + (face > 0 ? dx : -dx - w)), Math.round(y + dy), w, h); };
+  const step = run > 1 ? ((t * 10 | 0) % 2) : 0;
+  if (look[3]) P(-6, -17, 4, 12, css([0, 0xc8452f, 0x8d97a4, 0x5b3fa3, 0x3fb8a8][look[3]]));            // cape
+  if (look[4] >= 0) P(-7, -21, 2, 14, look[4] === 2 ? '#3a3f48' : '#6b4a2d');                          // ranged weapon on the back
+  if (look[4] >= 3) P(-8, -24, 4, 4, css([0x9fe8ff, 0xff7a3d, 0xcfe8ff][look[4] - 3]));
+  P(-4, -4, 3, 4 - step, '#3a2a1e'); P(1, -4, 3, 3 + step, '#3a2a1e');                                  // boots
+  P(-4, -6, 8, 2, '#4a3424');                                                                           // belt and legs
+  P(-5, -14, 10, 8, coat); P(-5, -14, 10, 1, 'rgba(255,255,255,.25)');                                  // coat
+  if (look[1] >= 0) { const a = css(ARMOR_COL[look[1]]); P(-6, -14, 3, 3, a); P(3, -14, 3, 3, a); if (look[1] >= 1) P(-2, -12, 4, 4, a); }
+  P(-5, -22, 10, 8, '#4fa8d8');                                                                         // hood
+  P(-2, -20, 6, 5, '#f3e6cf'); P(2, -19, 1, 2, '#1d2128');                                              // face and eye
+  if (look[2]) { const hc = [0, '#d9cbb0', '#8f99a6', '#aab4c0', '#f2c14e'][look[2]]; P(-5, -24, 10, 3, hc);
+    if (look[2] === 2) { P(-7, -27, 2, 4, '#f1ead8'); P(5, -27, 2, 4, '#f1ead8'); }
+    if (look[2] === 4) { P(-4, -26, 2, 2, hc); P(-1, -27, 2, 3, hc); P(2, -26, 2, 2, hc); } }
+  const up = swing > 0, ax = up ? 3 : 5, ay = up ? -24 : -13;                                           // axe: raised mid-swing
+  P(ax, ay, 2, 9, '#8a5a36'); P(ax + 2, ay + (up ? 0 : 6), 4, 4, css(WEAPON_COL[S.weapon + 1] || WEAPON_COL[0]));
+}
 function drawDungeon() {
   const D = DUN, L = D.L, main = dunCv(), mc = main.getContext('2d');
   const PX = Math.max(2, Math.round(Math.min(main.height / 11, main.width / 9) / 16)), buf = drawDungeon.buf || (drawDungeon.buf = document.createElement('canvas'));
@@ -1670,7 +1689,7 @@ function drawDungeon() {
     if (e.hp < e.max) { c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(ex - T * 0.4, ey - e.h * T - T * 0.5, T * 0.8, 5); c.fillStyle = '#e2483f'; c.fillRect(ex - T * 0.4, ey - e.h * T - T * 0.5, T * 0.8 * e.hp / e.max, 5); }
   }
   for (const s of D.shots) { const col = { arrow: '#f5f0e6', bullet: '#ffe08a', frost: '#9fe8ff', fire: '#ff7a3d', storm: '#cfe8ff' }[s.kind]; c.fillStyle = col; if (s.kind === 'arrow' || s.kind === 'bullet') c.fillRect(s.x * T - T * 0.25, s.y * T - 2, T * 0.5, 4); else { c.beginPath(); c.arc(s.x * T, s.y * T, T * 0.18, 0, TAU); c.fill(); c.globalAlpha = 0.4; c.beginPath(); c.arc(s.x * T - Math.sign(s.vx) * T * 0.3, s.y * T, T * 0.12, 0, TAU); c.fill(); c.globalAlpha = 1; } }
-  if (!(D.inv > 0 && (D.t * 12 | 0) % 2)) drawHero(c, D.x * T, D.y * T, T, D.face, D.swing);
+  if (!(D.inv > 0 && (D.t * 12 | 0) % 2)) drawBlockHero(c, D.x * T, D.y * T, D.face, D.swing, D.ground ? Math.abs(D.vx) : 0, D.t);
   c.restore();
   mc.imageSmoothingEnabled = false; mc.drawImage(buf, 0, 0, buf.width * PX, buf.height * PX);
   // three pixel hearts, then gold and progress
