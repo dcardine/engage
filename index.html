@@ -2474,7 +2474,7 @@ function damageYak(y, dmg, by) {
   }
 }
 function hurtHero(dmg) {
-  if (DUN) return;
+  if (DUN || paused) return;   // a paused co-op hero is safe while away
   if (S.downT > 0) return;
   dmg *= 1 - (S.armorLv >= 0 ? ARMORS[S.armorLv].a : 0);
   S.hp -= dmg; S.hurtT = 3; play('hurt'); burst(player.x, 1.2, player.z, 0xd9524b, 3, 2);
@@ -2852,7 +2852,7 @@ function gameOver() {
 function update(dt) {
   if (S.over) return;
   time += dt; S.time += dt;
-  readInput();
+  readInput(); if (paused) { input.x = input.y = 0; }
 
   /* --- hero --- */
   if (S.downT > 0) {
@@ -4419,7 +4419,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', saveGame);
 
 let last = performance.now(), paused = false;
-function setPaused(on) { paused = on; $('paused').hidden = !on; $('pause').textContent = on ? 'Resume' : 'Pause'; if (on) saveGame(); }
+function setPaused(on) { paused = on; $('paused').hidden = !on; $('paused').querySelector('small').textContent = NET.room ? 'Co-op keeps running for your friends · tap to resume' : 'Tap to resume'; $('pause').textContent = on ? 'Resume' : 'Pause'; if (on) saveGame(); }
 $('pause').addEventListener('click', e => { e.stopPropagation(); closeMenu(); setPaused(!paused); });
 // ---- settings cog: every button lives in one menu; panels can be hidden ----
 function closeMenu() { $('menu').hidden = true; $('cog').setAttribute('aria-expanded', 'false'); }
@@ -4450,7 +4450,7 @@ $('paused').addEventListener('click', () => setPaused(false));
 window.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'Escape') setPaused(!paused); });
 function frame(now) {
   let dt = Math.min(0.15, (now - last) / 1000); last = now;
-  if (paused) dt = 0;
+  if (paused && !NET.room) dt = 0;   // in co-op the shared world can't stop: pausing only covers your screen
   const ddt = dt;
   while (dt > 0.0001) { const step = Math.min(dt, 0.04); update(step); dt -= step; }
   if (DUN) dungeonStep(ddt); else renderer.render(scene, camera);
