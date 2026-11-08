@@ -112,7 +112,7 @@ The Town Hall offers one quest at a time (the Quest card): hunt animals, collect
 ## Dungeons
 ![A dungeon entrance](assets/help/dungeon_door.jpg)
 ![Inside a dungeon](assets/help/dungeon.jpg)
-Twelve cave entrances lie 200–315 m out (purple squares on the minimap). Tap **Enter dungeon** to play a 2D side-scrolling level: run, jump over pits and ice spikes, stomp or axe slimes, skeletons and bats, and reach the chest at the end. Your health, gear and looks come with you. Controls: on-screen arrows, attack and jump buttons (or A/D, W/Space, J). Win for a treasure chest; fall in battle and you're back at the entrance. A cleared dungeon refills after two days.
+Twelve cave entrances lie 200–315 m out (purple squares on the minimap). Tap **Enter dungeon** to play a 2D side-scrolling level: run, jump over pits and ice spikes, stomp or axe slimes, skeletons and bats, and reach the chest at the end. Dungeons are drawn in a chunky pixel-block style. You have **three hearts** (top left): every hit, spike or fall costs one, and losing all three sends you back to the entrance. Your gear and looks come with you. Controls: on-screen arrows, attack and jump buttons (or A/D, W/Space, J). Reach the chest for a treasure chest. A cleared dungeon refills after two days.
 
 ## Knockouts and revives
 - You respawn at the Town Hall a few seconds after being knocked out; your pack spills where you fell.
