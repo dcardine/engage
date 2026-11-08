@@ -7,10 +7,10 @@ Open `index.html` in a browser. There is no build step; three.js r128 loads from
 ## Getting started
 ![The camp at the start](assets/help/start.jpg)
 ![Chopping: logs stack on your back](assets/help/chop.jpg)
-- **Move:** drag anywhere on the screen for a floating joystick, or use WASD / arrow keys.
+- **Move:** swipe (drag) anywhere on the screen for a floating joystick, or use WASD / arrow keys.
 - **Gather:** your axe swings on its own at trees, rocks, animals and enemies in reach. What you gather stacks on your back.
-- **Build and buy:** stand on a glowing build space to pay for it with what you carry and your gold.
-- **Sell:** stand at a stall's counter to hand over logs (firewood stall) or food (cookhouse). Villagers buy them for gold.
+- **Build and buy:** stand on a build space for a moment and it starts taking what you carry and your gold (the short pause stops you paying by accident when you walk across one).
+- **Sell:** stand in the dashed spot behind a stall's counter to hand over logs (firewood stall) or food (cookhouse). Villagers buy them for gold.
 - **The GOAL card** (top left) always says what to do next; the orange arrow on the ground points the way.
 - A new game starts with a short **Tutorial**; **Skip tutorial** closes it, and **Tutorial** in the cog menu replays it.
 

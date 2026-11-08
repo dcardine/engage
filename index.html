@@ -109,8 +109,8 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #paused{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(16,26,44,.45);color:#fff;font:40px/1 var(--display);pointer-events:auto;z-index:15}
 #paused small{font:800 14px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;opacity:.85}
 #pause:focus-visible,#mute:focus-visible,#again:focus-visible,#newg:focus-visible,#coop:focus-visible,#logdest:focus-visible{outline:3px solid var(--ember);outline-offset:2px}
-#hint{bottom:calc(118px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);color:var(--ink);opacity:.7;
-  font:800 13px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;transition:opacity .6s;white-space:nowrap}
+#hint{bottom:calc(118px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);color:#fff;opacity:.95;
+  font:30px/1 var(--display);letter-spacing:.02em;-webkit-text-stroke:2px #16233a;text-shadow:0 3px 0 #16233a;transition:opacity .6s;white-space:nowrap}
 #joy{position:fixed;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:rgba(22,35,58,.16);
   border:2px solid rgba(255,255,255,.7);pointer-events:none;display:none;z-index:6}
 #joy i{position:absolute;left:50%;top:50%;width:50px;height:50px;margin:-25px 0 0 -25px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.25)}
@@ -229,7 +229,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 <div class="dact"><button id="dunA" type="button" aria-label="Attack">&#9876;</button><button id="dunJ" type="button" aria-label="Jump">&#10514;</button></div></div>
 <div id="givePanel" hidden><div class="box"><h2 id="giveHead">Give</h2><div id="giveList"></div><button id="giveClose" type="button">Done</button></div></div>
 <div id="tut" hidden><div class="tbox"><div class="thead"><span id="tutStep"></span><button id="tutSkip" type="button">Skip tutorial</button></div><b id="tutTitle"></b><p id="tutText"></p><div class="tfoot"><span id="tutTask"></span><button id="tutNext" type="button">Next</button></div></div></div>
-<div id="hint" class="hud">Drag anywhere to move</div>
+<div id="hint" class="hud">Swipe to move</div>
 <div id="paused" class="hud" hidden>Paused<small>Tap to resume</small></div>
 <div id="netbar" class="hud"><button id="cog" type="button" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.9a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg></button><span id="netTxt" hidden></span></div>
 <div id="menu" hidden><div class="box"><h2>Menu</h2>
@@ -1000,7 +1000,13 @@ const VCOLORS = [0x4f74c9, 0x7f55c4, 0xc45583, 0x3f9f92, 0xc9933f, 0x5f8a34, 0x3
 const stalls = [];
 function makeStall(cfg) {
   const s = Object.assign({ stock: 0, incoming: 0, counter: [], queue: [], dropT: 0, serveT: 0, sold: 0, received: 0, spawnT: 0 }, cfg);
-  s.drop = { x: s.x, z: s.z - 1.65 };
+  s.drop = { x: s.x, z: s.z - 2.5 };   // the stand spot, clear of the roof so it can be seen
+  { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 160; const c = cv.getContext('2d');   // dashed rounded outline: where to stand to hand goods over
+    c.fillStyle = 'rgba(122,74,38,.55)'; c.strokeStyle = '#ffffff'; c.shadowColor = 'rgba(22,35,58,.8)'; c.shadowBlur = 6; c.lineWidth = 14; c.setLineDash([30, 20]); c.lineCap = 'round';
+    c.beginPath(); c.roundRect ? c.roundRect(14, 14, 228, 132, 40) : c.rect(14, 14, 228, 132); c.fill(); c.stroke();
+    const spot = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.5), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
+    spot.rotation.x = -Math.PI / 2; spot.position.set(s.drop.x, 0.03, s.drop.z); spot.rotation.z = PAD_ROT; s.spot = spot; }
+  if (s.unlocked) scene.add(s.spot);
   const g = new THREE.Group(); g.position.set(s.x, 0, s.z); s.g = g; scene.add(g);
   const top = mk(Box(3.2, 0.18, 1.3), 0xc98b55); top.position.y = 0.85; g.add(top);
   [[-1.45, -0.5], [1.45, -0.5], [-1.45, 0.5], [1.45, 0.5]].forEach(([x, z]) => { const l = mk(Box(0.16, 0.85, 0.16), 0x8d5a35); l.position.set(x, 0.42, z); g.add(l); });
@@ -1016,7 +1022,7 @@ function makeStall(cfg) {
   s.unlocked = cfg.unlocked; g.visible = s.unlocked; s.pal.g.visible = s.unlocked; s.pal.on = s.unlocked;
   stalls.push(s); return s;
 }
-function openStall(s) { s.unlocked = true; s.g.visible = true; s.pal.g.visible = true; s.pal.on = true; popIn(s.g); }
+function openStall(s) { s.unlocked = true; s.g.visible = true; if (s.spot && !s.spot.parent) scene.add(s.spot); s.pal.g.visible = true; s.pal.on = true; popIn(s.g); }
 function slotPos(s, i) { return { x: s.x + (i > 3 ? (i - 3) * 1.1 : 0), z: s.z + 1.55 + Math.min(i, 3) * 1.15 }; }
 function counterSlot(s, i) { const k = i % 32, col = k % 4, row = Math.floor((k % 8) / 4), layer = Math.floor(k / 8); return new THREE.Vector3(s.x - 1.05 + col * 0.7, 0.94 + layer * ITEM_H[s.type] + ITEM_H[s.type] / 2, s.z - 0.25 + row * 0.5); }
 function stallReceive(s, wp) {
@@ -1764,7 +1770,7 @@ function drawPad(p) {
   p.tex.needsUpdate = true;
 }
 function makePad(cfg) {
-  const p = Object.assign({ level: 0, done: false, active: false, payT: 0, paid: {}, repeat: false, size: 2.3 }, cfg);
+  const p = Object.assign({ level: 0, done: false, active: false, payT: 0, paid: {}, repeat: false, size: 2.0 }, cfg);
   if (!p.costs) p.costs = [p.cost];
   const cv = document.createElement('canvas'); cv.width = cv.height = 256; p.ctx = cv.getContext('2d');
   p.tex = new THREE.CanvasTexture(cv);
@@ -2156,7 +2162,7 @@ const TUT = [
   { t: 'Welcome to Frosthold!', p: 'You lead a small settlement through a frozen wilderness. Keep your people warm and fed, build walls against raiders, and grow your camp into a citadel.' },
   { t: 'Move around', p: 'Drag anywhere on the screen to move (a joystick appears under your finger). On a keyboard use WASD or the arrow keys.', task: 'Walk a few steps', start: () => ({ x: player.x, z: player.z }), done: b => Math.hypot(player.x - b.x, player.z - b.z) > 4 },
   { t: 'Chop wood', p: 'Walk up to a tree: your axe swings on its own. Logs stack on your back. Trees grow back over time.', task: 'Collect 8 logs', done: () => carry.log.length >= 8 || fireStall.received > 0 },
-  { t: 'Keep your people warm', p: 'Villagers burn firewood. Walk to the firewood stall (blue roof) and stand on its counter: you hand over your logs, and villagers buy them for gold.', hi: 'town', task: 'Hand logs to the firewood stall', start: () => fireStall.received, done: b => fireStall.received > b },
+  { t: 'Keep your people warm', p: 'Villagers burn firewood. Walk to the firewood stall (blue roof) and stand in the dashed spot behind its counter: you hand over your logs, and villagers buy them for gold.', hi: 'town', task: 'Hand logs to the firewood stall', start: () => fireStall.received, done: b => fireStall.received > b },
   { t: 'Gold and resources', p: 'Your gold, logs, meat, stone and crystal are shown top right. Tap a counter to drop that resource or stop collecting it.', hi: 'res' },
   { t: 'Your goal', p: 'The GOAL card always tells you what to do next, and the orange arrow on the ground points the way. Follow it whenever you are unsure.', hi: 'quest' },
   { t: 'Build the walls', p: 'Raiders will come. Glowing build spaces show what they cost. Stand on one and you pay with what you carry: fix the broken palisade first.', task: 'Build a wall section', start: () => rings[0].segs.filter(sg => sg.built).length, done: b => rings[0].segs.filter(sg => sg.built).length > b || rings[0].complete },
@@ -3030,7 +3036,7 @@ function update(dt) {
     if (p.active !== was) { p.g.visible = p.active; if (p.active && time > 1 && p.kind !== 'wall') { burst(p.x, 0.5, p.z, 0xff8a3d, 8, 2); floatText('New: ' + padName(p).toLowerCase(), p.x, 1.6, p.z, 'xp'); } }
     if (!p.active) continue;
     const on = S.downT <= 0 && d2(player.x, player.z, p.x, p.z) < (p.size / 2) * (p.size / 2) * 1.2;
-    if (!on) { p.payT = 0.25; p.warned = false; continue; }
+    if (!on) { p.payT = 0.7; p.warned = false; continue; }   // stand on a space for a moment before it starts taking your goods
     if (p.canPay && !p.canPay()) { p.payT = 1; continue; }
     p.payT -= dt;
     for (let n = 0; n < 4 && p.payT <= 0; n++) {
