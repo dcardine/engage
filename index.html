@@ -657,7 +657,9 @@ const snowballTree = () => mergeParts([
 const TREE_GEOS = [pine(0x2f9467, 0x267d57), pine(0x37a06f, 0x2c895e), pine(0x24704f, 0x1c5b40), snowballTree()];
 const stumpGeo = Cyl(0.24, 0.28, 0.3, 7);
 const trees = [], rocks = [];
+const onLake = (x, z, m = 0) => LAKES.some(l => Math.hypot(l.x - x, l.z - z) < l.r + m);
 function clearSpot(x, z) {
+  if (onLake(x, z, 2.5)) return false;
   if (inSquare(x, z, TIERS[0], 2.5)) return false;
   if (Math.abs(x) < 3.5 && z < C.z) return false;
   if (x > 8 && x < 44 && z < -26) return false;
@@ -755,8 +757,8 @@ const CHOP = [];
   const far = (x, z, s) => pts.every(p => d2(p[0], p[1], x, z) > s * s);
   // stone quarries ring the middle distance; crystal veins only in the dangerous far reaches
   const polar = (r0, r1) => { const a = rand(0, TAU), r = rand(r0, r1); return [C.x + Math.cos(a) * r, C.z + Math.sin(a) * r]; };
-  for (let i = 0, n = 0; i < 9000 && n < 120; i++) { const [x, z] = polar(36, 220); if (x < -336 || x > 336 || z < -320 || z > 352) continue; if (far(x, z, 6)) { pts.push([x, z]); addRock(x, z, 'stone'); n++; } }
-  for (let i = 0, n = 0; i < 30000 && n < 90; i++) { const [x, z] = polar(i % 3 ? 300 : 255, 345); if (x < -334 || x > 334 || z < -318 || z > 350) continue; if (far(x, z, 7)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
+  for (let i = 0, n = 0; i < 9000 && n < 120; i++) { const [x, z] = polar(36, 220); if (x < -336 || x > 336 || z < -320 || z > 352) continue; if (far(x, z, 6) && !onLake(x, z, 4)) { pts.push([x, z]); addRock(x, z, 'stone'); n++; } }
+  for (let i = 0, n = 0; i < 30000 && n < 90; i++) { const [x, z] = polar(i % 3 ? 300 : 255, 345); if (x < -334 || x > 334 || z < -318 || z > 350) continue; if (far(x, z, 7) && !onLake(x, z, 4)) { pts.push([x, z]); addRock(x, z, 'gold'); n++; } }
   for (let i = 0, n = 0; i < 90000 && n < 2600; i++) {
     const x = rand(-338, 338), z = rand(-322, 354);
     if (Math.hypot(x - C.x, z - C.z) > 90 && rnd() < 0.45) continue;   // forest thins out far from the fort
@@ -3314,7 +3316,7 @@ function spawnCamp(far, opts) {
   const R = outerRing();
   let x, z, n = 0;
   do { if (opts) { const a = rand(0, TAU), r = rand(opts.r0, opts.r1); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else if (far) { const a = rand(0, TAU), r = rand(254, 340); x = clamp(C.x + Math.cos(a) * r, -330, 330); z = clamp(C.z + Math.sin(a) * r, -314, 346); } else { x = rand(-330, 330); z = rand(-314, 346); } n++; if (Math.hypot(x - C.x, z - C.z) < 65) continue; }
-  while (n < 120 && (Math.hypot(x - C.x, z - C.z) < 65 || (!far && !opts && Math.hypot(x - C.x, z - C.z) >= 248) || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
+  while (n < 120 && (onLake(x, z, 8) || Math.hypot(x - C.x, z - C.z) < 65 || (!far && !opts && Math.hypot(x - C.x, z - C.z) >= 248) || inSquare(x, z, R.h + 5) || d2(x, z, player.x, player.z) < 18 * 18 || wildCamps.some(c => d2(c.x, c.z, x, z) < 14 * 14) || (x > 8 && z < -26 && n < 40)));
   if (n >= 120) return;
   const tier = campTier(x, z);
   const camp = { x, z, tier, guards: [], open: false };
