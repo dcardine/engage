@@ -2549,12 +2549,13 @@ function tameIt(c) {
   c.alive = false; scene.remove(c.g); if (c.bar) c.bar.remove();
   if (c.kind === 'yak') setTimeout(() => { if (!isGuest()) spawnYak(undefined, undefined, undefined, c.sp); }, 20000);
   if (pet) dropPet();
-  S.pet = { type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: T.hp * (1 + (S.lvl - 1) * 0.08), max: T.hp * (1 + (S.lvl - 1) * 0.08) };
+  const sc0 = c.wild0 || ((c.big || 1) * (c.type === 'troll' ? 1.7 : c.type === 'goblin' ? 0.78 : 1) * (c.sc || 1));
+  S.pet = { sc: 0.8 * sc0, type: k, name: PET_NAMES[Math.random() * PET_NAMES.length | 0], hp: T.hp * (1 + (S.lvl - 1) * 0.08), max: T.hp * (1 + (S.lvl - 1) * 0.08) };
   setTimeout(() => { const n = prompt('Name your ' + T.n.toLowerCase() + ':', S.pet.name); if (n && n.trim() && S.pet) { S.pet.name = n.trim().slice(0, 14); if (pet) pet.tag.textContent = S.pet.name; } }, 300);
   spawnPet(); banner(S.pet.name + ' the ' + T.n.toLowerCase() + ' joins you!', true, 'Pets fight beside you; if they fall, they are gone for good'); play('revive'); gainXP(20);
 }
 function spawnPet() {
-  const P = S.pet, T = TAME[P.type]; const m = T.make(); m.g.scale.multiplyScalar(P.type === 'dragon' ? 0.55 : P.type === 'tiger' || P.type === 'bear' || P.type === 'raptor' ? 0.75 : 1);
+  const P = S.pet, T = TAME[P.type]; const m = T.make(); m.g.scale.setScalar(P.sc || 0.8);   // 80% of the creature's size when it was tamed
   scene.add(m.g); const tag = document.createElement('div'); tag.className = 'tag wtag'; ov.appendChild(tag);
   pet = { ...m, T, x: player.x - 1.5, z: player.z - 1.5, rot: 0, walkT: 0, atk: 0, tgt: null, bar: makeBar('ally'), tag, kind: 'pet', alive: true, sc: m.g.scale.x };
 }
