@@ -1866,11 +1866,11 @@ plot('towerB', { x: 9.6, z: 0.4, label: 'WATCHTOWER', cost: { log: 30, cash: 30 
 plot('smith', { x: -6, z: 20.4, label: 'BLACKSMITH', cost: { log: 40, cash: 30 }, req: () => S.cook, onBuy: () => { modelBlacksmith(-6, 20.4); banner('Blacksmith built!', true, 'Research upgrades at the forge'); } });
 plot('lodge', { x: 6, z: 20.4, label: 'LOGGER LODGE', cost: { log: 35 }, req: () => S.cook, onBuy: () => { modelHut(6, 20.4, 0x2b4a74, 'log', 'logger_lodge'); openPile(woodPile); banner('Logger lodge built!', true, 'Loggers stack wood on the woodpile for you'); } });
 plot('hireHaul', { x: 0, z: 18.4, label: 'HIRE HAULER', cost: { cash: 50 }, repeat: true, xp: 10,
-  requires: () => B.cook && B.lodge, canPay: () => hireOk('hauler'), hire: 'hauler', onBuy: () => spawnWorker('hauler', 0, 17) });
+  requires: () => B.cook && B.lodge && hireCount('hauler')[0] < hireCount('hauler')[1], canPay: () => hireOk('hauler'), hire: 'hauler', onBuy: () => spawnWorker('hauler', 0, 17) });
 plot('hireMend', { x: 8.2, z: 10.2, label: 'HIRE MENDER', cost: { log: 20, cash: 50 }, repeat: true, xp: 10,
-  requires: () => B.smith, canPay: () => hireOk('mender'), hire: 'mender', onBuy: () => spawnWorker('mender', 8.2, 9) });
+  requires: () => B.smith && hireCount('mender')[0] < hireCount('mender')[1], canPay: () => hireOk('mender'), hire: 'mender', onBuy: () => spawnWorker('mender', 8.2, 9) });
 plot('hireLog', { x: 3.2, z: 18, label: 'HIRE LOGGER', cost: { cash: 40 }, repeat: true, xp: 10,
-  requires: () => B.lodge, canPay: () => hireOk('logger'), hire: 'logger', onBuy: () => spawnWorker('logger', 6, 18.5) });
+  requires: () => B.lodge && hireCount('logger')[0] < hireCount('logger')[1], canPay: () => hireOk('logger'), hire: 'logger', onBuy: () => spawnWorker('logger', 6, 18.5) });
 // research at the blacksmith
 // twin axes are on sale in the plaza from the start
 const padAxe = plot('axe', { personal: true, x: 3, z: 7.6, labels: ['TWIN AXES', 'AXE III', 'AXE IV'], costs: [{ log: 40, cash: 90 }, { log: 90, stone: 45, cash: 300 }, { ore: 45, stone: 60, cash: 900 }], tiers: [1, 2, 3],
@@ -1908,14 +1908,14 @@ plot('houseE', { x: -16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 },
 plot('houseF', { x: 16.5, z: 6.5, label: 'HOUSE', cost: { log: 30, stone: 10 }, tier: 2, req: () => B.houseE, onBuy: () => { modelHouse(16.5, 6.5); S.houses++; banner('House built', true, '+4 housing'); } });
 plot('barracks', { x: -16.5, z: 14, label: 'BARRACKS', cost: { log: 60, stone: 30, cash: 100 }, tier: 2, onBuy: () => { modelBarracks(-16.5, 14); banner('Barracks built!', true, 'Train guards to defend the town'); } });
 const padTrain = plot('train', { x: -16.5, z: 18.4, label: 'TRAIN GUARD', cost: { meat: 8, cash: 40 }, repeat: true, xp: 10,
-  requires: () => B.barracks, canPay: () => hireOk('guard'), hire: 'guard', onBuy: () => { const n = S.castle ? Math.min(3, maxGuards() - guards.length) : 1; for (let i = 0; i < n; i++) spawnGuard(-16.5 + (i - 1) * 1.2, 16.2); if (n > 1) banner('A battalion musters!', true, n + ' guards join the garrison'); } });
+  requires: () => B.barracks && hireCount('guard')[0] < hireCount('guard')[1], canPay: () => hireOk('guard'), hire: 'guard', onBuy: () => { const n = S.castle ? Math.min(3, maxGuards() - guards.length) : 1; for (let i = 0; i < n; i++) spawnGuard(-16.5 + (i - 1) * 1.2, 16.2); if (n > 1) banner('A battalion musters!', true, n + ' guards join the garrison'); } });
 plot('hunt', { x: 16.5, z: 14, label: 'HUNTER LODGE', cost: { log: 40, cash: 60 }, tier: 2, onBuy: () => { modelHut(16.5, 14, 0x6b3a22, 'meat', 'hunter_lodge'); openPile(meatPile); banner('Hunter lodge built!', true, 'Hunters stack meat beside the lodge'); } });
 plot('hireHunt', { x: 13.4, z: 18.6, label: 'HIRE HUNTER', cost: { cash: 60 }, repeat: true, xp: 10,
-  requires: () => B.hunt, canPay: () => hireOk('hunter'), hire: 'hunter', onBuy: () => spawnWorker('hunter', 16.5, 16.3) });
+  requires: () => B.hunt && hireCount('hunter')[0] < hireCount('hunter')[1], canPay: () => hireOk('hunter'), hire: 'hunter', onBuy: () => spawnWorker('hunter', 16.5, 16.3) });
 plot('store', { x: -10, z: 27.4, label: 'WAREHOUSE', cost: { log: 50, cash: 60 }, tier: 2, onBuy: () => { storehouse = modelStorehouse(-10, 27.4); piles.forEach(syncPile); banner('Warehouse built!', true, 'Every pile now holds 300'); } });
 plot('cutter', { x: -16.5, z: 27.4, label: 'QUARRY LODGE', cost: { log: 40, cash: 80 }, tier: 2, onBuy: () => { modelHut(-16.5, 27.4, 0x55606e, 'stone', 'quarry_lodge'); openPile(stonePile); banner('Quarry lodge built!', true, 'Stonecutters stack stone beside the lodge'); } });
 plot('hireCut', { x: -13.2, z: 23.8, label: 'HIRE CUTTER', cost: { cash: 70 }, repeat: true, xp: 10,
-  requires: () => B.cutter, canPay: () => hireOk('stonecutter'), hire: 'stonecutter', onBuy: () => spawnWorker('stonecutter', -16.5, 25.4) });
+  requires: () => B.cutter && hireCount('stonecutter')[0] < hireCount('stonecutter')[1], canPay: () => hireOk('stonecutter'), hire: 'stonecutter', onBuy: () => spawnWorker('stonecutter', -16.5, 25.4) });
 plot('medc', { x: 18.6, z: 27.6, label: 'MED CENTER', cost: { log: 40, stone: 25, cash: 120 }, tier: 2,
   onBuy: () => { const g = modelHut(18.6, 28.2, 0xe8e2d6, 'meat'); const cr1 = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.06), basic(0xd9524b)); cr1.position.set(0, 1.25, 1.14); g.add(cr1); const cr2 = cr1.clone(); cr2.rotation.z = Math.PI / 2; g.add(cr2); skin(g, 'med_center', 3.6);
     banner('Med center built!', true, 'It revives you once every 5 minutes, and sells med kits'); } });
@@ -1929,7 +1929,7 @@ plot('mine', { requires: () => false, x: -14, z: -29.5, label: 'CRYSTAL MINE', c
 plot('trader', { x: goldStall.x, z: goldStall.z, label: 'CRYSTAL TRADER', cost: { log: 40, stone: 40, cash: 200 }, tier: 3, onBuy: () => { S.gold = true; openStall(goldStall); banner('Crystal trader open!', true, 'Sell crystals for gold'); } });
 plot('minerC', { x: -25.5, z: -12, label: 'MINER CAMP', cost: { log: 50, stone: 30, cash: 150 }, tier: 3, onBuy: () => { modelHut(-25.5, -12, 0x4a5568, 'ore', 'miner_camp'); openPile(goldPile); banner('Miner camp built!', true, 'Miners stack crystals beside the camp'); } });
 plot('hireMine', { x: -22, z: -8.4, label: 'HIRE MINER', cost: { cash: 120 }, repeat: true, xp: 10,
-  requires: () => B.minerC, canPay: () => hireOk('miner'), hire: 'miner', onBuy: () => spawnWorker('miner', -25.5, -10) });
+  requires: () => B.minerC && hireCount('miner')[0] < hireCount('miner')[1], canPay: () => hireOk('miner'), hire: 'miner', onBuy: () => spawnWorker('miner', -25.5, -10) });
 plot('bank', { x: -25, z: 35, label: 'TREASURY', cost: { stone: 60, ore: 20, cash: 300 }, tier: 3, onBuy: () => { modelBank(-25, 35); S.bank = true; S.priceMul *= 1.25; S.taxMul *= 1.25; banner('Treasury built!', true, 'Sales and taxes earn 25% more gold'); } });
 plot('carp', { x: 25, z: 35, label: 'CARPENTER', cost: { log: 80, stone: 30, cash: 200 }, tier: 3, onBuy: () => { modelBench(25, 35); S.carpenter = true; banner('Carpenter hired!', true, 'Damaged walls repair over time'); } });
 [[-25.5, 14], [-25.5, 20], [25.5, 14], [25.5, 20], [-25.5, 26], [25.5, 26]].forEach(([x, z], i) =>
@@ -2558,6 +2558,11 @@ function spawnPet() {
   pet = { ...m, T, x: player.x - 1.5, z: player.z - 1.5, rot: 0, walkT: 0, atk: 0, tgt: null, bar: makeBar('ally'), tag, kind: 'pet', alive: true, sc: m.g.scale.x };
 }
 function dropPet() { if (!pet) return; scene.remove(pet.g); pet.bar.remove(); pet.tag.remove(); pet = null; }
+function petXP(n) {
+  const P = S.pet; if (!P) return; P.lvl = P.lvl || 1; P.xp = (P.xp || 0) + n;
+  while (P.xp >= 40 + P.lvl * 30) { P.xp -= 40 + P.lvl * 30; P.lvl++; const add = TAME[P.type].hp * 0.15; P.max += add; P.hp = P.max;
+    banner(P.name + ' is now level ' + P.lvl + '!', true, '+15% damage and more health'); play('levelup'); if (pet) burst(pet.x, 1.5, pet.z, 0xf2c14e, 14, 3); }
+}
 function hurtPet(dmg) {
   if (!pet || !S.pet) return; S.pet.hp -= dmg; pet.hurtT = 3; burst(pet.x, 1, pet.z, 0xd9524b, 4, 2);
   if (S.pet.hp <= 0) { banner(S.pet.name + ' has fallen', false, 'Tame another with your Beast Charm'); play('alert'); burst(pet.x, 1, pet.z, 0x9aa4b1, 14, 3); dropPet(); S.pet = null; }
@@ -2572,15 +2577,15 @@ function updatePet(dt) {
   if (d2(pet.x, pet.z, player.x, player.z) > 45 * 45) { pet.x = player.x - 1; pet.z = player.z - 1; }
   else if (d > (t ? reach : 0.6)) { const sp = T.speed * (t ? 1 : Math.min(1, d / 3)); pet.x += (tx - pet.x) / d * sp * dt; pet.z += (tz - pet.z) / d * sp * dt; moving = true; pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.25); }
   else if (t) { pet.rot = turnTo(pet.rot, Math.atan2(tx - pet.x, tz - pet.z), 0.3); pet.atk -= dt;
-    if (pet.atk <= 0) { pet.atk = 1; const dmg = T.dmg * (1 + (S.lvl - 1) * 0.08), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
-      hitTarget(k, t, dmg); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
+    if (pet.atk <= 0) { pet.atk = 1; const dmg = T.dmg * (1 + (S.lvl - 1) * 0.08) * (1 + ((S.pet.lvl || 1) - 1) * 0.15), k = t.kind === 'enemy' ? 0 : t.kind === 'wild' ? 4 : 1;
+      hitTarget(k, t, dmg); if (!t.alive || t.hp <= 0) petXP(8 + (t.T ? t.T.xp : t.xp || 5) * 0.5); else petXP(1); if (T.breath) { burst(t.x, 1, t.z, 0x9fe8ff, 14, 3); for (const n of threats(t.x, t.z, 3.5)) if (n[1] !== t) hitTarget(n[0], n[1], dmg * 0.5); } } }
   if (!t && (pet.hurtT = (pet.hurtT || 0) - dt) <= 0) P.hp = Math.min(P.max, P.hp + P.max * 0.02 * dt);
   if (moving) pet.walkT += dt;
   pet.g.position.set(pet.x, T.fly ? 2.2 + Math.sin(time * 2) * 0.3 : 0, pet.z); pet.g.rotation.y = pet.rot;
   if (pet.wings) { const f = Math.sin(time * 10) * 0.6; pet.wings[0].rotation.z = f; pet.wings[1].rotation.z = -f; }
   else if (pet.legs && pet.legs.length >= 4) { const a = Math.sin(pet.walkT * 9) * 0.5; pet.legs[0].rotation.x = pet.legs[3].rotation.x = a; pet.legs[1].rotation.x = pet.legs[2].rotation.x = -a; }
   if (P.hp < P.max) setBar(pet.bar, P.hp / P.max, pet.x, 1.4 + T.size + (T.fly ? 2.2 : 0), pet.z); else pet.bar.hidden = true;
-  pet.tag.hidden = d2(pet.x, pet.z, player.x, player.z) > 30 * 30; if (!pet.tag.hidden) { pet.tag.textContent = P.name; place(pet.tag, pet.x, 1.9 + T.size + (T.fly ? 2.2 : 0), pet.z); }
+  pet.tag.hidden = d2(pet.x, pet.z, player.x, player.z) > 30 * 30; if (!pet.tag.hidden) { pet.tag.textContent = P.name + ' \u00b7 Lv ' + (P.lvl || 1); place(pet.tag, pet.x, 1.9 + T.size + (T.fly ? 2.2 : 0), pet.z); }
 }
 $('tameBtn').addEventListener('click', e => { e.stopPropagation(); if (!taming) { tameTgt = tameCandidate(); if (tameTgt) { taming = 0.001; play('spell'); } } });
 ['pointerdown', 'touchstart', 'mousedown'].forEach(ev => { $('tameBtn').addEventListener(ev, e => e.stopPropagation()); $('tameNo').addEventListener(ev, e => e.stopPropagation()); });
@@ -2952,7 +2957,7 @@ function update(dt) {
     if (!Pl.on) continue;
     Pl.tag.hidden = false; Pl.tag.textContent = Pl.label + ' ' + Pl.n + '/' + pileCap() + (Pl.n >= pileCap() ? ' · FULL' : ''); place(Pl.tag, Pl.x, 2.2, Pl.z);
     Pl.T -= dt; if (Pl.T < -0.2) Pl.T = 0;
-    for (let n = 0; n < 5 && S.downT <= 0 && Pl.T <= 0 && Pl.n > 0 && d2(player.x, player.z, Pl.x, Pl.z) < 2 && room() > 0; n++) {
+    for (let n = 0; n < 5 && S.downT <= 0 && Pl.T <= 0 && Pl.n > 0 && !S.noCollect[Pl.type] && d2(player.x, player.z, Pl.x, Pl.z) < 2 && room() > 0; n++) {
       Pl.T += 0.035; Pl.n--; syncPile(Pl);
       if (isGuest()) { NET.incoming++; netAct('p', piles.indexOf(Pl), 1); } else giveItem(Pl.type, new THREE.Vector3(Pl.x, 0.8, Pl.z));
     }
@@ -3015,6 +3020,10 @@ function update(dt) {
     const R = w.R; let moving = false;
     if (isGuest()) { moving = Math.hypot(w.nx - w.x, w.nz - w.z) > 0.03; w.x += (w.nx - w.x) * Math.min(1, dt * 8); w.z += (w.nz - w.z) * Math.min(1, dt * 8); w.rot = turnTo(w.rot, w.nrot || 0, 0.3); }
     else if (w.role === 'hauler' || w.role === 'mender') moving = specialWorker(w, dt);
+    else if (isNight() && (w.items.length ? (w.state = 'deliver', false) : true)) {   // night: drop off what they carry, then head home
+      const [hx, hz] = WORKER_HOME[w.role] || [0, 10]; w.tgt = null; w.state = 'seek';
+      if (d2(w.x, w.z, hx, hz) > 0.5) { walkTo(w, hx, hz, w.R.speed, dt); moving = true; }
+    }
     else if (w.state === 'seek') {
       if (!w.tgt || !w.tgt.alive || w.tgt.gone) w.tgt = findWork(w);
       const t = w.tgt;
@@ -3470,7 +3479,7 @@ function heroItems() {
     pack: { label: 'Pack', svg: pic('pack', S.bag, icon('pack', S.bag)), name: 'Pack (' + cap() + ' items)', info: 'Holds ' + cap() + ' resources. Bigger packs at the blacksmith.' },
     tool: { label: 'Tool', svg: pic('pick', 0, icon('pick')), empty: !S.pick, name: S.pick ? 'Crystal Pick' : 'No pick', info: S.pick ? 'Mines crystal veins in the far wilds.' : 'Forge a crystal pick at the blacksmith (Town Hall II).' },
     charm: { label: 'Charm', svg: pic('charm', 0, icon('charm')), empty: !S.tamer, name: S.tamer ? 'Beast Charm' : 'No charm', info: S.tamer ? 'Lets you tame weakened creatures.' : 'Slay a quest legend, reach level 10 or find one in treasure.' },
-    pet: { label: 'Pet', svg: S.pet ? pic('pet', 0, icon('pet', PET_COL[S.pet.type])) : icon('pet', '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health. <button type="button" data-rename="1">Rename</button>' : 'Tame one with a Beast Charm.' },
+    pet: { label: 'Pet', svg: S.pet ? pic('pet', 0, icon('pet', PET_COL[S.pet.type])) : icon('pet', '#888'), empty: !S.pet, name: S.pet ? S.pet.name + ' the ' + TAME[S.pet.type].n.toLowerCase() : 'No pet', info: S.pet ? 'Level ' + (S.pet.lvl || 1) + ' \u00b7 ' + Math.round(S.pet.hp) + '/' + Math.round(S.pet.max) + ' health. <button type="button" data-rename="1">Rename</button>' : 'Tame one with a Beast Charm.' },
   };
   const inv = [];
   (S.rangedOwn || []).forEach(i => inv.push({ svg: pic('ranged', i, icon('ranged', i)), name: RANGED[i].n, on: S.rangedOn === i, act: 'ranged:' + i, info: (RANGED[i].dmg * rangedMul()).toFixed(1) + ' damage, ' + RANGED[i].rng + ' m range. Tap to carry.' }));
