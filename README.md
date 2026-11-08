@@ -107,7 +107,7 @@ A ranged weapon fires on its own at the nearest threat in range, alongside your 
 Chests give weapons (Frostbite Axe up to Dragonbone Axe), armour (Fur Jerkin up to Dragonscale Plate), heart stones (+health), war runes (+damage), wind charms (+speed), storage charms (bigger piles), ember totems, yak totems, staffs, helmets, capes, med kits, the Beast Charm, gold and materials. Farther out means better loot.
 
 ## Quests
-The Town Hall offers one quest at a time (the Quest card): hunt animals, collect resources, defeat a kind of monster, clear camps, or slay a named **legend** marked with a gold **!** on the minimap. Rewards: gold, XP and a reward chest.
+The Town Hall offers one quest at a time (the Quest card): hunt animals, collect resources, defeat a kind of monster, clear camps, or slay a named **legend** marked with a gold **!** on the minimap. Quests match your hero: at the start they stay close to home (rabbits, deer, logs, fish, wolves and goblins), and tougher monsters and the named legends only appear as your hero levels up (legends from hero level 5 or Town Hall II). Rewards grow with the quest: gold, XP and a reward chest.
 
 ## Dungeons
 ![A dungeon entrance](assets/help/dungeon_door.jpg)

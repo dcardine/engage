@@ -2139,12 +2139,13 @@ function newQuest() {
   const th = S.th, pick = a => a[Math.random() * a.length | 0], opts = [];
   opts.push(() => { const sp = pick(th >= 2 ? ['deer', 'yak', 'boar', 'rabbit'] : ['rabbit', 'deer']); const n = { rabbit: 6, deer: 4, yak: 3, boar: 2 }[sp] + th; return { type: 'hunt', what: sp, n, text: 'Hunt ' + n + ' ' + QUEST_NAMES[sp] }; });
   opts.push(() => { const t = pick(['log', 'log', 'fish'].concat(th >= 2 ? ['stone'] : [], S.pick ? ['ore'] : [])); const n = { log: 40, fish: 12, stone: 30, ore: 12 }[t] * th; return { type: 'gather', what: t, n, text: (t === 'fish' ? 'Catch ' : 'Collect ') + n + ' ' + QUEST_NAMES[t] }; });
-  const near = wildCamps.filter(c => !c.open && !c.elite && c.tier <= th);
+  const pl = Math.min(4, Math.floor((S.lvl - 1) / 6) + (th >= 3 ? 1 : 0));   // the hero's power band: 0 at the start, rising with hero level and Town Hall
+  const near = wildCamps.filter(c => !c.open && !c.elite && c.tier <= Math.min(pl, 2));
   if (near.length) opts.push(() => { const k = pick(near).kind, n = 3 + th * 2; return { type: 'slay', what: k, n, text: 'Defeat ' + n + ' ' + QUEST_NAMES[k] }; });
   opts.push(() => { const n = Math.min(3, th); return { type: 'clear', what: 1, n, text: 'Clear ' + n + ' monster camp' + (n > 1 ? 's' : '') }; });
-  opts.push(() => { const pool = LEGENDS.filter(l => l[3] <= 120 + th * 70); const L = pick(pool.length ? pool : LEGENDS.slice(0, 2));
+  if (S.lvl >= 5 || th >= 2) opts.push(() => { const pool = LEGENDS.filter(l => l[3] <= 90 + pl * 60); const L = pick(pool.length ? pool : LEGENDS.slice(0, 2));
     return { type: 'elite', what: L[1], n: 1, kind: L[0], r0: L[3], r1: L[4], text: 'Slay ' + L[1] + ' and bring back ' + L[2] }; });
-  const q = pick(opts)(); q.have = 0; q.tier = Math.min(4, th - 1 + (q.type === 'elite' ? 1 : 0) + (q.type === 'clear' ? 1 : 0));
+  const q = pick(opts)(); q.have = 0; q.tier = Math.min(4, pl + (q.type === 'elite' ? 1 : 0));
   q.gold = [40, 90, 180, 300, 450][q.tier]; S.quest = q;
   if (q.type === 'elite') spawnLegend(q);
   banner('New quest', true, q.text); play('chime'); renderQuest();
