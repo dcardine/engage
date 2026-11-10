@@ -59,6 +59,7 @@ html,body{height:100%;margin:0;background:var(--ice);color:var(--ink);overflow:h
 #res .chip:not(#cCash){pointer-events:auto;cursor:pointer}
 .wtag{background:#2b4a74;color:#fff}.wtag.full{background:#5c6b80}
 .ward{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 8px}.ward b{width:44px;font:800 13px var(--body)}.ward button{border:2px solid #c9d6e8;background:#fff;border-radius:9px;padding:6px 9px;font:800 13px var(--body);color:var(--ink);cursor:pointer}.ward button[aria-pressed=true]{border-color:#2b4a74;background:#2b4a74;color:#fff}
+.ptag{pointer-events:auto;cursor:pointer}.ptag.locked{background:#7a2a2a}
 .chip.off{opacity:.45}.chip.off span{text-decoration:line-through}
 #cog{pointer-events:auto;width:46px;height:46px;border-radius:50%;border:1px solid var(--panel-line);background:var(--panel);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
 #menu{position:fixed;inset:0;z-index:21;display:flex;align-items:center;justify-content:center;background:rgba(16,26,44,.6);padding:0 16px}
@@ -1848,7 +1849,8 @@ function makePile(type, x, z, label) {
   P.g = grp(x, z); P.g.visible = false;
   const base = mk(Box(2, 0.1, 2), 0x6b4a2d, false, true); base.position.y = 0.05; P.g.add(base);
   for (let i = 0; i < 48; i++) { const m = itemMesh(type), layer = Math.floor(i / 12), k = i % 12; m.position.set(-0.66 + (k % 4) * 0.44, 0.18 + layer * ITEM_H[type] * 1.1, -0.5 + Math.floor(k / 4) * 0.5); m.visible = false; P.g.add(m); P.pool.push(m); }
-  P.tag = document.createElement('div'); P.tag.className = 'tag'; P.tag.hidden = true; ov.appendChild(P.tag);
+  P.tag = document.createElement('div'); P.tag.className = 'tag ptag'; P.tag.hidden = true; ov.appendChild(P.tag);
+  P.tag.addEventListener('pointerdown', e => { e.stopPropagation(); P.locked = !P.locked; note(P.locked ? P.label + ' pile locked: haulers leave it alone' : P.label + ' pile unlocked: haulers can use it'); play('pay'); });
   piles.push(P); return P;
 }
 function openPile(P) { P.on = true; P.g.visible = true; }
@@ -2053,7 +2055,7 @@ function specialWorker(w, dt) {
   const home = WORKER_HOME[w.role], go = (x, z) => { if (d2(w.x, w.z, x, z) > 0.3) { walkTo(w, x, z, w.R.speed, dt); return true; } return false; };
   if (w.role === 'hauler') {
     if (!w.items.length) {
-      const jobs = [[woodPile, fireStall]].concat(cookStall.unlocked ? [[meatPile, cookStall], [fishPile, cookStall], [gardenPile, cookStall]] : []).filter(([P]) => P.on && P.n > 0);
+      const jobs = [[woodPile, fireStall]].concat(cookStall.unlocked ? [[meatPile, cookStall], [fishPile, cookStall], [gardenPile, cookStall]] : []).filter(([P]) => P.on && P.n > 0 && !P.locked);
       // whichever supply is lower gets served first
       jobs.sort((a, b) => (a[1].supply === 'warm' ? S.warm / warmCap() : S.food / foodCap()) - (b[1].supply === 'warm' ? S.warm / warmCap() : S.food / foodCap()) || b[0].n - a[0].n);
       const job = jobs[0]; if (!job) return go(home[0], home[1]);
@@ -3040,7 +3042,7 @@ function update(dt) {
   /* --- resource piles: stand on one to load your pack --- */
   for (const Pl of piles) {
     if (!Pl.on) continue;
-    Pl.tag.hidden = false; Pl.tag.textContent = Pl.label + ' ' + Pl.n + '/' + pileCap() + (Pl.n >= pileCap() ? ' · FULL' : ''); place(Pl.tag, Pl.x, 2.2, Pl.z);
+    Pl.tag.hidden = false; Pl.tag.textContent = (Pl.locked ? '\ud83d\udd12 ' : '') + Pl.label + ' ' + Pl.n + '/' + pileCap() + (Pl.n >= pileCap() ? ' · FULL' : ''); Pl.tag.classList.toggle('locked', !!Pl.locked); place(Pl.tag, Pl.x, 2.2, Pl.z);
     Pl.T -= dt; if (Pl.T < -0.2) Pl.T = 0;
     for (let n = 0; n < 5 && S.downT <= 0 && Pl.T <= 0 && Pl.n > 0 && !S.noCollect[Pl.type] && d2(player.x, player.z, Pl.x, Pl.z) < 2 && room() > 0; n++) {
       Pl.T += 0.035; Pl.n--; syncPile(Pl);
@@ -4352,7 +4354,7 @@ function saveGame() {
     pads: pads.map(p => [p.level, p.done ? 1 : 0, p.paid]), padsById: Object.fromEntries(pads.filter(p => p.id).map(p => [p.id, [p.level, p.done ? 1 : 0, p.paid]])),
     rings: rings.map(r => [r.active ? 1 : 0, r.complete ? 1 : 0, r.segs.map(sg => [sg.built ? 1 : 0, Math.round(sg.hp), sg.broken ? 1 : 0, sg.stone ? 1 : 0])]),
     workers: workers.map(w => w.role), guards: guards.length,
-    fog: fogSave(), fogN: FOG_N, towers: towers.map(t => t.pad.level), piles: piles.map(Pl => Pl.n), pallets: pallets.map(P => P.amount), stock: stalls.map(st => st.stock),
+    fog: fogSave(), fogN: FOG_N, towers: towers.map(t => t.pad.level), piles: piles.map(Pl => Pl.n), pileLocks: piles.map(Pl => Pl.locked ? 1 : 0), pallets: pallets.map(P => P.amount), stock: stalls.map(st => st.stock),
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
 }
@@ -4394,6 +4396,7 @@ function loadGame() {
     (S.ruins || []).forEach(i => { const ru = RUINS[i]; if (ru) { ru.opened = true; ru.chest.visible = ru.band.visible = false; } });
     (S.loot || []).forEach(i => { const L = LOOT[i]; if (L && !L.opened) { L.opened = true; scene.remove(L.g); } });
     (d.piles || []).forEach((n, i) => { if (piles[i]) { piles[i].n = n; syncPile(piles[i]); } });
+    (d.pileLocks || []).forEach((v, i) => { if (piles[i]) piles[i].locked = !!v; });
     d.pallets.forEach((a, i) => { if (pallets[i]) { pallets[i].amount = a; syncPallet(pallets[i]); } });
     d.stock.forEach((n, i) => { const st = stalls[i]; if (!st) return; st.stock = n; for (let k = 0; k < Math.min(n, 32); k++) { const cm = itemMesh(st.type); cm.position.copy(counterSlot(st, k)); scene.add(cm); st.counter.push(cm); } for (let k = 32; k < n; k++) st.counter.push(null); });
     player.x = d.player[0]; player.z = d.player[1];
@@ -4466,7 +4469,9 @@ applyHud();
 SND_CATS.forEach(([k, label]) => { const l = document.createElement('label'); l.innerHTML = '<input type="checkbox"> ' + label; const cb = l.firstChild; cb.checked = SND_ON[k] !== false;
   cb.addEventListener('change', () => { SND_ON[k] = cb.checked; try { localStorage.setItem('frosthold-sfx', JSON.stringify(SND_ON)); } catch (e) {} if (cb.checked) { unlockAudio(); } }); $('sndList').appendChild(l); });
 $('paused').addEventListener('click', () => setPaused(false));
-window.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'Escape') setPaused(!paused); });
+window.addEventListener('keydown', e => { if (e.key === 'p' || e.key === 'Escape') setPaused(!paused);
+  const t = { '1': 'log', '2': 'stone', '3': 'meat', '4': 'ore' }[e.key];
+  if (t && !e.target.closest('input')) { S.noCollect[t] = !S.noCollect[t]; syncToggles(); note(S.noCollect[t] ? 'Not collecting ' + PLURAL[t] : 'Collecting ' + PLURAL[t]); } });
 function frame(now) {
   let dt = Math.min(0.15, (now - last) / 1000); last = now;
   if (paused && !NET.room) dt = 0;   // in co-op the shared world can't stop: pausing only covers your screen

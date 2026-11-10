@@ -67,6 +67,7 @@ At **Castle III** the final battles begin: each night brings a **dragon siege** 
 ## Workers
 - **Loggers, hunters, stonecutters and miners** gather on their own and stack what they collect on a pile beside their lodge. Stand on a pile to load your pack. Piles hold 80, or 300 after the Warehouse.
 - **Hunters** stay near the settlement and hunt rabbits and deer.
+- **Tap a pile's label** to lock it (a padlock shows): haulers won't take from a locked pile, so you can save it for building. Tap again to unlock.
 - **Haulers** carry logs to the firewood stall and food to the cookhouse, serving whichever meter is lower first.
 - **Menders** walk the walls and repair damaged sections.
 - Each building shows how many of its workers you have (for example **Loggers 2/3**). A hire space disappears when you can't hire more; it returns when the next Town Hall or Castle level raises the limit.
@@ -122,6 +123,7 @@ Twelve cave entrances lie 200–315 m out (purple squares on the minimap). Tap *
 
 ## Screen and menu
 ![The cog menu](assets/help/menu.jpg)
+- On a keyboard, **1–4** turn collecting on or off: 1 wood, 2 stone, 3 food, 4 crystal.
 - Tap a resource counter to **drop** it (all or 10) or **stop collecting** it. While collecting is off you still chop, mine and hunt, but nothing of that kind goes into your pack, and you can't load it from piles.
 - The **cog** (bottom left) holds Help, Tutorial, Co-op, Hero, Pause, Sound and New game, switches to hide the goal, quest, town gauges, resources or minimap, and a switch for each kind of sound.
 
